@@ -152,3 +152,45 @@
 .account-import .library-subtle{background:#f7f8f5}
 .account-panel #account-status{margin-top:20px}
 #send-login:disabled{cursor:not-allowed}
+
+/* Named Collections: group linked inspiration records without copying images. */
+.collections-create{display:flex;align-items:end;justify-content:space-between;gap:22px;flex-wrap:wrap;margin:16px 0 25px}
+.collections-create h2,.collection-view-heading h2{font-size:27px;letter-spacing:-.06em;font-weight:630;margin:0 0 7px}
+.collections-create p{font-size:12px;color:#798078;line-height:1.65;margin:0;max-width:440px}
+.collections-create-form{display:flex;gap:8px;flex-wrap:wrap}
+.collections-create-form input,.collection-rename input,.collection-editor input,.collection-editor select{min-height:43px;border:1px solid #dfe3dc;border-radius:3px;background:white;color:#222922;padding:10px 12px;font-size:13px}
+.collections-create-form input{width:min(245px,65vw)}
+.collections-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+.collection-card{border:1px solid #e3e7e1;background:#fff;border-radius:3px;display:flex;align-items:flex-start;text-align:left;flex-direction:column;gap:11px;padding:22px;min-height:187px;cursor:pointer;color:#282d28}
+.collection-card:hover,.collection-card:focus-visible{border-color:#949f91;background:#f9faf8}
+.collection-icon{font-size:22px;color:#879186;line-height:1}
+.collection-card strong{font-size:17px;line-height:1.35;letter-spacing:-.025em;overflow-wrap:anywhere}
+.collection-card-meta{color:#8b938b;font-size:11px;line-height:1.65}
+.collection-card-arrow{font-size:11px;font-weight:730;margin-top:auto}
+.collection-view-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;margin:23px 0 15px}
+.collection-view-heading .library-actions{margin:0;align-items:center}
+.collection-rename{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.collection-rename input{width:min(210px,60vw)}
+.collection-section{margin:25px 0 32px}
+.collection-section>h3{font-size:17px;letter-spacing:-.035em;border-bottom:1px solid var(--line);padding-bottom:13px;margin:0 0 17px}
+.collection-empty{background:#fff;border:1px solid var(--line);padding:30px;margin:24px 0}
+.collection-empty h3{font-size:22px;letter-spacing:-.04em;margin:0 0 8px}
+.collection-empty p{font-size:12px;line-height:1.7;color:#767e76}
+.collection-control{position:relative;min-width:0;max-width:100%}
+.collection-picker-button{border:1px solid #e1e4dd;border-radius:3px;background:#f7f8f6;padding:8px 11px;color:#455047;font-weight:690;font-size:11px;cursor:pointer;max-width:100%;white-space:normal;text-align:left}
+.collection-picker-button:hover{background:#edf0e9}
+.collection-editor{display:grid;grid-template-columns:minmax(140px,1fr);gap:9px;min-width:min(275px,calc(100vw - 60px));padding:13px;background:#fff;border:1px solid #e5e9e2;box-shadow:0 4px 15px rgba(0,0,0,.06);margin-top:9px;position:relative;z-index:4}
+.collection-editor select{min-width:0;width:100%;cursor:pointer}
+.collection-editor input[hidden]{display:none}
+.collection-editor-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.collection-editor-actions .library-primary{padding:10px 14px}
+@media(max-width:850px){.collections-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){
+ .collections-grid{grid-template-columns:1fr}
+ .collection-card{min-height:145px;padding:19px}
+ .collections-create-form,.collections-create-form input{width:100%}
+ .collection-view-heading{align-items:flex-start}
+ .collection-view-heading .library-actions{width:100%}
+ .collection-rename,.collection-rename input{width:100%}
+ .collection-editor{min-width:min(275px,calc(100vw - 65px))}
+}
