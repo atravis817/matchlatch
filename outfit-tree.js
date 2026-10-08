@@ -26,6 +26,7 @@ const node=(tag,cls,text)=>{
 const button=(text,onClick,cls)=>{const b=node("button",cls,text);b.type="button";b.addEventListener("click",onClick);return b;};
 const catalogs={};const FRESH_MS=60000;
 let budget=200,prefs={},inspiration=null,session=0,anchor="",shopSlot=null;
+let autoSlots=["shirt","pants","shoes"];
 const slotById=id=>SLOTS.find(x=>x.id===id);
 const stateFor=id=>catalogs[id]||(catalogs[id]={options:[],selected:null,query:"",loading:false,message:""});
 const slotForItem=data=>{
@@ -93,6 +94,9 @@ function init(data,profile,savedSelections){
  for(const key of Object.keys(catalogs))delete catalogs[key];
  inspiration=data;prefs=profile||{};budget=Math.max(25,Math.min(10000,Number(prefs.budget)||200));
  anchor=slotForItem(data);
+ const needsJacket=/formal|business|office|work|wedding|gala|cold|cool|rain|winter|autumn|fall/i
+   .test(String(prefs.occasion||"")+" "+String(prefs.climate||""));
+ autoSlots=needsJacket?["jacket","shirt","pants","shoes"]:["shirt","pants","shoes"];
  const card=document.querySelector(".results-card");
  if(!card)return;
  let mount=$("outfit-tree");
@@ -129,7 +133,7 @@ function init(data,profile,savedSelections){
        }finally{if(session===generation){current.loading=false;render();}}
      }
    }
-   for(const slot of ["shirt","pants","shoes"]){
+   for(const slot of autoSlots){
      if(session!==generation)return;
      if(slot===anchor||stateFor(slot).selected)continue;
      await fetchOptions(slot,true);
@@ -188,7 +192,10 @@ async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
  if(!slot||slotId===anchor||state.loading)return;
  const max=Math.max(0,remaining(slotId));
  if(max<1){state.message="Budget fully allocated.";render();return;}
- const cap=auto?Math.min(max,Math.max(3,Math.floor(budget*slot.weight))):max;
+ const shares=autoSlots.includes("jacket")
+   ? {jacket:.27,shirt:.19,pants:.24,shoes:.24}
+   : {shirt:.26,pants:.33,shoes:.35};
+ const cap=auto?Math.min(max,Math.max(3,Math.floor(budget*(shares[slotId]||slot.weight)))):max;
  const query=custom||state.query||queryFor(slotId);
  state.loading=true;state.message="";render();if(shopSlot===slotId)renderDrawer();
  const current=session;
