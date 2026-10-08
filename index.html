@@ -75,7 +75,9 @@
     .beta-details,.extra-details{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
     .extra-details{margin-top:16px}
     .extra-details .extra-grid{margin-top:19px}
-    .size-helper{font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0 4px}
+    .size-group-title{grid-column:1/-1;border-bottom:1px solid var(--line);padding:19px 0 9px;color:#4d534d;font-size:11px;font-weight:750;letter-spacing:.04em}
+    .size-group-title:first-of-type{padding-top:11px}
+        .size-helper{font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0 4px}
     .extra-details summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;font-size:12px;font-weight:650}
     .extra-details summary::-webkit-details-marker{display:none}
     .extra-details summary:after{content:"+";font-size:20px;font-weight:400;color:#8a8e89}
@@ -341,16 +343,53 @@
           </div>
         </details>
         <details class="extra-details size-details">
-          <summary><span>Your sizes</span><small>Optional · for better size-aware styling</small></summary>
-          <p class="size-helper">Add only what applies to you. Retailer sizes vary; MATCHLATCH does not verify fit or in-stock sizes yet.</p>
+          <summary><span>Your sizes</span><small>Optional · men’s, women’s &amp; unisex</small></summary>
+          <p class="size-helper">Set sizes for the categories you wear. Each category has its own sizing system—your clothing style does not determine your sizes. Brand fits vary, so these are search preferences rather than verified fit recommendations.</p>
           <div class="field-grid extra-grid">
-            <label class="field"><span>Tops &amp; outerwear</span><select id="topSize"><option value="">Not specified</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>3XL</option><option>4XL</option><option>5XL</option><option>6XL</option><option>One size</option></select></label>
-            <label class="field"><span>Bottoms / dresses</span><select id="bottomSize"><option value="">Not specified</option><optgroup label="Letter sizes"><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>3XL</option><option>4XL</option><option>5XL</option><option>6XL</option></optgroup><optgroup label="US numeric"><option value="US 00">US 00</option><option value="US 0">US 0</option><option value="US 2">US 2</option><option value="US 4">US 4</option><option value="US 6">US 6</option><option value="US 8">US 8</option><option value="US 10">US 10</option><option value="US 12">US 12</option><option value="US 14">US 14</option><option value="US 16">US 16</option><option value="US 18">US 18</option><option value="US 20">US 20</option><option value="US 22">US 22</option><option value="US 24">US 24</option><option value="US 26">US 26</option><option value="US 28">US 28</option><option value="US 30">US 30</option></optgroup><optgroup label="UK numeric"><option value="UK 4">UK 4</option><option value="UK 6">UK 6</option><option value="UK 8">UK 8</option><option value="UK 10">UK 10</option><option value="UK 12">UK 12</option><option value="UK 14">UK 14</option><option value="UK 16">UK 16</option><option value="UK 18">UK 18</option><option value="UK 20">UK 20</option><option value="UK 22">UK 22</option><option value="UK 24">UK 24</option><option value="UK 26">UK 26</option><option value="UK 28">UK 28</option><option value="UK 30">UK 30</option><option value="UK 32">UK 32</option></optgroup><optgroup label="EU numeric"><option value="EU 32">EU 32</option><option value="EU 34">EU 34</option><option value="EU 36">EU 36</option><option value="EU 38">EU 38</option><option value="EU 40">EU 40</option><option value="EU 42">EU 42</option><option value="EU 44">EU 44</option><option value="EU 46">EU 46</option><option value="EU 48">EU 48</option><option value="EU 50">EU 50</option><option value="EU 52">EU 52</option><option value="EU 54">EU 54</option><option value="EU 56">EU 56</option><option value="EU 58">EU 58</option><option value="EU 60">EU 60</option></optgroup></select></label>
+            <label class="field"><span>Preferred sizing category</span>
+              <select id="sizeAudience"><option>Unisex</option><option>Men's</option><option>Women's</option><option>Mixed / depends on the item</option></select>
+            </label>
+            <div class="size-group-title">Tops &amp; outerwear</div>
+            <label class="field"><span>Sizing system</span><select id="topSystem">
+              <option>Unisex alpha</option><option>Men's alpha</option><option>Women's alpha</option>
+              <option>Men's US chest (in)</option><option>Women's US numeric</option><option>Women's UK numeric</option><option>Women's EU numeric</option>
+            </select></label>
+            <label class="field"><span>Top / jacket size</span><select id="topSize"><option value="">Not specified</option></select></label>
+            <div class="size-group-title">Pants, jeans &amp; shorts</div>
+            <label class="field"><span>Sizing system</span><select id="bottomSystem">
+              <option>Unisex alpha</option><option>Men's alpha</option><option>Women's alpha</option>
+              <option>Men's waist (in)</option><option>Women's US numeric</option><option>Women's UK numeric</option><option>Women's EU numeric</option>
+            </select></label>
+            <label class="field"><span>Bottom size</span><select id="bottomSize"><option value="">Not specified</option></select></label>
             <label class="field"><span>Waist (inches)</span><select id="waist"><option value="">Not specified</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option><option>32</option><option>33</option><option>34</option><option>35</option><option>36</option><option>37</option><option>38</option><option>39</option><option>40</option><option>41</option><option>42</option><option>43</option><option>44</option><option>45</option><option>46</option><option>47</option><option>48</option><option>49</option><option>50</option><option>51</option><option>52</option><option>53</option><option>54</option><option>55</option><option>56</option><option>57</option><option>58</option></select></label>
             <label class="field"><span>Inseam (inches)</span><select id="inseam"><option value="">Not specified</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option><option>32</option><option>33</option><option>34</option><option>35</option><option>36</option><option>37</option><option>38</option><option>39</option><option>40</option></select></label>
-            <label class="field"><span>Shoe sizing system</span><select id="shoeSystem"><option>US men's</option><option>US women's</option><option>UK</option><option>EU</option></select></label>
-            <label class="field"><span>Shoe size</span><select id="shoeSize"><option value="">Not specified</option></select></label>
-            <label class="field"><span>Shoe width</span><select id="shoeWidth"><option value="">Not specified</option><option>Narrow</option><option>Standard</option><option>Wide</option><option>Extra wide</option></select></label>
+            <div class="size-group-title">Dresses, jumpsuits &amp; sets</div>
+            <label class="field"><span>Sizing system</span><select id="dressSystem">
+              <option>Unisex alpha</option><option>Women's alpha</option><option>US numeric</option><option>UK numeric</option><option>EU numeric</option>
+            </select></label>
+            <label class="field"><span>One-piece size</span><select id="dressSize"><option value="">Not specified</option></select></label>
+            <div class="size-group-title">Sneakers, shoes &amp; boots</div>
+            <label class="field"><span>Sizing system</span><select id="shoeSystem">
+              <option>US men's</option><option>US women's</option><option>US unisex (men's scale)</option>
+              <option>UK</option><option>EU</option><option>JP / CM</option>
+            </select></label>
+            <label class="field"><span>Sneaker / shoe size</span><select id="shoeSize"><option value="">Not specified</option></select></label>
+            <label class="field"><span>Footwear width</span><select id="shoeWidth">
+              <option value="">Not specified</option><option>Narrow</option><option>Standard</option><option>Wide</option><option>Extra wide</option>
+            </select></label>
+            <div class="size-group-title">Hats, caps &amp; headwear</div>
+            <label class="field"><span>Sizing system</span><select id="hatSystem">
+              <option>Unisex / adjustable</option><option>Alpha</option><option>US fitted</option><option>Head circumference (cm)</option><option>Head circumference (in)</option>
+            </select></label>
+            <label class="field"><span>Hat size</span><select id="hatSize"><option value="">Not specified</option></select></label>
+            <div class="size-group-title">Accessories</div>
+            <label class="field"><span>Belt sizing system</span><select id="beltSystem"><option>Unisex alpha</option><option>Inches</option><option>Centimeters</option></select></label>
+            <label class="field"><span>Belt size</span><select id="beltSize"><option value="">Not specified</option></select></label>
+            <label class="field"><span>Glove size</span><select id="gloveSize"><option value="">Not specified</option>
+              <option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option>
+            </select></label>
+            <label class="field"><span>Ring size system</span><select id="ringSystem"><option>US</option><option>UK</option><option>EU circumference (mm)</option></select></label>
+            <label class="field"><span>Ring size</span><select id="ringSize"><option value="">Not specified</option></select></label>
           </div>
         </details>
         <label class="field full"><span>Personal notes</span><textarea id="notes" maxlength="260" placeholder="Minimal, oversized, mostly neutrals. No large logos..."></textarea></label>
@@ -404,43 +443,84 @@
     (function () {
       "use strict";
       const $ = id => document.getElementById(id);
-      const storedFields = ["look","fit","occasion","budget","notes","aesthetic","palette","coordination","climate","topSize","bottomSize","waist","inseam","shoeSystem","shoeSize","shoeWidth"];
+      const storedFields = ["look","fit","occasion","budget","notes","aesthetic","palette","coordination","climate","sizeAudience","topSystem","topSize","bottomSystem","bottomSize","waist","inseam","dressSystem","dressSize","shoeSystem","shoeSize","shoeWidth","hatSystem","hatSize","beltSystem","beltSize","gloveSize","ringSystem","ringSize"];
       let imageData = null;
       let imageUrl = null;
-      const defaults = {look:"Unisex",fit:"Relaxed",occasion:"Everyday",budget:"200",notes:"",aesthetic:"No preference",palette:"No preference",coordination:"Balance / let AI decide",climate:"Any season",topSize:"",bottomSize:"",waist:"",inseam:"",shoeSystem:"US men's",shoeSize:"",shoeWidth:""};
+      const defaults = {look:"Unisex",fit:"Relaxed",occasion:"Everyday",budget:"200",notes:"",aesthetic:"No preference",palette:"No preference",coordination:"Balance / let AI decide",climate:"Any season",sizeAudience:"Unisex",topSystem:"Unisex alpha",topSize:"",bottomSystem:"Unisex alpha",bottomSize:"",waist:"",inseam:"",dressSystem:"Unisex alpha",dressSize:"",shoeSystem:"US men's",shoeSize:"",shoeWidth:"",hatSystem:"Unisex / adjustable",hatSize:"",beltSystem:"Unisex alpha",beltSize:"",gloveSize:"",ringSystem:"US",ringSize:""};
 
       function setStatus(message) { $("status").textContent = message; }
       function money(value) { return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(value); }
       function profile() {
-        return {look:$("look").value,fit:$("fit").value,occasion:$("occasion").value,budget:Math.max(25,Math.min(10000,Number($("budget").value)||200)),notes:$("notes").value.trim(),aesthetic:$("aesthetic").value,palette:$("palette").value,coordination:$("coordination").value,climate:$("climate").value,topSize:$("topSize").value,bottomSize:$("bottomSize").value,waist:$("waist").value,inseam:$("inseam").value,shoeSystem:$("shoeSystem").value,shoeSize:$("shoeSize").value,shoeWidth:$("shoeWidth").value};
+        return {look:$("look").value,fit:$("fit").value,occasion:$("occasion").value,budget:Math.max(25,Math.min(10000,Number($("budget").value)||200)),notes:$("notes").value.trim(),aesthetic:$("aesthetic").value,palette:$("palette").value,coordination:$("coordination").value,climate:$("climate").value,sizeAudience:$("sizeAudience").value,topSystem:$("topSystem").value,topSize:$("topSize").value,bottomSystem:$("bottomSystem").value,bottomSize:$("bottomSize").value,waist:$("waist").value,inseam:$("inseam").value,dressSystem:$("dressSystem").value,dressSize:$("dressSize").value,shoeSystem:$("shoeSystem").value,shoeSize:$("shoeSize").value,shoeWidth:$("shoeWidth").value,hatSystem:$("hatSystem").value,hatSize:$("hatSize").value,beltSystem:$("beltSystem").value,beltSize:$("beltSize").value,gloveSize:$("gloveSize").value,ringSystem:$("ringSystem").value,ringSize:$("ringSize").value};
       }
-      const makeShoeOptions = (system, previous = "") => {
-        const el=$("shoeSize");
-        el.replaceChildren(new Option("Not specified",""));
-        const [start,end,step] = system === "EU" ? [34,50,1] : system === "UK" ? [2,15,.5] : [4,17,.5];
-        for (let size=start;size<=end+.001;size+=step) {
-          const display=Number(size.toFixed(1)).toString();
-          el.add(new Option(display,display));
-        }
-        if ([...el.options].some(o=>o.value===previous)) el.value=previous;
+      // User-selected sizing systems are independent of style expression.
+      // We do not automatically convert sizes between retailers or gendered charts.
+      const alpha = ["XXS","XS","S","M","L","XL","XXL","3XL","4XL","5XL","6XL"];
+      const numeric = (from,to,step=1) => Array.from({length:Math.round((to-from)/step)+1},(_,i)=>
+        String(Number((from+i*step).toFixed(2))));
+      const systems = {
+        "Unisex alpha":alpha,"Men's alpha":alpha,"Women's alpha":alpha,
+        "Men's US chest (in)":numeric(32,64,1),
+        "Men's waist (in)":numeric(22,60),
+        "Women's US numeric":["00","0",...numeric(2,34,2)],
+        "Women's UK numeric":numeric(4,36,2),
+        "Women's EU numeric":numeric(32,62,2),
+        "US numeric":["00","0",...numeric(2,34,2)],
+        "UK numeric":numeric(4,36,2),"EU numeric":numeric(32,62,2),
+        "US men's":numeric(3,18,.5),"US women's":numeric(4,18,.5),
+        "US unisex (men's scale)":numeric(3,18,.5),
+        "UK":numeric(2,16,.5),"EU":numeric(33,52),
+        "JP / CM":numeric(20,33,.5),
+        "Unisex / adjustable":["One size","Adjustable"],
+        "Alpha":alpha,
+        "Head circumference (cm)":numeric(48,66),
+        "Head circumference (in)":numeric(19,26,.25),
+        "Inches":numeric(24,60,2),"Centimeters":numeric(65,150,5),
+        "US":numeric(3,16,.5),
+        "EU circumference (mm)":numeric(44,76),
       };
-      let saved = {};
-      try { saved = JSON.parse(localStorage.getItem("matchlatch-style-v1") || "{}") || {}; } catch {}
-      storedFields.filter(id=>id!=="shoeSize").forEach(id => {
-        const el=$(id);
-        const value=saved[id] === undefined ? defaults[id] : saved[id];
-        el.value = el.tagName === "SELECT" && ![...el.options].some(o=>o.value===String(value))
-          ? defaults[id] : value;
+      systems["US fitted"]=Array.from({length:19},(_,i)=>{
+        const eighths=52+i; const whole=Math.floor(eighths/8);
+        const remainder=eighths%8;
+        const fractions=["","1/8","1/4","3/8","1/2","5/8","3/4","7/8"];
+        return whole+(remainder?" "+fractions[remainder]:"");
       });
-      makeShoeOptions($("shoeSystem").value, saved.shoeSize || "");
-      const saveProfile=()=>{
-        try { localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile())); } catch {}
+      systems["UK"]=numeric(2,16,.5);
+      // Ring UK uses alphabetical sizes, while UK footwear uses numeric.
+      const optionsFor=(systemId,system)=>{
+        if(systemId==="ringSystem"&&system==="UK")return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        return systems[system] || alpha;
       };
-      storedFields.forEach(id => $(id).addEventListener("change",saveProfile));
+      const dynamicPairs=[
+        ["topSystem","topSize"],["bottomSystem","bottomSize"],["dressSystem","dressSize"],
+        ["shoeSystem","shoeSize"],["hatSystem","hatSize"],["beltSystem","beltSize"],["ringSystem","ringSize"]
+      ];
+      const fillSizeOptions=(systemId,sizeId,previous="")=>{
+        const sel=$(sizeId);
+        sel.replaceChildren(new Option("Not specified",""));
+        const system=$(systemId).value;
+        for(const size of optionsFor(systemId,system))sel.add(new Option(size,size));
+        if([...sel.options].some(o=>o.value===previous))sel.value=previous;
+      };
+      let saved={};
+      try {saved=JSON.parse(localStorage.getItem("matchlatch-style-v1") || "{}") || {};}catch{}
+      const dynamicSizes=new Set(dynamicPairs.map(pair=>pair[1]));
+      storedFields.filter(id=>!dynamicSizes.has(id)).forEach(id=>{
+        const el=$(id);
+        const value=saved[id]===undefined?defaults[id]:saved[id];
+        el.value=el.tagName==="SELECT"&&![...el.options].some(o=>o.value===String(value))?defaults[id]:value;
+      });
+      for(const [system,size] of dynamicPairs)fillSizeOptions(system,size,saved[size] || "");
+      const saveProfile=()=>{
+        try{localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile()));}catch{}
+      };
+      storedFields.forEach(id=>$(id).addEventListener("change",saveProfile));
       ["budget","notes"].forEach(id=>$(id).addEventListener("input",saveProfile));
-      $("shoeSystem").addEventListener("change",()=>{
-        makeShoeOptions($("shoeSystem").value);
-        saveProfile();
+      dynamicPairs.forEach(([system,size])=>{
+        $(system).addEventListener("change",()=>{
+          fillSizeOptions(system,size);
+          saveProfile();
+        });
       });
 
       async function loadImage(file) {
@@ -515,8 +595,13 @@
           palette(color);
         const sizeForType = type => {
           if (/shoe/i.test(type)) return p.shoeSize ? p.shoeSystem+" "+p.shoeSize : "";
-          if (/bottom/i.test(type)) return p.waist ? "W"+p.waist+(p.inseam? " L"+p.inseam:"") : p.bottomSize ? "size "+p.bottomSize : "";
-          if (/top|outerwear/i.test(type)) return p.topSize ? "size "+p.topSize : "";
+          if (/bottom/i.test(type)) return p.waist ? "W"+p.waist+(p.inseam? " L"+p.inseam:"") : p.bottomSize ? p.bottomSystem+" "+p.bottomSize : "";
+          if (/dress|jumpsuit|one.piece/i.test(type)) return p.dressSize ? p.dressSystem+" "+p.dressSize : "";
+          if (/top|outerwear/i.test(type)) return p.topSize ? p.topSystem+" "+p.topSize : "";
+          if (/hat|cap|headwear/i.test(type)) return p.hatSize ? p.hatSystem+" "+p.hatSize : "";
+          if (/belt/i.test(type)) return p.beltSize ? p.beltSystem+" "+p.beltSize : "";
+          if (/glove/i.test(type)) return p.gloveSize ? "glove "+p.gloveSize : "";
+          if (/ring/i.test(type)) return p.ringSize ? p.ringSystem+" ring "+p.ringSize : "";
           return "";
         };
         const pieces = choices[category].map((type,index) => ({
