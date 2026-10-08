@@ -179,7 +179,7 @@ async function fetchOptions(slotId,auto=false,custom=""){
   if(!response.ok)throw Error(data.error||"Live catalog unavailable");
   state.options=Array.isArray(data.items)?data.items.filter(x=>x.available&&x.price<=cap):[];
   state.query=query;
-  if(state.options.length&&!state.selected)select(slotId,0,false);
+  if(state.options.length&&!state.selected)select(slotId,0,true);
   if(!state.options.length)state.message=auto?"No verified option in this allocation. Open Private Shop to broaden.":"No available items found in this size and budget.";
  }catch(e){if(current===session)state.message=e.message||"Catalog temporarily unavailable";}
  finally{if(current===session){state.loading=false;render();if(shopSlot===slotId)renderDrawer();}}
