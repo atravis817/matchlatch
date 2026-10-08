@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f8f8f6">
   <meta name="description" content="MATCHLATCH. Your style, unlocked. Find what works with the pieces you love.">
   <title>MATCHLATCH — Your style, unlocked.</title>
+  <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
   <style>
     :root{
       color-scheme:light;
@@ -139,12 +140,29 @@
       .results-head h2{font-size:38px}
     }
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+    /* MATCHLATCH identity: open lock, negative-space M, trailing size tag */
+    .brand.brand-lockup{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--ink);white-space:nowrap}
+    .brand-lockup .brand-mark{display:block;width:78px;height:53px;object-fit:contain;flex:0 0 auto}
+    .brand-lockup .brand-wordmark{font-size:20px;font-weight:820;letter-spacing:-.063em;line-height:1}
+    .brand-lockup .brand-wordmark span{font-weight:400}
+    .footer .brand-lockup .brand-mark{width:66px;height:45px}
+    .footer .brand-lockup .brand-wordmark{font-size:17px}
+    @media(max-width:500px){
+      .brand-lockup .brand-mark{width:56px;height:43px}
+      .brand-lockup .brand-wordmark{font-size:16px}
+      .footer .brand-lockup .brand-mark{width:56px;height:40px}
+      .footer .brand-lockup .brand-wordmark{font-size:16px}
+    }
   </style>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="/" aria-label="MATCHLATCH home">MATCH<span>LATCH</span></a>
+      <a class="brand brand-lockup" href="/" aria-label="MATCHLATCH home">
+        <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
+        <span class="brand-wordmark">MATCH<span>LATCH</span></span>
+      </a>
       <div class="header-side"><a href="#studio">The studio</a><span class="beta-label">PRIVATE BETA</span></div>
     </div>
   </header>
@@ -248,7 +266,10 @@
   </main>
   <footer class="footer">
     <div class="container footer-inner">
-      <a class="brand" href="/" aria-label="MATCHLATCH home">MATCH<span>LATCH</span></a>
+      <a class="brand brand-lockup" href="/" aria-label="MATCHLATCH home">
+        <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
+        <span class="brand-wordmark">MATCH<span>LATCH</span></span>
+      </a>
       <small>YOUR STYLE, UNLOCKED. &nbsp;·&nbsp; 2026 &nbsp;·&nbsp; PRIVATE BETA</small>
     </div>
   </footer>
