@@ -3,176 +3,277 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0a0a0a">
-  <meta name="description" content="MATCHLATCH turns one item into a whole look. Upload your inspiration, set your style and budget, and build an outfit.">
+  <meta name="theme-color" content="#f6f4ef">
+  <meta name="description" content="MATCHLATCH is your personal styling studio. Start with one piece, unlock a whole look.">
   <title>MATCHLATCH — Your style, unlocked.</title>
+  <link rel="preconnect" href="https://images.unsplash.com">
   <style>
-    :root { color-scheme:dark; --bg:#090a0a; --panel:#141515; --panel2:#1b1d1c; --border:#303431; --ink:#f6f5ed; --muted:#9caaa0; --accent:#bafc52; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:var(--bg); color:var(--ink); }
-    button,input,select,textarea { font:inherit; }
-    button,select { cursor:pointer; }
-    button:disabled { cursor:not-allowed; opacity:.6; }
-    a { color:inherit; }
-    .shell { width:min(1180px,calc(100% - 36px)); margin:0 auto; }
-    header { border-bottom:1px solid #252725; }
-    .topbar { min-height:77px; display:flex; justify-content:space-between; align-items:center; gap:20px; }
-    .brand { letter-spacing:-.055em; font-size:25px; font-weight:950; text-decoration:none; }
-    .brand span { color:var(--accent); }
-    .chip { border:1px solid #364238; border-radius:999px; color:#c6d2c7; font-size:11px; letter-spacing:.11em; padding:9px 13px; font-weight:800; }
-    .hero { padding:78px 0 46px; background:radial-gradient(ellipse at 75% 4%,rgba(169,252,81,.13),transparent 48%); }
-    .overline { display:inline-flex; align-items:center; gap:10px; font-size:12px; letter-spacing:.17em; font-weight:900; color:var(--accent); text-transform:uppercase; }
-    .dot { width:8px; height:8px; background:var(--accent); border-radius:50%; }
-    h1 { font-size:clamp(48px,7.6vw,94px); max-width:940px; line-height:.96; letter-spacing:-.08em; margin:23px 0; }
-    h1 em { font-style:normal; color:var(--accent); }
-    .lead { color:#b8beb6; font-size:clamp(16px,2vw,20px); line-height:1.6; max-width:640px; }
-    .steps { display:flex; flex-wrap:wrap; gap:12px; margin-top:31px; }
-    .steps span { padding:10px 15px; border:1px solid #303830; border-radius:99px; font-size:12px; font-weight:800; color:#c8d4c6; }
-    .steps b { color:var(--accent); margin-right:5px; }
-    .workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; padding:20px 0 42px; }
-    .panel { background:linear-gradient(145deg,#171a18,#111312); border:1px solid var(--border); border-radius:24px; padding:29px; min-width:0; }
-    .section-label { color:var(--accent); letter-spacing:.16em; font-size:11px; font-weight:900; text-transform:uppercase; }
-    h2 { font-size:29px; letter-spacing:-.045em; margin:12px 0 8px; }
-    .sub { color:var(--muted); font-size:14px; line-height:1.6; margin:0 0 26px; }
-    .drop { min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px; text-align:center; border:1px dashed #6a7968; border-radius:18px; background:radial-gradient(circle at 50% 35%,#283327,#191e19 70%); padding:22px; cursor:pointer; outline-offset:4px; transition:.2s; }
-    .drop:hover,.drop.drag { border-color:var(--accent); background:#222c20; }
-    .drop .camera { width:68px; height:68px; display:grid; place-items:center; border-radius:22px; background:#364632; font-size:31px; }
-    .drop strong { font-size:19px; }
-    .drop small { font-size:13px; color:#a4b1a1; max-width:280px; }
-    #photo { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
-    .drop:focus-within { outline:2px solid var(--accent); }
-    .preview-box { display:none; position:relative; overflow:hidden; border-radius:18px; background:#080908; text-align:center; }
-    .preview-box img { display:block; width:100%; max-height:330px; object-fit:contain; }
-    .change { margin-top:13px; padding:11px 15px; border-radius:12px; border:1px solid #4a594a; color:var(--ink); background:#222921; }
-    .privacy { display:flex; gap:8px; align-items:flex-start; color:#8f9b90; font-size:12px; line-height:1.5; margin:17px 0 26px; }
-    .privacy b { color:#c4d2c4; }
-    .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    label.field { display:block; color:#b9c4ba; font-size:12px; font-weight:800; }
-    label.field span { display:block; margin:0 0 7px; }
-    input[type="text"],input[type="number"],input[type="password"],select,textarea { display:block; width:100%; min-width:0; color:var(--ink); background:#0b0d0c; border:1px solid #424942; border-radius:12px; padding:13px 12px; outline:none; }
-    input:focus,select:focus,textarea:focus { border-color:var(--accent); }
-    textarea { resize:vertical; min-height:86px; }
-    .full { margin-top:14px; }
-    .action-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
-    .primary,.secondary { border:0; border-radius:14px; min-height:50px; padding:14px 19px; font-weight:900; font-size:13px; letter-spacing:.015em; }
-    .primary { background:var(--accent); color:#14210d; flex:1; }
-    .secondary { background:#2b322b; color:var(--ink); border:1px solid #4c594a; }
-    .primary:hover { background:#ceff87; }
-    .secondary:hover { background:#384338; }
-    .note { min-height:24px; margin-top:14px; font-size:13px; color:#b7c4b7; line-height:1.5; }
-    .results { display:none; padding:0 0 70px; scroll-margin-top:24px; }
-    .results-head { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:20px; }
-    .results-head h2 { font-size:clamp(32px,5vw,54px); margin:10px 0 6px; }
-    .mode { font-size:12px; font-weight:800; color:var(--accent); border:1px solid #4f6847; border-radius:50px; padding:9px 13px; }
-    .results-layout { display:grid; grid-template-columns:minmax(240px,.9fr) minmax(0,1.5fr); gap:18px; }
-    .found,.results-card { background:var(--panel); border:1px solid var(--border); border-radius:21px; padding:25px; }
-    .found h3 { font-size:25px; margin:12px 0; letter-spacing:-.04em; }
-    .found p { color:#aab6aa; font-size:14px; line-height:1.6; }
-    .found .meta { font-size:12px; color:var(--accent); letter-spacing:.05em; font-weight:800; text-transform:uppercase; }
-    .results-card h3 { font-size:24px; letter-spacing:-.04em; margin:8px 0; }
-    .results-card>p { font-size:13px; color:#b1bcb0; line-height:1.6; }
-    .result-item { border-top:1px solid #333934; padding:18px 0; display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center; }
-    .result-item strong { display:block; margin:0 0 6px; }
-    .result-item small { color:#a9b6a9; font-size:13px; line-height:1.5; }
-    .result-item a { white-space:nowrap; border:1px solid #4d6148; color:var(--accent); text-decoration:none; padding:10px 12px; border-radius:11px; font-size:12px; font-weight:900; }
-    .result-item a:hover { background:#283324; }
-    .budget { border-radius:12px; padding:13px 14px; margin:14px 0 10px; background:#263323; font-size:13px; color:#dcebd6; }
-    .disclaimer { margin-top:16px; font-size:12px; color:#859386; line-height:1.6; }
-    footer { border-top:1px solid #242a25; padding:25px 0 36px; color:#7d8a7d; font-size:12px; }
-    footer .shell { display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; }
-    @media(max-width:800px) { .hero { padding-top:51px; } .workspace,.results-layout { grid-template-columns:1fr; } .panel { padding:23px; } .drop { min-height:250px; } }
-    @media(max-width:480px) { .shell { width:min(100% - 24px,1180px); } .panel { padding:18px; } .field-grid { gap:11px; } .action-row { flex-direction:column; } .result-item { grid-template-columns:1fr; } .result-item a { justify-self:start; } }
+    :root {
+      color-scheme:light;
+      --paper:#f6f4ef;--white:#fffefa;--ink:#1b1b19;--muted:#77766f;
+      --line:#dfded7;--accent:#aa392a;--accent-dark:#842b20;--cream:#eeeae1;
+      --soft:#e8e0d6;
+      font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased}
+    button,input,textarea,select{font:inherit}
+    button{cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    a{color:inherit}
+    :focus-visible{outline:3px solid #c65b49;outline-offset:3px}
+    .container{width:min(1200px,calc(100% - 64px));margin:auto}
+    .site-header{height:78px;border-bottom:1px solid var(--line);background:var(--paper);position:relative;z-index:2}
+    .header-inner{height:100%;display:flex;align-items:center;justify-content:space-between;gap:24px}
+    .brand{font-weight:950;letter-spacing:-.075em;font-size:27px;text-decoration:none;white-space:nowrap}
+    .brand span{color:var(--accent)}
+    .navigation{display:flex;align-items:center;gap:29px}
+    .navigation a{font-size:12px;font-weight:750;text-decoration:none;color:#34332f}
+    .navigation a:hover{text-decoration:underline}
+    .nav-cta{border-radius:0;border:1px solid var(--ink);padding:13px 20px;text-transform:uppercase;font-size:10px!important;font-weight:900!important;letter-spacing:.1em;text-decoration:none!important}
+    .nav-cta:hover{background:var(--ink);color:white}
+    .hero{overflow:hidden}
+    .hero-grid{display:grid;grid-template-columns:1.04fr .96fr;min-height:570px}
+    .hero-copy{padding:71px 25px 63px 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
+    .eyebrow{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:900;letter-spacing:.19em;text-transform:uppercase;color:var(--accent)}
+    .eyebrow:before{content:"";width:31px;height:1px;background:currentColor}
+    h1,.display,.results-head h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.066em}
+    h1{font-size:clamp(60px,6.7vw,106px);line-height:.98;margin:25px 0 24px;max-width:710px}
+    h1 em{font-weight:400;color:var(--accent);font-style:italic}
+    .hero-copy .lead{font-size:17px;line-height:1.65;color:#595850;max-width:460px;margin:0 0 30px}
+    .hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:22px}
+    .btn{border:0;text-decoration:none;min-height:55px;display:inline-flex;align-items:center;justify-content:center;gap:18px;padding:15px 26px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;transition:background .2s,transform .2s}
+    .btn:hover{transform:translateY(-1px)}
+    .btn-dark{background:var(--ink);color:white}
+    .btn-dark:hover{background:#41403b}
+    .text-link{font-weight:800;font-size:12px;text-decoration:none;padding-bottom:3px;border-bottom:1px solid var(--ink)}
+    .hero-footnote{display:flex;gap:8px;align-items:center;color:#89867d;font-size:11px;margin:30px 0 0}
+    .hero-footnote:before{content:"✳";font-size:15px;color:var(--accent)}
+    .hero-visual{position:relative;margin:35px 0 35px 45px;min-height:500px}
+    .hero-photo{position:absolute;overflow:hidden;background:#d2c7b6}
+    .hero-photo img{width:100%;height:100%;object-fit:cover;display:block}
+    .hero-photo.primary-photo{inset:0 48px 35px 15px}
+    .hero-photo.primary-photo img{object-position:center 28%}
+    .hero-photo.detail-photo{height:39%;width:44%;right:0;bottom:0;border:9px solid var(--paper);background:#ded8cc}
+    .hero-photo.detail-photo img{object-position:center}
+    .editorial-label{position:absolute;top:20px;left:-25px;z-index:1;background:var(--white);border:1px solid var(--line);padding:14px 18px;font-size:10px;letter-spacing:.19em;font-weight:900;transform:rotate(-4deg)}
+    .photo-index{position:absolute;right:-22px;top:20px;writing-mode:vertical-rl;font-size:9px;text-transform:uppercase;letter-spacing:.22em;font-weight:900}
+    .ribbon{background:var(--ink);color:#f4f1ea;overflow:hidden}
+    .ribbon-inner{display:flex;align-items:center;justify-content:space-between;gap:25px;min-height:58px}
+    .ribbon span{font-size:11px;letter-spacing:.2em;font-weight:800;text-transform:uppercase}
+    .ribbon i{color:#da8a74;font:normal 17px Georgia,serif}
+    .studio-intro{padding:96px 0 34px;display:flex;justify-content:space-between;align-items:end;gap:32px}
+    .kicker{color:var(--accent);text-transform:uppercase;font-size:11px;letter-spacing:.16em;font-weight:950}
+    .display{font-size:clamp(43px,5.5vw,72px);line-height:1.03;margin:15px 0 5px}
+    .studio-intro p{max-width:330px;font-size:14px;line-height:1.7;color:var(--muted);margin:0 0 8px}
+    .workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding-bottom:105px}
+    .panel{background:var(--white);border:1px solid var(--line);min-width:0;padding:30px}
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:23px}
+    .section-count{font:italic 30px Georgia,serif;color:var(--accent)}
+    .section-tag{font-size:10px;letter-spacing:.16em;font-weight:950;text-transform:uppercase;color:#838177}
+    h2{font-size:27px;letter-spacing:-.045em;margin:0 0 8px}
+    .sub{font-size:13px;line-height:1.65;color:var(--muted);margin:0 0 23px}
+    .drop{min-height:325px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;text-align:center;border:1px dashed #c0b7a7;background:#f4f0e9;padding:24px;transition:.2s}
+    .drop:hover,.drop.drag{background:#eee5d9;border-color:var(--accent)}
+    .upload-symbol{width:66px;height:66px;border:1px solid #c1b7a8;border-radius:50%;display:grid;place-items:center;font-size:31px;color:var(--accent);margin-bottom:7px}
+    .drop strong{font-family:Georgia,serif;font-size:27px;font-weight:400;letter-spacing:-.04em}
+    .drop small{color:var(--muted);font-size:12px;line-height:1.5;max-width:270px}
+    .upload-button{background:var(--ink);color:white;font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;padding:11px 17px;margin-top:8px}
+    #photo{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+    .preview-box{display:none;min-height:325px;background:#eee9e1}
+    .preview-box img{display:block;width:100%;height:325px;object-fit:contain}
+    .change{font-size:12px;text-decoration:underline;border:0;background:transparent;padding:15px 0;color:var(--accent);font-weight:800}
+    .privacy{display:flex;align-items:flex-start;gap:10px;margin:20px 0 26px;color:#77766f;font-size:11px;line-height:1.65}
+    .privacy b{color:var(--ink)}
+    .micro-title{font-size:10px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;margin:12px 0 18px}
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    label.field{display:block;font-size:12px;color:#33332e;font-weight:750;min-width:0}
+    label.field span{display:block;margin-bottom:8px}
+    input[type="text"],input[type="number"],input[type="password"],select,textarea{
+      display:block;width:100%;min-width:0;min-height:48px;background:#faf9f5;
+      border:1px solid #d8d5cc;border-radius:0;padding:12px 13px;color:var(--ink);outline:none;font-size:13px
+    }
+    input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+    textarea{min-height:91px;resize:vertical}
+    .full{margin-top:18px}
+    .beta-details{border-top:1px solid var(--line);padding:19px 0 0;margin-top:23px}
+    .beta-details summary{cursor:pointer;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none}
+    .beta-details summary::-webkit-details-marker{display:none}
+    .beta-details summary:after{content:"+";font-size:22px;font-weight:300}
+    .beta-details[open] summary:after{content:"−"}
+    .beta-details summary small{font-weight:400;font-size:11px;color:var(--muted);text-align:right}
+    .beta-details .field{margin-top:17px}
+    .action-row{display:grid;grid-template-columns:1fr;gap:10px;margin-top:22px}
+    .primary,.secondary{border:0;min-height:54px;padding:13px 16px;font-size:11px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;text-align:center}
+    .primary{background:var(--accent);color:#fff}
+    .primary:hover{background:var(--accent-dark)}
+    .secondary{color:var(--ink);background:transparent;border:1px solid var(--ink)}
+    .secondary:hover{background:#f1eee6}
+    .note{min-height:24px;margin:15px 0 0;color:#7b776f;font-size:12px;line-height:1.55}
+    .results{display:none;scroll-margin-top:25px;border-top:1px solid var(--line);padding:72px 0 105px}
+    .results-head{display:flex;align-items:end;justify-content:space-between;gap:25px;flex-wrap:wrap;margin-bottom:28px}
+    .results-head h2{font-size:clamp(47px,6vw,74px);line-height:1;margin:12px 0 0}
+    .mode{padding:11px 15px;border:1px solid #d5c5b7;color:var(--accent);font-size:10px;letter-spacing:.12em;font-weight:900}
+    .results-layout{display:grid;grid-template-columns:minmax(235px,.78fr) minmax(0,1.3fr);gap:20px}
+    .found,.results-card{background:var(--white);border:1px solid var(--line);padding:28px}
+    .result-photo-frame{background:#f0ece4;margin:0 0 20px}
+    .result-photo-frame img{width:100%;height:245px;object-fit:contain;display:block}
+    .result-photo-frame img[hidden]{display:none}
+    .found h3{font-family:Georgia,serif;font-size:32px;font-weight:400;letter-spacing:-.045em;line-height:1.1;margin:12px 0}
+    .found .meta{font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--accent);text-transform:uppercase}
+    .found p,.results-card>p{font-size:13px;line-height:1.7;color:var(--muted)}
+    .results-card h3{font-family:Georgia,serif;font-size:28px;font-weight:400;letter-spacing:-.04em;margin:12px 0}
+    .budget{padding:12px 16px;background:#f0e5dc;color:#67392e;font-size:12px;font-weight:750;line-height:1.55;margin:20px 0 8px}
+    .result-item{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:18px;align-items:center;padding:21px 0;border-bottom:1px solid var(--line)}
+    .item-index{font-family:Georgia,serif;font-size:31px;color:#c0b2a8}
+    .piece-label{text-transform:uppercase;color:var(--accent);font-weight:900;letter-spacing:.13em;font-size:10px;margin-bottom:7px}
+    .result-item strong{font-size:15px;font-weight:750;line-height:1.5;display:block}
+    .result-item small{font-size:11px;color:var(--muted);display:block;margin-top:7px}
+    .result-item a{white-space:nowrap;font-size:11px;font-weight:900;text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:5px}
+    .result-item a:hover{color:var(--accent);border-color:var(--accent)}
+    .disclaimer{font-size:11px;line-height:1.7;color:#8b8881;margin-top:22px}
+    .closing{background:#eee9df;border-top:1px solid var(--line);padding:63px 0;text-align:center}
+    .closing h2{font:normal clamp(36px,5vw,57px) Georgia,serif;letter-spacing:-.055em;margin:0 0 12px}
+    .closing h2 em{color:var(--accent)}
+    .closing p{font-size:14px;line-height:1.7;color:var(--muted);max-width:500px;margin:0 auto 23px}
+    footer{background:var(--ink);color:#d1cfc7;padding:25px 0}
+    footer .container{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+    footer span{font-size:10px;letter-spacing:.07em}
+    footer a{color:inherit}
+    @media(max-width:1100px){.hero-grid{grid-template-columns:1.05fr .95fr}.hero-copy{padding-top:50px}.hero-visual{margin-left:12px}.hero-photo.primary-photo{inset:0 32px 30px 0}}
+    @media(max-width:860px){.container{width:min(100% - 34px,1200px)}.hero-grid{grid-template-columns:1fr}.hero-copy{padding:58px 0 35px}.hero-visual{margin:0 0 38px;min-height:380px}.hero-photo.primary-photo{inset:0 20% 18px 8%}.hero-photo.detail-photo{width:36%;right:4%;height:55%}.editorial-label{left:3%}.photo-index{right:1%}.studio-intro{padding:62px 0 26px}.workspace,.results-layout{grid-template-columns:1fr}.navigation{gap:14px}.ribbon-inner{justify-content:center}.ribbon span:last-child,.ribbon i:last-of-type{display:none}}
+    @media(max-width:540px){.site-header{height:65px}.brand{font-size:24px}.navigation>a:not(.nav-cta){display:none}.nav-cta{padding:11px 13px;font-size:9px!important}.hero-copy{padding:44px 0 32px}h1{font-size:clamp(54px,14vw,77px)}.hero-copy .lead{font-size:15px}.hero-visual{min-height:345px}.hero-photo.primary-photo{inset:0 17% 26px 4%}.hero-photo.detail-photo{width:43%;height:49%;right:0}.studio-intro{display:block}.studio-intro p{margin:17px 0 0}.workspace{padding-bottom:70px}.panel,.found,.results-card{padding:20px}.drop,.preview-box{min-height:265px}.preview-box img{height:265px}.field-grid{gap:12px}.result-item{grid-template-columns:32px 1fr;gap:11px}.result-item a{grid-column:2;justify-self:start;margin-top:3px}.result-photo-frame img{height:210px}.results{padding:56px 0 70px}.ribbon span{font-size:9px}.ribbon-inner{gap:13px}footer .container{align-items:flex-start;flex-direction:column}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
   </style>
 </head>
 <body>
-  <header><div class="shell topbar">
-    <a class="brand" href="/" aria-label="MATCHLATCH home">MATCH<span>LATCH</span></a>
-    <div class="chip">STYLE ENGINE · EARLY ACCESS</div>
-  </div></header>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/" aria-label="MATCHLATCH home">MATCH<span>LATCH.</span></a>
+    <nav class="navigation" aria-label="Main navigation">
+      <a href="#how">How it works</a>
+      <a href="#studio">The studio</a>
+      <a class="nav-cta" href="#studio">Start styling ↗</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="hero" aria-label="MATCHLATCH introduction">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow">Style looks good on you</div>
+        <h1>It starts with<br><em>one piece.</em></h1>
+        <p class="lead">Spotted something you love? Upload it. Discover what works with it. Build a look that actually feels like <i>you.</i></p>
+        <div class="hero-actions">
+          <a class="btn btn-dark" href="#studio">Unlock your look <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="#how">See how it works ↓</a>
+        </div>
+        <p class="hero-footnote">Your taste. Your budget. Your rules.</p>
+      </div>
+      <div class="hero-visual" aria-label="Editorial fashion inspiration">
+        <div class="editorial-label">A NEW WAY TO GET DRESSED</div>
+        <div class="hero-photo primary-photo">
+          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&amp;fit=crop&amp;w=1100&amp;q=82" alt="Editorial fashion street style" fetchpriority="high">
+        </div>
+        <div class="hero-photo detail-photo">
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&amp;fit=crop&amp;w=650&amp;q=82" alt="Clothing and fashion inspiration" loading="lazy">
+        </div>
+        <div class="photo-index">MATCHLATCH / THE STYLE EDIT / 001</div>
+      </div>
+    </div>
+  </section>
+  <div class="ribbon" id="how"><div class="container ribbon-inner">
+    <span>01 / Show us your piece</span><i>✳</i>
+    <span>02 / Tell us your taste</span><i>✳</i>
+    <span>03 / Make it a look</span>
+  </div></div>
 
-  <main>
-    <section class="hero"><div class="shell">
-      <div class="overline"><span class="dot"></span>YOUR PERSONAL STYLE CO-PILOT</div>
-      <h1>One piece.<br><em>Endless possibilities.</em></h1>
-      <p class="lead">Start with something you love. MATCHLATCH helps you build the rest of the look around your vibe, the occasion, and what you actually want to spend.</p>
-      <div class="steps"><span><b>01</b> SHOW IT</span><span><b>02</b> SET YOUR STYLE</span><span><b>03</b> LATCH YOUR LOOK</span></div>
-    </div></section>
+  <section class="container studio-intro" id="studio">
+    <div><div class="kicker">The styling studio / Early access</div><h2 class="display">Your next look begins here.</h2></div>
+    <p>Consider this your creative fitting room. Start with the piece you have, then let MATCHLATCH help you figure out the rest.</p>
+  </section>
 
-    <section class="shell workspace" aria-label="Outfit builder">
-      <div class="panel">
-        <div class="section-label">01 / YOUR INSPIRATION</div>
-        <h2>Show us the piece.</h2>
-        <p class="sub">Upload a shirt, sneakers, jacket, accessory, dress, or inspiration shot to start.</p>
-
-        <label class="drop" id="drop" for="photo">
-          <span class="camera">📸</span>
-          <strong>Choose a photo</strong>
-          <small>Tap to browse, or drag and drop an image. JPG, PNG, HEIC where supported.</small>
+  <section class="container workspace" aria-label="Build your outfit">
+    <article class="panel">
+      <div class="section-head"><span class="section-tag">The inspiration</span><span class="section-count">01</span></div>
+      <h2>Show us what caught your eye.</h2>
+      <p class="sub">A jacket, sneaker, bag, or that one piece you can't stop thinking about.</p>
+      <label class="drop" id="drop" for="photo">
+        <span class="upload-symbol" aria-hidden="true">↥</span>
+        <strong>Drop your inspiration here.</strong>
+        <small>Tap to browse, or drag &amp; drop an image from your device.</small>
+        <span class="upload-button">Choose your photo ↗</span>
+      </label>
+      <input id="photo" type="file" accept="image/*" aria-label="Upload a clothing or accessory photo">
+      <div class="preview-box" id="preview-box"><img id="preview" alt="Your chosen inspiration item"></div>
+      <button class="change" id="change" type="button" hidden>↻ Change your image</button>
+      <div class="privacy"><span aria-hidden="true">↗</span><span><b>Your photo stays yours.</b> Preview and guided mode run in your browser. Choosing AI analysis sends a compressed photo to OpenAI for styling; no image database is connected.</span></div>
+      <div class="micro-title">Or describe it yourself / Guided styling</div>
+      <div class="field-grid">
+        <label class="field"><span>Type of piece</span>
+          <select id="itemtype"><option value="">Select an item</option><option value="top">Top / shirt</option><option value="bottom">Pants / shorts / skirt</option><option value="shoes">Shoes</option><option value="outerwear">Jacket / outerwear</option><option value="dress">Dress / one-piece</option><option value="accessory">Accessory</option><option value="other">Other</option></select>
         </label>
-        <input id="photo" type="file" accept="image/*" aria-label="Upload your fashion inspiration photo">
-        <div class="preview-box" id="preview-box">
-          <img id="preview" alt="Selected inspiration photo">
-        </div>
-        <button class="change" id="change" type="button" hidden>↻ Choose a different photo</button>
-
-        <div class="privacy">🔒 <span><b>Your photo is not saved to our database.</b> Guided mode stays in your browser. AI mode sends the compressed image to OpenAI for analysis only when you press the AI button and enter your private beta access code.</span></div>
-
-        <div class="section-label">ITEM DETAILS · FOR GUIDED MODE</div>
-        <p class="sub" style="margin-top:10px;margin-bottom:15px;">No AI connection? You can still build a look using these details.</p>
-        <div class="field-grid">
-          <label class="field"><span>Item type</span>
-            <select id="itemtype"><option value="">Choose a type</option><option value="top">Top / shirt</option><option value="bottom">Pants / shorts / skirt</option><option value="shoes">Shoes</option><option value="outerwear">Jacket / outerwear</option><option value="dress">Dress / one-piece</option><option value="accessory">Accessory</option><option value="other">Other</option></select>
-          </label>
-          <label class="field"><span>Main color</span><input id="itemcolor" type="text" maxlength="40" placeholder="e.g. olive green"></label>
-        </div>
+        <label class="field"><span>Its main color</span><input id="itemcolor" type="text" maxlength="40" placeholder="e.g. chocolate brown"></label>
       </div>
+    </article>
 
-      <div class="panel">
-        <div class="section-label">02 / YOUR STYLE DNA</div>
-        <h2>Make it yours.</h2>
-        <p class="sub">Your selections are remembered on this device. You can update them anytime.</p>
-        <div class="field-grid">
-          <label class="field"><span>Style expression</span><select id="look"><option>Unisex</option><option>Masculine</option><option>Feminine</option><option>Androgynous</option></select></label>
-          <label class="field"><span>Fit preference</span><select id="fit"><option>Relaxed</option><option>Tailored</option><option>Oversized</option><option>Classic</option></select></label>
-          <label class="field"><span>The occasion</span><select id="occasion"><option>Everyday</option><option>Work</option><option>Date night</option><option>Weekend</option><option>Formal event</option><option>Party</option></select></label>
-          <label class="field"><span>Budget for new pieces ($)</span><input id="budget" type="number" min="25" max="10000" step="5" value="200"></label>
-        </div>
-        <label class="field full"><span>Anything we should know?</span><textarea id="notes" maxlength="260" placeholder="Minimalist. No loud logos. Love earth tones. Sneakers over dress shoes..."></textarea></label>
-        <label class="field full"><span>Private beta access code · for AI testing</span><input id="beta-code" type="password" maxlength="256" autocomplete="off" placeholder="Enter your private testing code"></label>
-        <div class="action-row">
-          <button class="primary" id="analyze" type="button">✦ ANALYZE PHOTO WITH AI</button>
-          <button class="secondary" id="guided" type="button">BUILD WITH GUIDED MODE →</button>
-        </div>
-        <div class="note" id="status" role="status" aria-live="polite">Guided mode is free to use. AI analysis will work after you add OpenAI API billing and your private beta settings in Vercel.</div>
+    <article class="panel">
+      <div class="section-head"><span class="section-tag">Your style profile</span><span class="section-count">02</span></div>
+      <h2>Let's make it personal.</h2>
+      <p class="sub">No one dresses quite like you. Give us the details and we'll make them count. Your choices stay saved on this device.</p>
+      <div class="field-grid">
+        <label class="field"><span>Style expression</span><select id="look"><option>Unisex</option><option>Masculine</option><option>Feminine</option><option>Androgynous</option></select></label>
+        <label class="field"><span>Preferred fit</span><select id="fit"><option>Relaxed</option><option>Tailored</option><option>Oversized</option><option>Classic</option></select></label>
+        <label class="field"><span>What's the occasion?</span><select id="occasion"><option>Everyday</option><option>Work</option><option>Date night</option><option>Weekend</option><option>Formal event</option><option>Party</option></select></label>
+        <label class="field"><span>Budget for new pieces ($)</span><input id="budget" type="number" min="25" max="10000" step="5" value="200"></label>
       </div>
-    </section>
+      <label class="field full"><span>Describe your vibe</span><textarea id="notes" maxlength="260" placeholder="Think minimal. Earth tones. No loud logos. More relaxed than formal..."></textarea></label>
+      <details class="beta-details">
+        <summary><span>Private beta access</span><small>Needed for AI analysis</small></summary>
+        <label class="field"><span>Your private testing code</span><input id="beta-code" type="password" maxlength="256" autocomplete="off" placeholder="Enter private beta code"></label>
+      </details>
+      <div class="action-row">
+        <button class="primary" id="analyze" type="button">✳ Build my look with AI ↗</button>
+        <button class="secondary" id="guided" type="button">Try guided styling instead →</button>
+      </div>
+      <div class="note" id="status" role="status" aria-live="polite">Ready when you are. Upload an image and enter your private code to use AI styling.</div>
+    </article>
+  </section>
 
-    <section class="shell results" id="results" aria-live="polite">
+  <section class="results" id="results" aria-live="polite">
+    <div class="container">
       <div class="results-head">
-        <div><div class="section-label">03 / YOUR LATCHED LOOK</div><h2 id="result-title">Your outfit, unlocked.</h2></div>
-        <span class="mode" id="mode">GUIDED STYLING</span>
+        <div><div class="kicker">The match / 03</div><h2 id="result-title">Your look, unlocked.</h2></div>
+        <div class="mode" id="mode">AI STYLING</div>
       </div>
       <div class="results-layout">
         <article class="found">
-          <div class="section-label">THE STARTING PIECE</div>
+          <div class="micro-title">Your starting piece</div>
+          <div class="result-photo-frame"><img id="result-photo" alt="Your uploaded item" hidden></div>
           <h3 id="found-title"></h3>
           <div class="meta" id="found-meta"></div>
           <p id="found-details"></p>
         </article>
         <article class="results-card">
-          <div class="section-label">COMPLETE THE LOOK</div>
-          <h3>Three pieces that work together.</h3>
+          <div class="micro-title">The rest of your look</div>
+          <h3>Made to work together.</h3>
           <p id="style-notes"></p>
           <div class="budget" id="budget-message"></div>
           <div id="suggestions"></div>
-          <div class="disclaimer">Shopping links open independent product search results, not verified exact matches. Prices, stock, discounts and checkout are not integrated yet. Spending amounts are targets, not quoted product prices.</div>
+          <div class="disclaimer">We're refining MATCHLATCH in public beta. Shopping buttons currently open search results, not verified product listings. Spending amounts are suggested targets, not actual retailer prices. Real products and availability are coming in a later build.</div>
         </article>
       </div>
-    </section>
-  </main>
-  <footer><div class="shell"><span>© MATCHLATCH · Your style, unlocked.</span><span>EARLY BUILD · MADE FOR PEOPLE WITH TASTE, NOT UNLIMITED BUDGETS.</span></div></footer>
-
-  <script>
+    </div>
+  </section>
+  <section class="closing"><div class="container">
+    <h2>Less scrolling. <em>Better styling.</em></h2>
+    <p>The outfits you want start with the things you already love. We're making the rest easier.</p>
+    <a class="btn btn-dark" href="#studio">Back to the studio ↑</a>
+  </div></section>
+</main>
+<footer><div class="container"><a class="brand" href="/" aria-label="MATCHLATCH home">MATCH<span>LATCH.</span></a><span>YOUR STYLE, UNLOCKED. © 2026 MATCHLATCH · EDITORIAL IMAGERY: UNSPLASH.</span></div></footer>
+<script>
     (function () {
       "use strict";
       const $ = id => document.getElementById(id);
@@ -290,19 +391,24 @@
         $("found-details").textContent = data.item.details || "";
         $("style-notes").textContent = data.styleNotes || "";
         $("budget-message").textContent = "Your target budget for 3 new pieces: "+money(p.budget)+". Suggested per-piece targets shown below.";
+        const resultPhoto=$("result-photo");
+        if (imageUrl) { resultPhoto.src=imageUrl; resultPhoto.hidden=false; }
+        else { resultPhoto.removeAttribute("src"); resultPhoto.hidden=true; }
         const list=$("suggestions");list.replaceChildren();
         const ratios=[.38,.37,.25];
         data.pieces.slice(0,3).forEach((piece,index) => {
           const row=node("div","result-item");
-          const left=node("div");
-          left.append(node("strong",null,piece.type || "Matching piece"));
-          left.append(node("small",null,(piece.description || "Complementary piece")+" · Target spend: "+money(Math.round(p.budget*ratios[index]))));
-          const link=node("a",null,"Find options ↗");
+          const num=node("div","item-index",String(index+1).padStart(2,"0"));
+          const left=node("div","result-item-content");
+          left.append(node("div","piece-label",piece.type || "Matching piece"));
+          left.append(node("strong",null,piece.description || "Complementary piece"));
+          left.append(node("small",null,"Target spend · "+money(Math.round(p.budget*ratios[index]))));
+          const link=node("a",null,"Explore options ↗");
           const query=piece.searchQuery || piece.description || piece.type;
           link.href="https://www.google.com/search?tbm=shop&q="+encodeURIComponent(query);
           link.target="_blank";link.rel="noopener noreferrer";
           link.setAttribute("aria-label","Search shopping options for "+(piece.type || "this item"));
-          row.append(left,link);list.append(row);
+          row.append(num,left,link);list.append(row);
         });
         $("results").style.display="block";
         $("results").scrollIntoView({behavior:"smooth",block:"start"});
@@ -331,6 +437,7 @@
         finally { button.disabled=false;button.textContent="✦ ANALYZE PHOTO WITH AI"; }
       });
     })();
-  </script>
+  
+</script>
 </body>
 </html>
