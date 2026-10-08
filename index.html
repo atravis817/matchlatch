@@ -624,6 +624,14 @@
           other:["top","bottoms","shoes"]
         };
         const p = profile();
+        // Coordinate tailored separates when the photographed piece is suit-related.
+        if (/suit jacket|tuxedo jacket/i.test(itemName)) {
+          choices[category] = ["suit trousers","dress shirt","dress shoes"];
+        } else if (/suit trousers|suit pants|tuxedo trousers/i.test(itemName)) {
+          choices[category] = ["suit jacket","dress shirt","dress shoes"];
+        } else if (/^suit$|three-piece suit|tuxedo/i.test(itemName)) {
+          choices[category] = ["dress shirt","dress shoes","belt"];
+        }
         const colors = p.palette === "Monochrome" ? [color,color,color] :
           p.palette === "Earth tones" ? ["olive","sand","brown"] :
           p.palette === "Black and white" ? ["black","white","black"] :
@@ -643,7 +651,7 @@
           if (/shoe/i.test(type)) return p.shoeSize ? p.shoeSystem+" "+p.shoeSize : "";
           if (/bottom/i.test(type)) return p.waist ? "W"+p.waist+(p.inseam? " L"+p.inseam:"") : p.bottomSize ? p.bottomSystem+" "+p.bottomSize : "";
           if (/dress|jumpsuit|one.piece/i.test(type)) return p.dressSize ? p.dressSystem+" "+p.dressSize : "";
-          if (/top|outerwear/i.test(type)) return p.topSize ? p.topSystem+" "+p.topSize : "";
+          if (/top|outerwear|shirt/i.test(type)) return p.topSize ? p.topSystem+" "+p.topSize : "";
           if (/hat|cap|headwear/i.test(type)) return p.hatSize ? p.hatSystem+" "+p.hatSize : "";
           if (/belt/i.test(type)) return p.beltSize ? p.beltSystem+" "+p.beltSize : "";
           if (/glove/i.test(type)) return p.gloveSize ? "glove "+p.gloveSize : "";
