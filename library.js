@@ -151,6 +151,26 @@
     if(fromCloud){await writePhoto(photoKey(id),fromCloud);return fromCloud;}
     return null;
   }
+  async function clearAccountPhotos(uid) {
+    for(const key of photoCache.keys())if(key.startsWith("account-"+uid+"-"))photoCache.delete(key);
+    const db=await databasePromise;
+    if(!db)return;
+    try {
+      await new Promise(resolve=>{
+        const tx=db.transaction("photos","readwrite");
+        const store=tx.objectStore("photos");
+        const cursor=store.openKeyCursor();
+        cursor.onsuccess=()=>{
+          const item=cursor.result;
+          if(!item)return;
+          if(String(item.key).startsWith("account-"+uid+"-"))store.delete(item.key);
+          item.continue();
+        };
+        tx.oncomplete=()=>resolve();
+        tx.onerror=()=>resolve();
+      });
+    }catch{}
+  }
   async function clearGuestPhotos() {
     for(const id of guestState().inspirations.map(x=>x.id)) {
       photoCache.delete("guest-"+id);photoCache.delete(id);
@@ -611,7 +631,8 @@
     if(activeUser&&supabase&&cloudAdapter){
       status.textContent=cloudAdapter.getStatus();
       form.hidden=true;logout.hidden=false;guest.hidden=true;
-      const guestCount=Object.values(guestState()).reduce((sum,a)=>sum+a.length,0);
+      const guestCount=Object.values(guestState()).reduce((sum,a)=>sum+a.length,0)+
+        (window.MatchlatchStyleProfile?.getGuest?.()?1:0);
       importBox.hidden=guestCount===0;
       $("import-guest").disabled=!cloudAdapter.isReady();
       clear.textContent="Delete guest data on this device";
@@ -645,6 +666,7 @@
   });
   $("logout-button").addEventListener("click",async()=>{
     if(!supabase)return;
+    if(cloudAdapter?.hasPending?.()&&!confirm("Some changes haven't synced yet. Signing out could lose them. Sign out anyway?"))return;
     const button=$("logout-button");button.disabled=true;
     try {
       const {error}=await supabase.auth.signOut();
@@ -712,6 +734,7 @@
         setState, setGuest,getGuestState:guestState,
         onStatus:()=>{if(activePage==="account")renderAccount();},
         saveAccountPhoto:writePhoto,loadAccountPhoto:readPhoto,loadGuestPhoto,
+        clearAccountPhotos,
         getGuestProfile:()=>window.MatchlatchStyleProfile?.getGuest?.(),
         applyProfile:value=>window.MatchlatchStyleProfile?.apply?.(value)
       });
