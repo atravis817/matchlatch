@@ -15,7 +15,8 @@ const reply=(body,status=200)=>new Response(JSON.stringify(body),{
 const plainAmount=m=>m?.currency==="USD"&&Number.isSafeInteger(m?.amount)&&m.amount>=0?m.amount:null;
 function collect(data,selectedSize=""){
   const matches=[];
-  for(const p of data?.products||data?.product?[...(data.products||[]),...(data.product?[data.product]:[])]:[]){
+  const products=[...(Array.isArray(data?.products)?data.products:[]),...(data?.product?[data.product]:[])];
+  for(const p of products){
     if(!p||!gid.test(p.id||""))continue;
     const media=(p.media||[]).find(x=>x?.type==="image"&&safeUrl(x.url));
     for(const v of (p.variants||[])){
@@ -98,9 +99,10 @@ export async function GET(request){
       const variantId=clip(u.searchParams.get("variant"),120);
       if(!gid.test(id)||!gid.test(variantId)||!Number.isFinite(max)||max<1||max>10000)
         return reply({error:"Invalid item verification request."},400);
+      // get_product accepts id, selected, preferences and context; filters belong
+      // to search_catalog only. Validate stock, currency and price after lookup.
       const data=await catalog("get_product",{
-        id,filters:{ships_to:{country:"US"},available:true},
-        context:{address_country:"US",currency:"USD"}
+        id,context:{address_country:"US"}
       });
       const item=collect(data,size).find(x=>x.variantId===variantId&&x.price<=max);
       if(!item)return reply({error:"Item is no longer confirmed available in this size and budget. Choose another."},409);
