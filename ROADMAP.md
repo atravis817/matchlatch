@@ -83,6 +83,7 @@ A first-time **guest** can upload one photo and, without help: recognize the ite
 - [x] Guest preferences saved locally; private signed-in account/profile/cloud-sync code implemented.
 - [x] Supabase database and private photo storage, user-specific RLS and an opt-in guest-to-account import.
 - [x] Saved outfits, favorites, cart and manual purchase notes linked to original inspirations (also seed V3).
+- [x] **Named Collections:** User-created folders for grouped original inspiration photos, with linked outfits, favorites and purchases automatically displayed; rename and safe delete without deleting the content. Cloud record kind is installed (live account-sync testing remains).
 
 ### Not yet proven
 
@@ -134,6 +135,7 @@ A returning user can save their questionnaire, sign in, open a second device and
 ### Seeded during V1/V1.5
 
 - [x] Saved outfits and inspiration-image archive.
+- [x] Named collections for inspirations and associated favorites/purchases, retaining source provenance.
 - [x] Favorites and a shortlist/cart (not a payment cart).
 - [x] Manual, self-reported purchase records (not confirmed orders).
 - [x] Selected variant references and retailer handoff. Live rechecks must still be verified.
@@ -196,6 +198,7 @@ These are **tasks**, not new stages. Work them in order so we don't confuse task
 | October 8, 2026 | Repository-wide code cleanup: removed obsolete state/CSS, corrected Shopify lookup request, updated guidance; added repeatable static audit. | Quality across all stages |
 | October 8, 2026 | Reconciled original stages with implemented and unverified work. | Roadmap v1.0 |
 | October 8, 2026 | Named V2 working feature **REVEAL**, defined **Reveal Live**, **Reveal Snap**, and **Use an existing photo**; committed full user journey and honest AR milestones in `REVEAL-EXPERIENCE.md`. | V2 planning complete; implementation pending |
+| October 8, 2026 | Added **named Collections** for user-uploaded inspirations and linked outfits, favorites and purchases; non-destructive folder rename/delete and owner-scoped cloud records. | V1.5 personalization + early V3; live-device testing pending |
 
 ### Keeping the work map accurate
 
