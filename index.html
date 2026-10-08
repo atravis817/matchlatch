@@ -807,6 +807,8 @@
         const resultPhoto=$("result-photo");
         if (imageUrl) { resultPhoto.src=imageUrl; resultPhoto.hidden=false; }
         else { resultPhoto.removeAttribute("src"); resultPhoto.hidden=true; }
+        const stylingPanel=$("styling-suggestions");
+        if(stylingPanel){stylingPanel.hidden=false;stylingPanel.open=false;}
         const list=$("suggestions");list.replaceChildren();
         const ratios=[.38,.37,.25];
         data.pieces.slice(0,3).forEach((piece,index) => {
