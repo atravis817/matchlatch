@@ -49,7 +49,7 @@
     .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
     label.field { display:block; color:#b9c4ba; font-size:12px; font-weight:800; }
     label.field span { display:block; margin:0 0 7px; }
-    input[type="text"],input[type="number"],select,textarea { display:block; width:100%; min-width:0; color:var(--ink); background:#0b0d0c; border:1px solid #424942; border-radius:12px; padding:13px 12px; outline:none; }
+    input[type="text"],input[type="number"],input[type="password"],select,textarea { display:block; width:100%; min-width:0; color:var(--ink); background:#0b0d0c; border:1px solid #424942; border-radius:12px; padding:13px 12px; outline:none; }
     input:focus,select:focus,textarea:focus { border-color:var(--accent); }
     textarea { resize:vertical; min-height:86px; }
     .full { margin-top:14px; }
@@ -115,7 +115,7 @@
         </div>
         <button class="change" id="change" type="button" hidden>↻ Choose a different photo</button>
 
-        <div class="privacy">🔒 <span><b>Your photo is not saved to our database.</b> Guided mode stays in your browser. AI mode sends the image to an external vision provider for analysis only after you press the AI button.</span></div>
+        <div class="privacy">🔒 <span><b>Your photo is not saved to our database.</b> Guided mode stays in your browser. AI mode sends the compressed image to OpenAI for analysis only when you press the AI button and enter your private beta access code.</span></div>
 
         <div class="section-label">ITEM DETAILS · FOR GUIDED MODE</div>
         <p class="sub" style="margin-top:10px;margin-bottom:15px;">No AI connection? You can still build a look using these details.</p>
@@ -138,11 +138,12 @@
           <label class="field"><span>Budget for new pieces ($)</span><input id="budget" type="number" min="25" max="10000" step="5" value="200"></label>
         </div>
         <label class="field full"><span>Anything we should know?</span><textarea id="notes" maxlength="260" placeholder="Minimalist. No loud logos. Love earth tones. Sneakers over dress shoes..."></textarea></label>
+        <label class="field full"><span>Private beta access code · for AI testing</span><input id="beta-code" type="password" maxlength="256" autocomplete="off" placeholder="Enter your private testing code"></label>
         <div class="action-row">
           <button class="primary" id="analyze" type="button">✦ ANALYZE PHOTO WITH AI</button>
           <button class="secondary" id="guided" type="button">BUILD WITH GUIDED MODE →</button>
         </div>
-        <div class="note" id="status" role="status" aria-live="polite">Guided mode works now. AI analysis needs a separate API connection.</div>
+        <div class="note" id="status" role="status" aria-live="polite">Guided mode is free to use. AI analysis will work after you add OpenAI API billing and your private beta settings in Vercel.</div>
       </div>
     </section>
 
@@ -310,16 +311,18 @@
       $("guided").addEventListener("click",guided);
       $("analyze").addEventListener("click",async () => {
         if (!imageData) { setStatus("Upload a photo first to use AI analysis."); return; }
+        if (!$("beta-code").value) { setStatus("Enter your private beta access code for AI analysis."); return; }
         const button=$("analyze");
         button.disabled=true;button.textContent="ANALYZING YOUR PHOTO…";
         setStatus("Checking the vision engine…");
         try {
-          const response=await fetch("/api/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:imageData,profile:profile()})});
+          const response=await fetch("/api/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:imageData,profile:profile(),betaCode:$("beta-code").value})});
           let data;
           try { data=await response.json(); } catch { throw new Error("The AI service is not reachable yet. Try Guided Styling."); }
           if (!response.ok) {
-            if (data.error === "AI_NOT_CONFIGURED") throw new Error("AI analysis isn't connected yet. Use Guided Styling now; the owner can add a Gemini API key in Vercel to enable AI.");
-            throw new Error(data.error || data.message || "Vision engine unavailable.");
+            if (data.error === "AI_NOT_CONFIGURED") throw new Error("AI analysis is not connected yet. Add OPENAI_API_KEY and MATCHLATCH_BETA_CODE in Vercel settings to enable it.");
+            if (data.error === "BETA_ACCESS_DENIED") throw new Error("Private beta access code incorrect. Check the code configured in Vercel.");
+            throw new Error(data.message || data.error || "Vision engine unavailable.");
           }
           if (!data.item || !Array.isArray(data.pieces)) throw new Error("The AI response was incomplete.");
           render(data);
