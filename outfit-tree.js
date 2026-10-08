@@ -24,7 +24,8 @@ const node=(tag,cls,text)=>{
  return el;
 };
 const button=(text,onClick,cls)=>{const b=node("button",cls,text);b.type="button";b.addEventListener("click",onClick);return b;};
-const catalogs={};let budget=200,prefs={},inspiration=null,session=0,anchor="",shopSlot=null,checking=false;
+const catalogs={};const FRESH_MS=60000;
+let budget=200,prefs={},inspiration=null,session=0,anchor="",shopSlot=null;
 const slotById=id=>SLOTS.find(x=>x.id===id);
 const stateFor=id=>catalogs[id]||(catalogs[id]={options:[],selected:null,query:"",loading:false,message:""});
 const slotForItem=data=>{
@@ -199,7 +200,13 @@ async function fetchOptions(slotId,auto=false,custom=""){
   if(current!==session)return;
   if(!response.ok)throw Error(data.error||"Live catalog unavailable");
   state.options=Array.isArray(data.items)?data.items.filter(x=>x.available&&x.price<=cap):[];
+  state.fetchedAt=Date.now();
   state.query=query;
+  if(state.selected){
+    const refreshed=state.options.find(x=>x.variantId===state.selected.variantId);
+    state.selected=refreshed||null;
+    if(refreshed)state.index=state.options.indexOf(refreshed);
+  }
   if(state.options.length&&!state.selected)select(slotId,0,true);
   if(!state.options.length)state.message=auto?"No verified option in this allocation. Open Private Shop to broaden.":"No available items found in this size and budget.";
  }catch(e){if(current===session)state.message=e.message||"Catalog temporarily unavailable";}
@@ -221,7 +228,10 @@ function select(slotId,index,persist=true){
 }
 function cycle(slotId,direction){
  const st=stateFor(slotId);
- if(!st.options.length){void fetchOptions(slotId,false);return;}
+ if(!st.options.length||!st.fetchedAt||Date.now()-st.fetchedAt>FRESH_MS){
+   st.options=[];st.selected=null;st.message="Rechecking current prices…";
+   void fetchOptions(slotId,false);return;
+ }
  select(slotId,(st.index??0)+direction);
 }
 function setupDrawer(){
@@ -250,7 +260,10 @@ function openShop(slotId){
  document.body.classList.add("private-shop-open");
  renderDrawer();
  const entry=stateFor(slotId);
- if(!entry.options.length&&!entry.loading)void fetchOptions(slotId,false);
+ if((!entry.options.length||!entry.fetchedAt||Date.now()-entry.fetchedAt>FRESH_MS)&&!entry.loading){
+   entry.options=[];entry.selected=null;
+   void fetchOptions(slotId,false);
+ }
 }
 function closeShop(){
  shopSlot=null;
