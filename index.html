@@ -1,150 +1,333 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MATCHLATCH — Your style, unlocked.</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #09090b;
-        color: #fafafa;
-      }
-      * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100vh; }
-      main {
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 32px;
-        background:
-          radial-gradient(circle at 50% 20%, rgba(255,255,255,.08), transparent 35%),
-          #09090b;
-      }
-      .wrap { width: min(900px, 100%); text-align: center; }
-      .eyebrow {
-        letter-spacing: .28em;
-        font-size: 12px;
-        font-weight: 700;
-        color: #a1a1aa;
-        margin-bottom: 24px;
-      }
-      h1 {
-        margin: 0;
-        font-size: clamp(48px, 10vw, 100px);
-        line-height: .95;
-        letter-spacing: -.055em;
-      }
-      .tagline {
-        margin: 22px 0 36px;
-        font-size: clamp(20px, 3vw, 30px);
-        color: #d4d4d8;
-      }
-      .card {
-        margin: 0 auto;
-        max-width: 620px;
-        padding: 32px;
-        border: 1px solid #27272a;
-        border-radius: 24px;
-        background: rgba(24,24,27,.78);
-        backdrop-filter: blur(14px);
-      }
-      .card p { color: #a1a1aa; line-height: 1.7; margin: 0 0 22px; }
-      .upload {
-        display: block;
-        width: 100%;
-        padding: 28px 20px;
-        border: 1px dashed #52525b;
-        border-radius: 18px;
-        background: #18181b;
-        cursor: pointer;
-        transition: border-color .2s, background .2s;
-      }
-      .upload:hover { border-color: #a1a1aa; background: #1f1f23; }
-      .upload strong { display: block; font-size: 18px; margin-bottom: 7px; }
-      .upload span { color: #71717a; font-size: 14px; }
-      input[type="file"] { display: none; }
-      #preview {
-        display: none;
-        width: 100%;
-        max-height: 360px;
-        object-fit: contain;
-        border-radius: 18px;
-        margin-bottom: 18px;
-        background: #09090b;
-      }
-      .analyze {
-        display: none;
-        width: 100%;
-        margin-top: 18px;
-        border: 0;
-        border-radius: 999px;
-        padding: 15px 24px;
-        background: #fafafa;
-        color: #09090b;
-        font-weight: 800;
-        font-size: 15px;
-        cursor: pointer;
-      }
-      .analyze:hover { opacity: .88; }
-      .status { min-height: 22px; margin-top: 16px; color: #a1a1aa; font-size: 14px; }
-      footer { margin-top: 28px; font-size: 12px; color: #52525b; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <div class="wrap">
-        <div class="eyebrow">MATCHLATCH</div>
-        <h1>Your style,<br />unlocked.</h1>
-        <div class="tagline">Show us what you like. We'll help you find what comes next.</div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="MATCHLATCH turns one item into a whole look. Upload your inspiration, set your style and budget, and build an outfit.">
+  <title>MATCHLATCH — Your style, unlocked.</title>
+  <style>
+    :root { color-scheme:dark; --bg:#090a0a; --panel:#141515; --panel2:#1b1d1c; --border:#303431; --ink:#f6f5ed; --muted:#9caaa0; --accent:#bafc52; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); }
+    button,input,select,textarea { font:inherit; }
+    button,select { cursor:pointer; }
+    button:disabled { cursor:not-allowed; opacity:.6; }
+    a { color:inherit; }
+    .shell { width:min(1180px,calc(100% - 36px)); margin:0 auto; }
+    header { border-bottom:1px solid #252725; }
+    .topbar { min-height:77px; display:flex; justify-content:space-between; align-items:center; gap:20px; }
+    .brand { letter-spacing:-.055em; font-size:25px; font-weight:950; text-decoration:none; }
+    .brand span { color:var(--accent); }
+    .chip { border:1px solid #364238; border-radius:999px; color:#c6d2c7; font-size:11px; letter-spacing:.11em; padding:9px 13px; font-weight:800; }
+    .hero { padding:78px 0 46px; background:radial-gradient(ellipse at 75% 4%,rgba(169,252,81,.13),transparent 48%); }
+    .overline { display:inline-flex; align-items:center; gap:10px; font-size:12px; letter-spacing:.17em; font-weight:900; color:var(--accent); text-transform:uppercase; }
+    .dot { width:8px; height:8px; background:var(--accent); border-radius:50%; }
+    h1 { font-size:clamp(48px,7.6vw,94px); max-width:940px; line-height:.96; letter-spacing:-.08em; margin:23px 0; }
+    h1 em { font-style:normal; color:var(--accent); }
+    .lead { color:#b8beb6; font-size:clamp(16px,2vw,20px); line-height:1.6; max-width:640px; }
+    .steps { display:flex; flex-wrap:wrap; gap:12px; margin-top:31px; }
+    .steps span { padding:10px 15px; border:1px solid #303830; border-radius:99px; font-size:12px; font-weight:800; color:#c8d4c6; }
+    .steps b { color:var(--accent); margin-right:5px; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; padding:20px 0 42px; }
+    .panel { background:linear-gradient(145deg,#171a18,#111312); border:1px solid var(--border); border-radius:24px; padding:29px; min-width:0; }
+    .section-label { color:var(--accent); letter-spacing:.16em; font-size:11px; font-weight:900; text-transform:uppercase; }
+    h2 { font-size:29px; letter-spacing:-.045em; margin:12px 0 8px; }
+    .sub { color:var(--muted); font-size:14px; line-height:1.6; margin:0 0 26px; }
+    .drop { min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:11px; text-align:center; border:1px dashed #6a7968; border-radius:18px; background:radial-gradient(circle at 50% 35%,#283327,#191e19 70%); padding:22px; cursor:pointer; outline-offset:4px; transition:.2s; }
+    .drop:hover,.drop.drag { border-color:var(--accent); background:#222c20; }
+    .drop .camera { width:68px; height:68px; display:grid; place-items:center; border-radius:22px; background:#364632; font-size:31px; }
+    .drop strong { font-size:19px; }
+    .drop small { font-size:13px; color:#a4b1a1; max-width:280px; }
+    #photo { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+    .drop:focus-within { outline:2px solid var(--accent); }
+    .preview-box { display:none; position:relative; overflow:hidden; border-radius:18px; background:#080908; text-align:center; }
+    .preview-box img { display:block; width:100%; max-height:330px; object-fit:contain; }
+    .change { margin-top:13px; padding:11px 15px; border-radius:12px; border:1px solid #4a594a; color:var(--ink); background:#222921; }
+    .privacy { display:flex; gap:8px; align-items:flex-start; color:#8f9b90; font-size:12px; line-height:1.5; margin:17px 0 26px; }
+    .privacy b { color:#c4d2c4; }
+    .field-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    label.field { display:block; color:#b9c4ba; font-size:12px; font-weight:800; }
+    label.field span { display:block; margin:0 0 7px; }
+    input[type="text"],input[type="number"],select,textarea { display:block; width:100%; min-width:0; color:var(--ink); background:#0b0d0c; border:1px solid #424942; border-radius:12px; padding:13px 12px; outline:none; }
+    input:focus,select:focus,textarea:focus { border-color:var(--accent); }
+    textarea { resize:vertical; min-height:86px; }
+    .full { margin-top:14px; }
+    .action-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+    .primary,.secondary { border:0; border-radius:14px; min-height:50px; padding:14px 19px; font-weight:900; font-size:13px; letter-spacing:.015em; }
+    .primary { background:var(--accent); color:#14210d; flex:1; }
+    .secondary { background:#2b322b; color:var(--ink); border:1px solid #4c594a; }
+    .primary:hover { background:#ceff87; }
+    .secondary:hover { background:#384338; }
+    .note { min-height:24px; margin-top:14px; font-size:13px; color:#b7c4b7; line-height:1.5; }
+    .results { display:none; padding:0 0 70px; scroll-margin-top:24px; }
+    .results-head { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap; margin-bottom:20px; }
+    .results-head h2 { font-size:clamp(32px,5vw,54px); margin:10px 0 6px; }
+    .mode { font-size:12px; font-weight:800; color:var(--accent); border:1px solid #4f6847; border-radius:50px; padding:9px 13px; }
+    .results-layout { display:grid; grid-template-columns:minmax(240px,.9fr) minmax(0,1.5fr); gap:18px; }
+    .found,.results-card { background:var(--panel); border:1px solid var(--border); border-radius:21px; padding:25px; }
+    .found h3 { font-size:25px; margin:12px 0; letter-spacing:-.04em; }
+    .found p { color:#aab6aa; font-size:14px; line-height:1.6; }
+    .found .meta { font-size:12px; color:var(--accent); letter-spacing:.05em; font-weight:800; text-transform:uppercase; }
+    .results-card h3 { font-size:24px; letter-spacing:-.04em; margin:8px 0; }
+    .results-card>p { font-size:13px; color:#b1bcb0; line-height:1.6; }
+    .result-item { border-top:1px solid #333934; padding:18px 0; display:grid; grid-template-columns:1fr auto; gap:14px; align-items:center; }
+    .result-item strong { display:block; margin:0 0 6px; }
+    .result-item small { color:#a9b6a9; font-size:13px; line-height:1.5; }
+    .result-item a { white-space:nowrap; border:1px solid #4d6148; color:var(--accent); text-decoration:none; padding:10px 12px; border-radius:11px; font-size:12px; font-weight:900; }
+    .result-item a:hover { background:#283324; }
+    .budget { border-radius:12px; padding:13px 14px; margin:14px 0 10px; background:#263323; font-size:13px; color:#dcebd6; }
+    .disclaimer { margin-top:16px; font-size:12px; color:#859386; line-height:1.6; }
+    footer { border-top:1px solid #242a25; padding:25px 0 36px; color:#7d8a7d; font-size:12px; }
+    footer .shell { display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+    @media(max-width:800px) { .hero { padding-top:51px; } .workspace,.results-layout { grid-template-columns:1fr; } .panel { padding:23px; } .drop { min-height:250px; } }
+    @media(max-width:480px) { .shell { width:min(100% - 24px,1180px); } .panel { padding:18px; } .field-grid { gap:11px; } .action-row { flex-direction:column; } .result-item { grid-template-columns:1fr; } .result-item a { justify-self:start; } }
+  </style>
+</head>
+<body>
+  <header><div class="shell topbar">
+    <a class="brand" href="/" aria-label="MATCHLATCH home">MATCH<span>LATCH</span></a>
+    <div class="chip">STYLE ENGINE · EARLY ACCESS</div>
+  </div></header>
 
-        <div class="card">
-          <p>
-            Start with a photo of something you love. MATCHLATCH will eventually identify it,
-            find matching pieces, and build a look around your style and budget.
-          </p>
+  <main>
+    <section class="hero"><div class="shell">
+      <div class="overline"><span class="dot"></span>YOUR PERSONAL STYLE CO-PILOT</div>
+      <h1>One piece.<br><em>Endless possibilities.</em></h1>
+      <p class="lead">Start with something you love. MATCHLATCH helps you build the rest of the look around your vibe, the occasion, and what you actually want to spend.</p>
+      <div class="steps"><span><b>01</b> SHOW IT</span><span><b>02</b> SET YOUR STYLE</span><span><b>03</b> LATCH YOUR LOOK</span></div>
+    </div></section>
 
-          <img id="preview" alt="Your selected clothing photo" />
+    <section class="shell workspace" aria-label="Outfit builder">
+      <div class="panel">
+        <div class="section-label">01 / YOUR INSPIRATION</div>
+        <h2>Show us the piece.</h2>
+        <p class="sub">Upload a shirt, sneakers, jacket, accessory, dress, or inspiration shot to start.</p>
 
-          <label class="upload" for="photo">
-            <strong>📸 Choose a photo</strong>
-            <span>Upload a clothing item, shoe, accessory, or inspiration photo</span>
-          </label>
-          <input id="photo" type="file" accept="image/*" />
-
-          <button id="analyze" class="analyze" type="button">LATCH THIS ITEM →</button>
-          <div id="status" class="status"></div>
+        <label class="drop" id="drop" for="photo">
+          <span class="camera">📸</span>
+          <strong>Choose a photo</strong>
+          <small>Tap to browse, or drag and drop an image. JPG, PNG, HEIC where supported.</small>
+        </label>
+        <input id="photo" type="file" accept="image/*" aria-label="Upload your fashion inspiration photo">
+        <div class="preview-box" id="preview-box">
+          <img id="preview" alt="Selected inspiration photo">
         </div>
+        <button class="change" id="change" type="button" hidden>↻ Choose a different photo</button>
 
-        <footer>Early build • MATCHLATCH</footer>
+        <div class="privacy">🔒 <span><b>Your photo is not saved to our database.</b> Guided mode stays in your browser. AI mode sends the image to an external vision provider for analysis only after you press the AI button.</span></div>
+
+        <div class="section-label">ITEM DETAILS · FOR GUIDED MODE</div>
+        <p class="sub" style="margin-top:10px;margin-bottom:15px;">No AI connection? You can still build a look using these details.</p>
+        <div class="field-grid">
+          <label class="field"><span>Item type</span>
+            <select id="itemtype"><option value="">Choose a type</option><option value="top">Top / shirt</option><option value="bottom">Pants / shorts / skirt</option><option value="shoes">Shoes</option><option value="outerwear">Jacket / outerwear</option><option value="dress">Dress / one-piece</option><option value="accessory">Accessory</option><option value="other">Other</option></select>
+          </label>
+          <label class="field"><span>Main color</span><input id="itemcolor" type="text" maxlength="40" placeholder="e.g. olive green"></label>
+        </div>
       </div>
-    </main>
 
-    <script>
-      const photo = document.getElementById('photo');
-      const preview = document.getElementById('preview');
-      const upload = document.querySelector('.upload');
-      const analyze = document.getElementById('analyze');
-      const status = document.getElementById('status');
+      <div class="panel">
+        <div class="section-label">02 / YOUR STYLE DNA</div>
+        <h2>Make it yours.</h2>
+        <p class="sub">Your selections are remembered on this device. You can update them anytime.</p>
+        <div class="field-grid">
+          <label class="field"><span>Style expression</span><select id="look"><option>Unisex</option><option>Masculine</option><option>Feminine</option><option>Androgynous</option></select></label>
+          <label class="field"><span>Fit preference</span><select id="fit"><option>Relaxed</option><option>Tailored</option><option>Oversized</option><option>Classic</option></select></label>
+          <label class="field"><span>The occasion</span><select id="occasion"><option>Everyday</option><option>Work</option><option>Date night</option><option>Weekend</option><option>Formal event</option><option>Party</option></select></label>
+          <label class="field"><span>Budget for new pieces ($)</span><input id="budget" type="number" min="25" max="10000" step="5" value="200"></label>
+        </div>
+        <label class="field full"><span>Anything we should know?</span><textarea id="notes" maxlength="260" placeholder="Minimalist. No loud logos. Love earth tones. Sneakers over dress shoes..."></textarea></label>
+        <div class="action-row">
+          <button class="primary" id="analyze" type="button">✦ ANALYZE PHOTO WITH AI</button>
+          <button class="secondary" id="guided" type="button">BUILD WITH GUIDED MODE →</button>
+        </div>
+        <div class="note" id="status" role="status" aria-live="polite">Guided mode works now. AI analysis needs a separate API connection.</div>
+      </div>
+    </section>
 
-      photo.addEventListener('change', () => {
-        const file = photo.files?.[0];
-        if (!file) return;
+    <section class="shell results" id="results" aria-live="polite">
+      <div class="results-head">
+        <div><div class="section-label">03 / YOUR LATCHED LOOK</div><h2 id="result-title">Your outfit, unlocked.</h2></div>
+        <span class="mode" id="mode">GUIDED STYLING</span>
+      </div>
+      <div class="results-layout">
+        <article class="found">
+          <div class="section-label">THE STARTING PIECE</div>
+          <h3 id="found-title"></h3>
+          <div class="meta" id="found-meta"></div>
+          <p id="found-details"></p>
+        </article>
+        <article class="results-card">
+          <div class="section-label">COMPLETE THE LOOK</div>
+          <h3>Three pieces that work together.</h3>
+          <p id="style-notes"></p>
+          <div class="budget" id="budget-message"></div>
+          <div id="suggestions"></div>
+          <div class="disclaimer">Shopping links open independent product search results, not verified exact matches. Prices, stock, discounts and checkout are not integrated yet. Spending amounts are targets, not quoted product prices.</div>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer><div class="shell"><span>© MATCHLATCH · Your style, unlocked.</span><span>EARLY BUILD · MADE FOR PEOPLE WITH TASTE, NOT UNLIMITED BUDGETS.</span></div></footer>
 
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
-        upload.style.display = 'none';
-        analyze.style.display = 'block';
-        status.textContent = file.name;
+  <script>
+    (function () {
+      "use strict";
+      const $ = id => document.getElementById(id);
+      const storedFields = ["look","fit","occasion","budget","notes"];
+      let imageData = null;
+      let imageUrl = null;
+      const defaults = {look:"Unisex",fit:"Relaxed",occasion:"Everyday",budget:"200",notes:""};
+
+      function setStatus(message) { $("status").textContent = message; }
+      function money(value) { return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(value); }
+      function profile() {
+        return {look:$("look").value,fit:$("fit").value,occasion:$("occasion").value,budget:Math.max(25,Math.min(10000,Number($("budget").value)||200)),notes:$("notes").value.trim()};
+      }
+      try {
+        const saved = JSON.parse(localStorage.getItem("matchlatch-style-v1") || "{}");
+        storedFields.forEach(id => { $(id).value = saved[id] === undefined ? defaults[id] : saved[id]; });
+      } catch {
+        storedFields.forEach(id => { $(id).value = defaults[id]; });
+      }
+      storedFields.forEach(id => $(id).addEventListener("input", () => {
+        try { localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile())); } catch {}
+      }));
+
+      async function loadImage(file) {
+        if (!file || !file.type.startsWith("image/")) { setStatus("Please choose an image file."); return; }
+        if (file.size > 18 * 1024 * 1024) { setStatus("That image is too large. Choose one under 18 MB."); return; }
+        const candidate = URL.createObjectURL(file);
+        const img = new Image();
+        try {
+          await new Promise((resolve,reject) => { img.onload=resolve; img.onerror=reject; img.src=candidate; });
+          const ratio = Math.min(1,1024/Math.max(img.naturalWidth,img.naturalHeight));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1,Math.round(img.naturalWidth * ratio));
+          canvas.height = Math.max(1,Math.round(img.naturalHeight * ratio));
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("No canvas");
+          ctx.fillStyle="#ffffff";ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          imageData = canvas.toDataURL("image/jpeg",0.76);
+          if (imageUrl) URL.revokeObjectURL(imageUrl);
+          imageUrl = candidate;
+          $("preview").src = candidate;
+          $("preview-box").style.display = "block";
+          $("drop").style.display = "none";
+          $("change").hidden = false;
+          $("results").style.display = "none";
+          setStatus("Photo ready. Choose AI analysis or build a guided outfit.");
+        } catch {
+          URL.revokeObjectURL(candidate);
+          setStatus("This image format could not be opened. Try a JPG or PNG.");
+        }
+      }
+
+      $("photo").addEventListener("change",event => loadImage(event.target.files && event.target.files[0]));
+      $("change").addEventListener("click",() => $("photo").click());
+      const drop = $("drop");
+      ["dragenter","dragover"].forEach(type => drop.addEventListener(type,event => { event.preventDefault();drop.classList.add("drag"); }));
+      ["dragleave","drop"].forEach(type => drop.addEventListener(type,event => { event.preventDefault();drop.classList.remove("drag"); }));
+      drop.addEventListener("drop",event => loadImage(event.dataTransfer && event.dataTransfer.files[0]));
+
+      const palette = color => {
+        const c = color.toLowerCase();
+        if (/black|charcoal|dark/.test(c)) return ["stone","off-white","silver"];
+        if (/blue|denim|navy/.test(c)) return ["cream","charcoal","tan"];
+        if (/white|cream|beige|ivory/.test(c)) return ["dark navy","olive","brown"];
+        if (/green|olive|sage/.test(c)) return ["ecru","black","tan"];
+        if (/red|burgundy|maroon|pink/.test(c)) return ["charcoal","cream","black"];
+        if (/brown|tan|camel|khaki/.test(c)) return ["off-white","navy","black"];
+        return ["charcoal","cream","taupe"];
+      };
+
+      function guided() {
+        const category = $("itemtype").value;
+        const color = $("itemcolor").value.trim();
+        if (!category || !color) { setStatus("For Guided Styling, choose the item type and enter its main color."); return; }
+        const choices = {
+          top:["bottoms","shoes","lightweight outerwear"],
+          bottom:["top","shoes","accessory"],
+          shoes:["top","bottoms","outerwear"],
+          outerwear:["top","bottoms","shoes"],
+          dress:["shoes","accessory","outerwear"],
+          accessory:["top","bottoms","shoes"],
+          other:["top","bottoms","shoes"]
+        };
+        const p = profile();
+        const colors = palette(color);
+        const pieces = choices[category].map((type,index) => ({
+          type:type.charAt(0).toUpperCase()+type.slice(1),
+          description: colors[index]+" "+type+" with a "+p.fit.toLowerCase()+" feel",
+          searchQuery:colors[index]+" "+p.fit+" "+p.look+" "+type+" fashion"
+        }));
+        render({
+          mode:"guided",
+          item:{label:color+" "+category,color,category,details:"Item type and color were entered by you; the photo has not been analyzed by AI."},
+          styleNotes:"A "+p.occasion.toLowerCase()+" outfit with "+p.fit.toLowerCase()+" proportions and a "+p.look.toLowerCase()+" aesthetic. The color pairing is a styling suggestion, not a live product recommendation.",
+          pieces
+        });
+        setStatus("Guided outfit built. Scroll down to see your look.");
+      }
+
+      function node(tag,className,content) {
+        const element=document.createElement(tag);
+        if(className) element.className=className;
+        if(content !== undefined) element.textContent=content;
+        return element;
+      }
+
+      function render(data) {
+        const isAI = data.mode === "ai";
+        const p = profile();
+        $("result-title").textContent = isAI ? "Your photo, styled." : "Your guided look.";
+        $("mode").textContent = isAI ? "AI IMAGE ANALYSIS" : "GUIDED STYLING · MANUAL DETAILS";
+        $("found-title").textContent = data.item.label || "Your inspiration piece";
+        $("found-meta").textContent = [data.item.color,data.item.category].filter(Boolean).join(" · ");
+        $("found-details").textContent = data.item.details || "";
+        $("style-notes").textContent = data.styleNotes || "";
+        $("budget-message").textContent = "Your target budget for 3 new pieces: "+money(p.budget)+". Suggested per-piece targets shown below.";
+        const list=$("suggestions");list.replaceChildren();
+        const ratios=[.38,.37,.25];
+        data.pieces.slice(0,3).forEach((piece,index) => {
+          const row=node("div","result-item");
+          const left=node("div");
+          left.append(node("strong",null,piece.type || "Matching piece"));
+          left.append(node("small",null,(piece.description || "Complementary piece")+" · Target spend: "+money(Math.round(p.budget*ratios[index]))));
+          const link=node("a",null,"Find options ↗");
+          const query=piece.searchQuery || piece.description || piece.type;
+          link.href="https://www.google.com/search?tbm=shop&q="+encodeURIComponent(query);
+          link.target="_blank";link.rel="noopener noreferrer";
+          link.setAttribute("aria-label","Search shopping options for "+(piece.type || "this item"));
+          row.append(left,link);list.append(row);
+        });
+        $("results").style.display="block";
+        $("results").scrollIntoView({behavior:"smooth",block:"start"});
+      }
+
+      $("guided").addEventListener("click",guided);
+      $("analyze").addEventListener("click",async () => {
+        if (!imageData) { setStatus("Upload a photo first to use AI analysis."); return; }
+        const button=$("analyze");
+        button.disabled=true;button.textContent="ANALYZING YOUR PHOTO…";
+        setStatus("Checking the vision engine…");
+        try {
+          const response=await fetch("/api/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:imageData,profile:profile()})});
+          let data;
+          try { data=await response.json(); } catch { throw new Error("The AI service is not reachable yet. Try Guided Styling."); }
+          if (!response.ok) {
+            if (data.error === "AI_NOT_CONFIGURED") throw new Error("AI analysis isn't connected yet. Use Guided Styling now; the owner can add a Gemini API key in Vercel to enable AI.");
+            throw new Error(data.error || data.message || "Vision engine unavailable.");
+          }
+          if (!data.item || !Array.isArray(data.pieces)) throw new Error("The AI response was incomplete.");
+          render(data);
+          setStatus("AI analysis complete. Your personalized outfit is below.");
+        } catch (error) { setStatus(error.message || "Analysis failed. Guided Styling is still available."); }
+        finally { button.disabled=false;button.textContent="✦ ANALYZE PHOTO WITH AI"; }
       });
-
-      analyze.addEventListener('click', () => {
-        status.textContent = '📸 Photo captured. The MATCHLATCH vision engine is next.';
-        analyze.textContent = 'ITEM LATCHED ✓';
-        analyze.disabled = true;
-        analyze.style.opacity = '.65';
-      });
-    </script>
-  </body>
+    })();
+  </script>
+</body>
 </html>
