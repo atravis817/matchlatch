@@ -27,7 +27,7 @@ function collect(data,selectedSize=""){
       const size=clip(sizeOpt?.label||"",36);
       if(selectedSize && size.toLowerCase()!==selectedSize.toLowerCase())continue;
       const merchant=clip(v.seller?.name||p.seller?.name,90);
-      const merchantLink=safeUrl(p.url)||safeUrl(v.seller?.url)||safeUrl(p.seller?.url);
+      const merchantLink=safeUrl(p.url)||safeUrl(v.checkout_url);
       // Only expose merchant-owned links; never invent checkout destinations.
       if(!merchantLink)continue;
       matches.push({
@@ -85,11 +85,11 @@ export async function GET(request){
         filters,context:{address_country:"US",currency:"USD"},
         pagination:{limit:16}
       });
-      const byVariant=new Map();
+      const byProduct=new Map();
       for(const p of collect(data,size)){
-        if(p.price<=max&&!byVariant.has(p.variantId))byVariant.set(p.variantId,p);
+        if(p.price<=max&&!byProduct.has(p.productId))byProduct.set(p.productId,p);
       }
-      const items=[...byVariant.values()].slice(0,9);
+      const items=[...byProduct.values()].slice(0,9);
       return reply({items,source:"Shopify Global Catalog",checkedAt:new Date().toISOString(),
         note:"Retailer availability is checked when fetched, not guaranteed at checkout. Prices exclude tax and possible shipping."});
     }
