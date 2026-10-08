@@ -320,7 +320,7 @@
           let data;
           try { data=await response.json(); } catch { throw new Error("The AI service is not reachable yet. Try Guided Styling."); }
           if (!response.ok) {
-            if (data.error === "AI_NOT_CONFIGURED") throw new Error("AI analysis is not connected yet. Add OPENAI_API_KEY and MATCHLATCH_BETA_CODE in Vercel settings to enable it.");
+            if (data.error === "AI_NOT_CONFIGURED") throw new Error(data.message || "AI is not configured yet. Check Vercel Production environment variables.");
             if (data.error === "BETA_ACCESS_DENIED") throw new Error("Private beta access code incorrect. Check the code configured in Vercel.");
             throw new Error(data.message || data.error || "Vision engine unavailable.");
           }
