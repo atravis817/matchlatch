@@ -417,9 +417,9 @@
       $("guided").addEventListener("click",guided);
       $("analyze").addEventListener("click",async () => {
         if (!imageData) { setStatus("Upload a photo first to use AI analysis."); return; }
-        if (!$("beta-code").value) { setStatus("Enter your private beta access code for AI analysis."); return; }
+        if (!$("beta-code").value) { document.querySelector(".beta-details").open=true; $("beta-code").focus(); setStatus("Enter your private beta access code for AI analysis."); return; }
         const button=$("analyze");
-        button.disabled=true;button.textContent="ANALYZING YOUR PHOTO…";
+        button.disabled=true;button.textContent="CURATING YOUR LOOK…";
         setStatus("Checking the vision engine…");
         try {
           const response=await fetch("/api/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:imageData,profile:profile(),betaCode:$("beta-code").value})});
@@ -434,7 +434,7 @@
           render(data);
           setStatus("AI analysis complete. Your personalized outfit is below.");
         } catch (error) { setStatus(error.message || "Analysis failed. Guided Styling is still available."); }
-        finally { button.disabled=false;button.textContent="✦ ANALYZE PHOTO WITH AI"; }
+        finally { button.disabled=false;button.textContent="✳ Build my look with AI ↗"; }
       });
     })();
   
