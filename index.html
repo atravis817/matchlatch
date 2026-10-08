@@ -72,7 +72,16 @@
     input:focus,select:focus,textarea:focus{border-color:#6c726b}
     textarea{resize:vertical;min-height:93px;line-height:1.5}
     .full{margin-top:17px}
-    .beta-details{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+    .beta-details,.extra-details{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+    .extra-details{margin-top:16px}
+    .extra-details .extra-grid{margin-top:19px}
+    .size-helper{font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0 4px}
+    .extra-details summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;font-size:12px;font-weight:650}
+    .extra-details summary::-webkit-details-marker{display:none}
+    .extra-details summary:after{content:"+";font-size:20px;font-weight:400;color:#8a8e89}
+    .extra-details[open] summary:after{content:"−"}
+    .extra-details summary small{font-weight:400;font-size:11px;color:#969a94;text-align:right}
+    .beta-details{margin-top:20px}
     .beta-details summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-size:12px;font-weight:650}
     .beta-details summary::-webkit-details-marker{display:none}
     .beta-details summary:after{content:"+";font-size:20px;font-weight:400;color:#8a8e89}
@@ -196,15 +205,109 @@
         <div class="micro-title">Manual details · Optional guided mode</div>
         <div class="field-grid">
           <label class="field"><span>Item type</span>
-            <select id="itemtype">
-              <option value="">Choose an item</option>
-              <option value="top">Top / shirt</option>
-              <option value="bottom">Pants / shorts / skirt</option>
-              <option value="shoes">Shoes</option>
-              <option value="outerwear">Jacket / outerwear</option>
-              <option value="dress">Dress / one-piece</option>
-              <option value="accessory">Accessory</option>
-              <option value="other">Other</option>
+            <select id="itemtype"><option value="">Choose an item</option>
+              <optgroup label="Tops">
+                <option value="top:t-shirt">T-shirt</option>
+                <option value="top:long-sleeve-tee">Long-sleeve tee</option>
+                <option value="top:tank-top">Tank top</option>
+                <option value="top:polo">Polo</option>
+                <option value="top:button-down-shirt">Button-down shirt</option>
+                <option value="top:oxford-shirt">Oxford shirt</option>
+                <option value="top:blouse">Blouse</option>
+                <option value="top:henley">Henley</option>
+                <option value="top:sweater">Sweater</option>
+                <option value="top:cardigan">Cardigan</option>
+                <option value="top:hoodie">Hoodie</option>
+                <option value="top:sweatshirt">Sweatshirt</option>
+                <option value="top:knit-top">Knit top</option>
+                <option value="top:crop-top">Crop top</option>
+                <option value="top:tunic">Tunic</option>
+                <option value="top:vest-waistcoat">Vest / waistcoat</option>
+                <option value="top:jersey">Jersey</option>
+              </optgroup>
+              <optgroup label="Bottoms">
+                <option value="bottom:jeans">Jeans</option>
+                <option value="bottom:chinos">Chinos</option>
+                <option value="bottom:tailored-trousers">Tailored trousers</option>
+                <option value="bottom:cargo-pants">Cargo pants</option>
+                <option value="bottom:joggers">Joggers</option>
+                <option value="bottom:sweatpants">Sweatpants</option>
+                <option value="bottom:leggings">Leggings</option>
+                <option value="bottom:wide-leg-pants">Wide-leg pants</option>
+                <option value="bottom:shorts">Shorts</option>
+                <option value="bottom:denim-shorts">Denim shorts</option>
+                <option value="bottom:skirt">Skirt</option>
+                <option value="bottom:midi-skirt">Midi skirt</option>
+                <option value="bottom:maxi-skirt">Maxi skirt</option>
+                <option value="bottom:pleated-skirt">Pleated skirt</option>
+              </optgroup>
+              <optgroup label="Outerwear">
+                <option value="outerwear:blazer">Blazer</option>
+                <option value="outerwear:suit-jacket">Suit jacket</option>
+                <option value="outerwear:bomber-jacket">Bomber jacket</option>
+                <option value="outerwear:denim-jacket">Denim jacket</option>
+                <option value="outerwear:leather-jacket">Leather jacket</option>
+                <option value="outerwear:trench-coat">Trench coat</option>
+                <option value="outerwear:wool-coat">Wool coat</option>
+                <option value="outerwear:puffer-jacket">Puffer jacket</option>
+                <option value="outerwear:rain-jacket">Rain jacket</option>
+                <option value="outerwear:windbreaker">Windbreaker</option>
+                <option value="outerwear:overshirt">Overshirt</option>
+                <option value="outerwear:fleece-jacket">Fleece jacket</option>
+                <option value="outerwear:parka">Parka</option>
+                <option value="outerwear:shacket">Shacket</option>
+              </optgroup>
+              <optgroup label="One-pieces & sets">
+                <option value="dress:dress">Dress</option>
+                <option value="dress:slip-dress">Slip dress</option>
+                <option value="dress:maxi-dress">Maxi dress</option>
+                <option value="dress:jumpsuit">Jumpsuit</option>
+                <option value="dress:romper">Romper</option>
+                <option value="dress:matching-set">Matching set</option>
+                <option value="dress:suit">Suit</option>
+                <option value="dress:overalls">Overalls</option>
+              </optgroup>
+              <optgroup label="Footwear">
+                <option value="shoes:low-top-sneakers">Low-top sneakers</option>
+                <option value="shoes:high-top-sneakers">High-top sneakers</option>
+                <option value="shoes:running-shoes">Running shoes</option>
+                <option value="shoes:loafers">Loafers</option>
+                <option value="shoes:oxfords-derbies">Oxfords / derbies</option>
+                <option value="shoes:boots">Boots</option>
+                <option value="shoes:chelsea-boots">Chelsea boots</option>
+                <option value="shoes:combat-boots">Combat boots</option>
+                <option value="shoes:heels">Heels</option>
+                <option value="shoes:flats">Flats</option>
+                <option value="shoes:sandals">Sandals</option>
+                <option value="shoes:slides">Slides</option>
+                <option value="shoes:clogs">Clogs</option>
+                <option value="shoes:mules">Mules</option>
+              </optgroup>
+              <optgroup label="Accessories">
+                <option value="accessory:handbag">Handbag</option>
+                <option value="accessory:crossbody-bag">Crossbody bag</option>
+                <option value="accessory:backpack">Backpack</option>
+                <option value="accessory:tote-bag">Tote bag</option>
+                <option value="accessory:belt">Belt</option>
+                <option value="accessory:hat-cap">Hat / cap</option>
+                <option value="accessory:beanie">Beanie</option>
+                <option value="accessory:scarf">Scarf</option>
+                <option value="accessory:sunglasses">Sunglasses</option>
+                <option value="accessory:watch">Watch</option>
+                <option value="accessory:jewelry">Jewelry</option>
+                <option value="accessory:necklace">Necklace</option>
+                <option value="accessory:earrings">Earrings</option>
+                <option value="accessory:tie">Tie</option>
+                <option value="accessory:socks">Socks</option>
+                <option value="accessory:hair-accessory">Hair accessory</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option value="other:swimwear">Swimwear</option>
+                <option value="other:activewear">Activewear</option>
+                <option value="other:loungewear">Loungewear</option>
+                <option value="other:sleepwear">Sleepwear</option>
+                <option value="other:other-item">Other item</option>
+              </optgroup>
             </select>
           </label>
           <label class="field"><span>Main color</span><input id="itemcolor" type="text" maxlength="40" placeholder="e.g. graphite"></label>
@@ -213,19 +316,43 @@
       <div class="panel">
         <div class="panel-top"><span class="num">02</span><span class="panel-tag">Make it yours</span></div>
         <h2>Set your preferences.</h2>
-        <p class="sub">Tell us what you like. Your choices are saved on this device.</p>
+        <p class="sub">Tell us what you like. Your choices, including optional sizing, are saved on this device.</p>
         <div class="field-grid">
           <label class="field"><span>Style expression</span>
-            <select id="look"><option>Unisex</option><option>Masculine</option><option>Feminine</option><option>Androgynous</option></select>
+            <select id="look"><option>Unisex</option><option>Masculine</option><option>Feminine</option><option>Androgynous</option><option>Masculine-leaning</option><option>Feminine-leaning</option><option>Gender-fluid</option><option>No preference</option></select>
           </label>
           <label class="field"><span>Fit preference</span>
-            <select id="fit"><option>Relaxed</option><option>Tailored</option><option>Oversized</option><option>Classic</option></select>
+            <select id="fit"><option>Relaxed</option><option>Tailored</option><option>Oversized</option><option>Classic</option><option>Regular</option><option>Slim</option><option>Fitted</option><option>Loose</option><option>Boxy</option><option>Cropped</option><option>Tapered</option><option>Wide-leg</option><option>Straight-leg</option><option>Structured</option><option>Flowy</option><option>Layered</option></select>
           </label>
           <label class="field"><span>Occasion</span>
-            <select id="occasion"><option>Everyday</option><option>Work</option><option>Date night</option><option>Weekend</option><option>Formal event</option><option>Party</option></select>
+            <select id="occasion"><option>Everyday</option><option>Work</option><option>Date night</option><option>Weekend</option><option>Formal event</option><option>Party</option><option>Smart casual</option><option>Business casual</option><option>Office</option><option>Job interview</option><option>Dinner out</option><option>Brunch</option><option>Travel / airport</option><option>Vacation</option><option>Beach</option><option>Festival</option><option>Concert</option><option>Night out</option><option>Wedding guest</option><option>Wedding party</option><option>Cocktail party</option><option>Black tie</option><option>Gala / red carpet</option><option>Workout / gym</option><option>Outdoor adventure</option><option>Hiking</option><option>Running errands</option><option>School / campus</option><option>Holiday gathering</option><option>Photoshoot</option><option>Special occasion</option></select>
           </label>
           <label class="field"><span>Budget for new pieces ($)</span><input id="budget" type="number" min="25" max="10000" step="5" value="200"></label>
         </div>
+        <div class="field full">
+          <label class="field"><span>Style direction</span><select id="aesthetic"><option>No preference</option><option>Minimalist</option><option>Quiet luxury</option><option>Classic / timeless</option><option>Modern casual</option><option>Streetwear</option><option>Elevated streetwear</option><option>Scandinavian</option><option>Preppy</option><option>Old money</option><option>Business chic</option><option>Athleisure</option><option>Sporty</option><option>Techwear</option><option>Gorpcore / outdoors</option><option>Workwear / utility</option><option>Vintage</option><option>90s vintage</option><option>Y2K</option><option>Grunge</option><option>Punk / alternative</option><option>Bohemian</option><option>Coastal</option><option>Western</option><option>Romantic</option><option>Avant-garde</option><option>Artistic / eclectic</option><option>Edgy</option><option>Dark academia</option><option>Soft / understated</option><option>Contemporary formal</option></select></label>
+        </div>
+        <details class="extra-details">
+          <summary><span>More styling options</span><small>Colors, coordination &amp; weather</small></summary>
+          <div class="field-grid extra-grid">
+            <label class="field"><span>Color palette</span><select id="palette"><option>No preference</option><option>Neutrals</option><option>Monochrome</option><option>Earth tones</option><option>Black and white</option><option>Muted colors</option><option>Warm tones</option><option>Cool tones</option><option>Pastels</option><option>Bold colors</option><option>Bright accents</option><option>Jewel tones</option></select></label>
+            <label class="field"><span>How to coordinate</span><select id="coordination"><option>Balance / let AI decide</option><option>Match / tonal coordination</option><option>Contrast / color pop</option><option>Complementary colors</option><option>Statement centerpiece</option></select></label>
+            <label class="field"><span>Weather / season</span><select id="climate"><option>Any season</option><option>Warm weather</option><option>Hot weather</option><option>Cool weather</option><option>Cold weather</option><option>Rainy weather</option><option>Transitional seasons</option><option>All-weather layering</option></select></label>
+          </div>
+        </details>
+        <details class="extra-details size-details">
+          <summary><span>Your sizes</span><small>Optional · for better size-aware styling</small></summary>
+          <p class="size-helper">Add only what applies to you. Retailer sizes vary; MATCHLATCH does not verify fit or in-stock sizes yet.</p>
+          <div class="field-grid extra-grid">
+            <label class="field"><span>Tops &amp; outerwear</span><select id="topSize"><option value="">Not specified</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>3XL</option><option>4XL</option><option>5XL</option><option>6XL</option><option>One size</option></select></label>
+            <label class="field"><span>Bottoms / dresses</span><select id="bottomSize"><option value="">Not specified</option><optgroup label="Letter sizes"><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>3XL</option><option>4XL</option><option>5XL</option><option>6XL</option></optgroup><optgroup label="Numeric sizes"><option>00</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option></optgroup></select></label>
+            <label class="field"><span>Waist (inches)</span><select id="waist"><option value="">Not specified</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option><option>32</option><option>33</option><option>34</option><option>35</option><option>36</option><option>37</option><option>38</option><option>39</option><option>40</option><option>41</option><option>42</option><option>43</option><option>44</option><option>45</option><option>46</option><option>47</option><option>48</option><option>49</option><option>50</option><option>51</option><option>52</option><option>53</option><option>54</option><option>55</option><option>56</option><option>57</option><option>58</option></select></label>
+            <label class="field"><span>Inseam (inches)</span><select id="inseam"><option value="">Not specified</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option><option>32</option><option>33</option><option>34</option><option>35</option><option>36</option><option>37</option><option>38</option><option>39</option><option>40</option></select></label>
+            <label class="field"><span>Shoe sizing system</span><select id="shoeSystem"><option>US men's</option><option>US women's</option><option>UK</option><option>EU</option></select></label>
+            <label class="field"><span>Shoe size</span><select id="shoeSize"><option value="">Not specified</option></select></label>
+            <label class="field"><span>Shoe width</span><select id="shoeWidth"><option value="">Not specified</option><option>Narrow</option><option>Standard</option><option>Wide</option><option>Extra wide</option></select></label>
+          </div>
+        </details>
         <label class="field full"><span>Personal notes</span><textarea id="notes" maxlength="260" placeholder="Minimal, oversized, mostly neutrals. No large logos..."></textarea></label>
         <details class="beta-details">
           <summary><span>Private beta access</span><small>Required for AI analysis</small></summary>
@@ -277,25 +404,42 @@
     (function () {
       "use strict";
       const $ = id => document.getElementById(id);
-      const storedFields = ["look","fit","occasion","budget","notes"];
+      const storedFields = ["look","fit","occasion","budget","notes","aesthetic","palette","coordination","climate","topSize","bottomSize","waist","inseam","shoeSystem","shoeSize","shoeWidth"];
       let imageData = null;
       let imageUrl = null;
-      const defaults = {look:"Unisex",fit:"Relaxed",occasion:"Everyday",budget:"200",notes:""};
+      const defaults = {look:"Unisex",fit:"Relaxed",occasion:"Everyday",budget:"200",notes:"",aesthetic:"No preference",palette:"No preference",coordination:"Balance / let AI decide",climate:"Any season",topSize:"",bottomSize:"",waist:"",inseam:"",shoeSystem:"US men's",shoeSize:"",shoeWidth:""};
 
       function setStatus(message) { $("status").textContent = message; }
       function money(value) { return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(value); }
       function profile() {
-        return {look:$("look").value,fit:$("fit").value,occasion:$("occasion").value,budget:Math.max(25,Math.min(10000,Number($("budget").value)||200)),notes:$("notes").value.trim()};
+        return {look:$("look").value,fit:$("fit").value,occasion:$("occasion").value,budget:Math.max(25,Math.min(10000,Number($("budget").value)||200)),notes:$("notes").value.trim(),aesthetic:$("aesthetic").value,palette:$("palette").value,coordination:$("coordination").value,climate:$("climate").value,topSize:$("topSize").value,bottomSize:$("bottomSize").value,waist:$("waist").value,inseam:$("inseam").value,shoeSystem:$("shoeSystem").value,shoeSize:$("shoeSize").value,shoeWidth:$("shoeWidth").value};
       }
-      try {
-        const saved = JSON.parse(localStorage.getItem("matchlatch-style-v1") || "{}");
-        storedFields.forEach(id => { $(id).value = saved[id] === undefined ? defaults[id] : saved[id]; });
-      } catch {
-        storedFields.forEach(id => { $(id).value = defaults[id]; });
-      }
-      storedFields.forEach(id => $(id).addEventListener("input", () => {
+      const makeShoeOptions = (system, previous = "") => {
+        const el=$("shoeSize");
+        el.replaceChildren(new Option("Not specified",""));
+        const [start,end,step] = system === "EU" ? [34,50,1] : system === "UK" ? [2,15,.5] : [4,17,.5];
+        for (let size=start;size<=end+.001;size+=step) {
+          const display=Number(size.toFixed(1)).toString();
+          el.add(new Option(display,display));
+        }
+        if ([...el.options].some(o=>o.value===previous)) el.value=previous;
+      };
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem("matchlatch-style-v1") || "{}") || {}; } catch {}
+      storedFields.filter(id=>id!=="shoeSize").forEach(id => {
+        const value=saved[id] === undefined ? defaults[id] : saved[id];
+        $(id).value=[...$(id).options || []].length && $(id).tagName==="SELECT" && ![...$(id).options].some(o=>o.value===String(value)) ? defaults[id] : value;
+      });
+      makeShoeOptions($("shoeSystem").value, saved.shoeSize || "");
+      const saveProfile=()=>{
         try { localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile())); } catch {}
-      }));
+      };
+      storedFields.forEach(id => $(id).addEventListener("change",saveProfile));
+      ["budget","notes"].forEach(id=>$(id).addEventListener("input",saveProfile));
+      $("shoeSystem").addEventListener("change",()=>{
+        makeShoeOptions($("shoeSystem").value);
+        saveProfile();
+      });
 
       async function loadImage(file) {
         if (!file || !file.type.startsWith("image/")) { setStatus("Please choose an image file."); return; }
@@ -346,7 +490,8 @@
       };
 
       function guided() {
-        const category = $("itemtype").value;
+        const category = $("itemtype").value.split(":")[0];
+        const itemName = $("itemtype").selectedOptions[0]?.textContent || "Item";
         const color = $("itemcolor").value.trim();
         if (!category || !color) { setStatus("For Guided Styling, choose the item type and enter its main color."); return; }
         const choices = {
@@ -359,16 +504,28 @@
           other:["top","bottoms","shoes"]
         };
         const p = profile();
-        const colors = palette(color);
+        const colors = p.palette === "Monochrome" ? [color,color,color] :
+          p.palette === "Earth tones" ? ["olive","sand","brown"] :
+          p.palette === "Black and white" ? ["black","white","black"] :
+          p.palette === "Pastels" ? ["sage","powder blue","cream"] :
+          p.palette === "Bold colors" ? ["cobalt","red","black"] :
+          p.coordination === "Match / tonal coordination" ? [color,color,color] :
+          palette(color);
+        const sizeForType = type => {
+          if (/shoe/i.test(type)) return p.shoeSize ? p.shoeSystem+" "+p.shoeSize : "";
+          if (/bottom/i.test(type)) return p.waist ? "W"+p.waist+(p.inseam? " L"+p.inseam:"") : p.bottomSize ? "size "+p.bottomSize : "";
+          if (/top|outerwear/i.test(type)) return p.topSize ? "size "+p.topSize : "";
+          return "";
+        };
         const pieces = choices[category].map((type,index) => ({
           type:type.charAt(0).toUpperCase()+type.slice(1),
-          description: colors[index]+" "+type+" with a "+p.fit.toLowerCase()+" feel",
-          searchQuery:colors[index]+" "+p.fit+" "+p.look+" "+type+" fashion"
+          description: colors[index]+" "+type+" · "+p.fit.toLowerCase()+" fit"+(sizeForType(type)?" · "+sizeForType(type):""),
+          searchQuery:[colors[index],p.fit,p.aesthetic!=="No preference"?p.aesthetic:"",p.look,type,sizeForType(type),"fashion"].filter(Boolean).join(" ")
         }));
         render({
           mode:"guided",
-          item:{label:color+" "+category,color,category,details:"Item type and color were entered by you; the photo has not been analyzed by AI."},
-          styleNotes:"A "+p.occasion.toLowerCase()+" outfit with "+p.fit.toLowerCase()+" proportions and a "+p.look.toLowerCase()+" aesthetic. The color pairing is a styling suggestion, not a live product recommendation.",
+          item:{label:color+" "+itemName.toLowerCase(),color,category,details:"Item type and color were entered by you; the photo has not been analyzed by AI."},
+          styleNotes:"A "+p.occasion.toLowerCase()+" outfit with "+p.fit.toLowerCase()+" proportions, a "+p.look.toLowerCase()+" expression"+(p.aesthetic!=="No preference"?", and a "+p.aesthetic.toLowerCase()+" direction":"")+". Color pairing and size cues are style/search suggestions, not verified retailer fit or availability.",
           pieces
         });
         setStatus("Guided outfit built. Scroll down to see your look.");
