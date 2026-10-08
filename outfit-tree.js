@@ -183,7 +183,7 @@ function render(){
  mount.append(list);
  mount.append(node("p","tree-note","Products are shown only when the retailer catalog reports an available variant and USD price. No verified alternative? We leave the slot empty. Stock, taxes, shipping and checkout totals can change."));
 }
-async function fetchOptions(slotId,auto=false,custom=""){
+async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
  const slot=slotById(slotId),state=stateFor(slotId);
  if(!slot||slotId===anchor||state.loading)return;
  const max=Math.max(0,remaining(slotId));
@@ -202,12 +202,13 @@ async function fetchOptions(slotId,auto=false,custom=""){
   state.options=Array.isArray(data.items)?data.items.filter(x=>x.available&&x.price<=cap):[];
   state.fetchedAt=Date.now();
   state.query=query;
-  if(state.selected){
+  if(state.selected && !custom){
     const refreshed=state.options.find(x=>x.variantId===state.selected.variantId);
     state.selected=refreshed||null;
     if(refreshed)state.index=state.options.indexOf(refreshed);
   }
-  if(state.options.length&&!state.selected)select(slotId,0,true);
+  // A manual query only displays alternatives; selecting one is always explicit.
+  if(state.options.length&&!state.selected&&autoSelect)select(slotId,0,true);
   if(!state.options.length)state.message=auto?"No verified option in this allocation. Open Private Shop to broaden.":"No available items found in this size and budget.";
  }catch(e){if(current===session)state.message=e.message||"Catalog temporarily unavailable";}
  finally{if(current===session){state.loading=false;render();if(shopSlot===slotId)renderDrawer();}}
@@ -230,7 +231,7 @@ function cycle(slotId,direction){
  const st=stateFor(slotId);
  if(!st.options.length||!st.fetchedAt||Date.now()-st.fetchedAt>FRESH_MS){
    st.options=[];st.selected=null;st.message="Rechecking current prices…";
-   void fetchOptions(slotId,false);return;
+   void fetchOptions(slotId,false,"",true);return;
  }
  select(slotId,(st.index??0)+direction);
 }
