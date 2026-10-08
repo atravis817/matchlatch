@@ -87,7 +87,7 @@ function sizeHint(id) {
  if(id==="hat" && p.hatSize)return p.hatSystem+" "+p.hatSize;
  return sizeFor(id)?sizeFor(id):"Any size";
 }
-function init(data,profile){
+function init(data,profile,savedSelections){
  session++;
  for(const key of Object.keys(catalogs))delete catalogs[key];
  inspiration=data;prefs=profile||{};budget=Math.max(25,Math.min(10000,Number(prefs.budget)||200));
@@ -105,11 +105,32 @@ function init(data,profile){
  render();
  setupDrawer();
  const generation=session;
- // Only curate three essentials automatically to minimize lookups and keep cost modest.
+ // Revalidate saved variant references live; no cached prices or images.
  (async()=>{
+   if(savedSelections && typeof savedSelections==="object"){
+     for(const [slot,ref] of Object.entries(savedSelections)){
+       if(session!==generation)return;
+       if(!slotById(slot)||slot===anchor||!ref?.productId||!ref?.variantId)continue;
+       const current=stateFor(slot);
+       current.loading=true;render();
+       try{
+         const qs=new URLSearchParams({mode:"verify",id:ref.productId,variant:ref.variantId,
+           max:String(Math.max(1,remaining(slot)))});
+         if(sizeFor(slot))qs.set("size",sizeFor(slot));
+         const response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
+         const result=await response.json();
+         if(session!==generation)return;
+         if(response.ok&&result.item&&result.item.price<=remaining(slot)+.001){
+           current.options=[result.item];current.selected=result.item;current.index=0;
+         } else current.message="Previously saved listing not available at this price/size.";
+       }catch{
+         if(session===generation)current.message="Saved listing could not be rechecked.";
+       }finally{if(session===generation){current.loading=false;render();}}
+     }
+   }
    for(const slot of ["shirt","pants","shoes"]){
      if(session!==generation)return;
-     if(slot===anchor)continue;
+     if(slot===anchor||stateFor(slot).selected)continue;
      await fetchOptions(slot,true);
    }
  })();
