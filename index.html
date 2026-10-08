@@ -8,6 +8,7 @@
   <title>MATCHLATCH — Your style, unlocked.</title>
   <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
   <link rel="stylesheet" href="/library.css">
+  <link rel="stylesheet" href="/outfit-tree.css">
   <style>
     :root{
       color-scheme:light;
@@ -464,12 +465,12 @@
           </article>
           <article class="results-card">
             <div class="micro-title">Complete the look</div>
-            <h3>Consider these pieces.</h3>
+            <h3>Made for your inspiration.</h3>
             <p id="style-notes"></p>
             <div class="budget" id="budget-message"></div>
             <div id="suggestions"></div>
             <div id="look-actions" class="new-look-actions" aria-label="Save outfit"></div>
-            <div class="disclaimer">Currently, these are styling suggestions with links to shopping searches—not verified products or live prices. We're building real product discovery next.</div>
+            <div class="disclaimer">Live catalog availability and prices are checked as you browse, but may change at checkout. Taxes and shipping are not included. Optional pieces can be skipped.</div>
           </article>
         </div>
       </div>
@@ -824,6 +825,7 @@
         });
         $("results").style.display="block";
         window.MatchlatchLibrary?.captureLook(data,imageData,p);
+        window.MatchlatchShop?.init(data,p);
         $("results").scrollIntoView({behavior:"smooth",block:"start"});
       }
 
@@ -854,5 +856,6 @@
 
   </script>
   <script src="/library.js" defer></script>
+  <script src="/outfit-tree.js" defer></script>
 </body>
 </html>
