@@ -7,6 +7,7 @@
   <meta name="description" content="MATCHLATCH. Your style, unlocked. Find what works with the pieces you love.">
   <title>MATCHLATCH — Your style, unlocked.</title>
   <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
+  <link rel="stylesheet" href="/library.css">
   <style>
     :root{
       color-scheme:light;
@@ -175,10 +176,17 @@
         <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
         <span class="brand-wordmark">MATCH<span>LATCH</span></span>
       </a>
-      <div class="header-side"><a href="#studio">The studio</a><span class="beta-label">PRIVATE BETA</span></div>
+      <nav class="app-nav" aria-label="Main navigation">
+        <button type="button" data-page="studio" class="active" aria-current="page">Studio</button>
+        <button type="button" data-page="styles">Your Styles <span id="styles-count" class="nav-counter"></span></button>
+        <button type="button" data-page="cart">Cart <span id="cart-count" class="nav-counter"></span></button>
+        <button type="button" data-page="account">Account</button>
+      </nav>
+      <div class="header-side"><span class="beta-label">PRIVATE BETA</span></div>
     </div>
   </header>
   <main>
+    <div id="screen-studio" class="app-screen">
     <section class="intro container">
       <div class="kicker">Your style, unlocked.</div>
       <h1>Find your next <span>look.</span></h1>
@@ -459,8 +467,60 @@
             <p id="style-notes"></p>
             <div class="budget" id="budget-message"></div>
             <div id="suggestions"></div>
+            <div id="look-actions" class="new-look-actions" aria-label="Save outfit"></div>
             <div class="disclaimer">Currently, these are styling suggestions with links to shopping searches—not verified products or live prices. We're building real product discovery next.</div>
           </article>
+        </div>
+      </div>
+    </section>
+    </div>
+    <section id="screen-styles" class="app-screen" hidden aria-label="Your Styles">
+      <div class="container library-section">
+        <div class="library-top"><div>
+          <span class="tiny-label">Your personal archive</span>
+          <h1>Your Styles.</h1>
+          <p>Save the looks you love. Keep the items worth revisiting. Trace every purchase back to the piece that started it.</p>
+        </div><button class="library-subtle" type="button" data-nav-page="studio">Create a new look ↗</button></div>
+        <div id="styles-tabs" class="tabs"></div>
+        <div id="styles-body"></div>
+      </div>
+    </section>
+    <section id="screen-cart" class="app-screen" hidden aria-label="Cart">
+      <div class="container library-section">
+        <div class="library-top"><div>
+          <span class="tiny-label">Your shopping shortlist</span>
+          <h1>Your Cart.</h1>
+          <p>Gather pieces you like, open retailer searches and record purchases you make elsewhere.</p>
+        </div><button class="library-subtle" type="button" data-nav-page="studio">Keep exploring ↗</button></div>
+        <div id="cart-body"></div>
+      </div>
+    </section>
+    <section id="screen-account" class="app-screen" hidden aria-label="Account and sign in">
+      <div class="container library-section">
+        <div class="library-top"><div>
+          <span class="tiny-label">Your MATCHLATCH account</span>
+          <h1>Welcome back.</h1>
+          <p>A personal home for your style, saved pieces, and shopping inspiration.</p>
+        </div></div>
+        <div class="account-panel">
+          <h2>Sign in with email</h2>
+          <p>We'll send you a secure sign-in link when account services are connected. No password required.</p>
+          <form id="login-form">
+            <label for="login-email">Email address</label>
+            <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+            <div class="account-buttons">
+              <button id="send-login" class="library-primary" type="submit" disabled>Email me a sign-in link</button>
+              <button id="logout-button" class="library-subtle" type="button" hidden>Sign out</button>
+              <button type="button" class="library-subtle" data-nav-page="studio">Continue as guest</button>
+            </div>
+          </form>
+          <p class="status-text" role="status" id="account-status">Account sign-in is not yet connected. Guest features work on this device.</p>
+          <p class="small-footnote">Signing in does not yet sync styles or images across devices. For now, this browser keeps your library locally.</p>
+        </div>
+        <div class="account-panel">
+          <h2>Your device data</h2>
+          <p>Photos and saved looks are stored locally in this browser. If you clear this browser's storage, they may be lost until we enable cloud backup.</p>
+          <button id="clear-library" class="library-subtle" type="button">Delete local library</button>
         </div>
       </div>
     </section>
@@ -709,6 +769,7 @@
           row.append(num,left,link);list.append(row);
         });
         $("results").style.display="block";
+        window.MatchlatchLibrary?.captureLook(data,imageData,p);
         $("results").scrollIntoView({behavior:"smooth",block:"start"});
       }
 
@@ -738,5 +799,6 @@
   
 
   </script>
+  <script src="/library.js" defer></script>
 </body>
 </html>
