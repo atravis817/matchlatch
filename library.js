@@ -399,6 +399,30 @@
     const el=$("look-detail");
     if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
   }
+  async function reopenTree(lookId){
+    const look=lookFor(lookId);
+    if(!look)return;
+    showPage("studio");
+    window.MatchlatchResetStudio?.();
+    currentLookId=look.id;
+    $("result-title").textContent="Your saved outfit.";
+    $("mode").textContent=look.mode==="ai"?"AI-CURATED LOOK":"GUIDED LOOK";
+    $("found-title").textContent=look.item?.label||look.label;
+    $("found-meta").textContent=[look.item?.color,look.item?.category].filter(Boolean).join(" · ");
+    $("found-details").textContent=look.item?.details||"";
+    $("style-notes").textContent=look.styleNotes||"";
+    const photo=$("result-photo");
+    const image=await loadPhoto(look.inspirationId);
+    if(currentLookId!==lookId)return;
+    if(image){photo.src=image;photo.hidden=false;}
+    else{photo.removeAttribute("src");photo.hidden=true;}
+    $("results").style.display="block";
+    $("suggestions").replaceChildren();
+    decorateResult(look);
+    window.MatchlatchShop?.init({mode:look.mode,item:look.item,pieces:look.pieces},
+      window.MatchlatchStyleProfile?.get?.()||{},look.shopSelections||{});
+    $("results").scrollIntoView({behavior:"smooth",block:"start"});
+  }
   function renderLookDetails(target,lookId) {
     const look=lookFor(lookId);
     if(!look){selectedLookDetail=null;return;}
@@ -426,6 +450,7 @@
     });
     detail.append(list);
     const bottom=node("div","library-actions");
+    bottom.append(btn("Shop this outfit ↗",()=>void reopenTree(look.id),"library-primary"));
     bottom.append(btn(look.saved?"Remove saved outfit":"Save outfit",()=>toggleSaveLook(look.id)));
     bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
     detail.append(bottom);
@@ -489,12 +514,39 @@
           ...look.pieces.slice(0,3).map(x=>x.description)].join(" · "));
       const actions=node("div","library-actions");
       actions.append(btn("Open outfit ↗",()=>openLookDetails(look.id)));
+      actions.append(btn("Private Shop ↗",()=>void reopenTree(look.id)));
       actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
       actions.append(btn("Remove saved outfit",()=>toggleSaveLook(look.id),"quiet-button"));
       body.append(actions);
       grid.append(card);
     }
     target.append(grid);
+  }
+  async function appendLiveShopLink(actions,item) {
+    if(!item?.shopRef){actions.append(link(item.searchQuery));return;}
+    const status=node("span","library-meta","Checking retailer price…");
+    actions.append(status);
+    try {
+      const qs=new URLSearchParams({mode:"verify",id:item.shopRef.productId,
+        variant:item.shopRef.variantId,max:"10000"});
+      const response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
+      const payload=await response.json();
+      if(!actions.isConnected)return;
+      status.remove();
+      if(response.ok && payload.item?.available && payload.item?.url){
+        const a=node("a",null,money(payload.item.price)+" · Open retailer ↗");
+        a.href=payload.item.url;a.target="_blank";a.rel="noopener noreferrer";
+        actions.append(a);
+      } else {
+        actions.append(link(item.searchQuery,"Look for alternatives ↗"));
+        actions.append(node("span","library-meta","Saved offer no longer verified"));
+      }
+    }catch {
+      if(!actions.isConnected)return;
+      status.remove();
+      actions.append(link(item.searchQuery,"Look for alternatives ↗"));
+      actions.append(node("span","library-meta","Live price unavailable"));
+    }
   }
   function renderFavorites(target) {
     if(!dbState.favorites.length) {
@@ -507,7 +559,7 @@
         fav.type+" · "+(fav.shopRef?"Price when selected ":"Suggested target ")+money(fav.target),
         "Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"));
       const actions=node("div","library-actions");
-      actions.append(link(fav.searchQuery));
+      void appendLiveShopLink(actions,fav);
       actions.append(btn("Add to cart",()=>addToCart(fav.lookId,fav.pieceIndex)));
       actions.append(btn("View outfit",()=>openLookDetails(fav.lookId)));
       actions.append(btn("View photo",()=>focusInspiration(fav.inspirationId)));
@@ -555,7 +607,7 @@
       info.append(node("h3",null,item.description));
       info.append(node("small",null,"Inspired by: "+(inspirationFor(item.inspirationId)?.label||"original photo")));
       const controls=node("div","cart-controls");
-      controls.append(link(item.searchQuery,"Search retailers ↗"));
+      void appendLiveShopLink(controls,item);
       controls.append(btn("Record purchase",()=>openPurchaseForm(item.id)));
       controls.append(btn("Remove",()=>{
         dbState.cart=dbState.cart.filter(x=>x.id!==item.id);
@@ -570,7 +622,7 @@
     target.append(list);
     const total=dbState.cart.reduce((sum,x)=>sum+(Number(x.target)||0),0);
     const totals=node("div","cart-total");
-    totals.append(node("span",null,"Combined spending targets (not checkout prices)"),node("strong",null,money(total)));
+    totals.append(node("span",null,"Saved-price estimate · retailer prices can change"),node("strong",null,money(total)));
     target.append(totals);
   }
 
