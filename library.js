@@ -19,7 +19,6 @@
     }
   } catch {}
   let activePage="studio";
-  let activeTab="inspirations";
   let currentLookId=null;
   let selectedInspiration=null;
   let selectedLookDetail=null;
@@ -418,6 +417,8 @@
     else{photo.removeAttribute("src");photo.hidden=true;}
     $("results").style.display="block";
     $("suggestions").replaceChildren();
+    const legacy=$("styling-suggestions");
+    if(legacy){legacy.hidden=true;legacy.open=false;}
     decorateResult(look);
     window.MatchlatchShop?.init({mode:look.mode,item:look.item,pieces:look.pieces},
       window.MatchlatchStyleProfile?.get?.()||{},look.shopSelections||{});
@@ -751,9 +752,13 @@
   });
 
   let authSwitch=0;
+  let lastAppliedAuthId;
   async function applyAuth(user) {
     const nextId=user?.id||null;
-    if(cloudAdapter?.getAccount()?.id===nextId && cloudAdapter?.isReady())return;
+    // Supabase fires SIGNED_IN and TOKEN_REFRESHED for an existing session.
+    // Reinitializing on every event can discard queued offline changes.
+    if(lastAppliedAuthId===nextId)return;
+    lastAppliedAuthId=nextId;
     const priorId=activeUser?.id||null;
     const run=++authSwitch;
     if(nextId!==priorId) {
