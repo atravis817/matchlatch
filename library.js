@@ -10,7 +10,7 @@
   };
   const money = value => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-"+Math.random().toString(36).slice(2);
-  const empty = () => ({inspirations:[],looks:[],favorites:[],cart:[],purchases:[]});
+  const empty = () => ({inspirations:[],looks:[],favorites:[],cart:[],purchases:[],collections:[]});
   let dbState = empty();
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
@@ -22,6 +22,7 @@
   let currentLookId=null;
   let selectedInspiration=null;
   let selectedLookDetail=null;
+  let selectedCollectionId=null;
   let supabase=null;
   let activeUser=null;
   let cloudAdapter=null;
@@ -41,6 +42,7 @@
     dbState=clone(state||empty());
     currentLookId=dbState.looks.some(x=>x.id===previousLook)?previousLook:null;
     if(selectedLookDetail&&!dbState.looks.some(x=>x.id===selectedLookDetail))selectedLookDetail=null;
+    if(selectedCollectionId&&selectedCollectionId!=="__unfiled__"&&!dbState.collections.some(x=>x.id===selectedCollectionId))selectedCollectionId=null;
     photoCache.clear();
     refreshCounts();
     if(activePage==="styles")renderStyles();
@@ -230,6 +232,83 @@
   function lookFor(id) {return dbState.looks.find(x=>x.id===id);}
   function inspirationFor(id) {return dbState.inspirations.find(x=>x.id===id);}
   function currentLook() {return lookFor(currentLookId);}
+  function collectionFor(id){return dbState.collections.find(x=>x.id===id);}
+  function collectionForInspiration(id){
+    const inspiration=inspirationFor(id);
+    return inspiration?.collectionId?collectionFor(inspiration.collectionId):null;
+  }
+  function collectionName(inspirationId){
+    return collectionForInspiration(inspirationId)?.name||"Unfiled";
+  }
+  function createCollection(rawName){
+    const name=esc(rawName).replace(/\\s+/g," ").trim().slice(0,80);
+    if(!name){feedback("Enter a collection name.");return null;}
+    const existing=dbState.collections.find(x=>x.name.toLowerCase()===name.toLowerCase());
+    if(existing){feedback("That collection already exists. You can add items to it.");return existing.id;}
+    const collection={id:uid(),name,createdAt:new Date().toISOString()};
+    dbState.collections.unshift(collection);
+    persist();feedback("Collection created: "+name);
+    return collection.id;
+  }
+  function assignToCollection(inspirationId,collectionId){
+    const inspiration=inspirationFor(inspirationId);
+    if(!inspiration)return;
+    if(collectionId && !collectionFor(collectionId))return;
+    if(collectionId)inspiration.collectionId=collectionId;
+    else delete inspiration.collectionId;
+    persist();
+    feedback(collectionId?"Filed in "+collectionFor(collectionId).name+".":"Moved to Unfiled.");
+    if(activePage==="styles")renderStyles();
+    if(activePage==="studio")decorateResult(currentLook());
+    if(activePage==="cart")renderCart();
+  }
+  function collectionPicker(inspirationId){
+    const container=node("div","collection-control");
+    const toggle=btn("Folder: "+collectionName(inspirationId)+" ▾",()=>{
+      const expanded=container.querySelector(".collection-editor");
+      if(expanded){expanded.remove();toggle.setAttribute("aria-expanded","false");return;}
+      const form=document.createElement("form");
+      form.className="collection-editor";
+      form.setAttribute("aria-label","Organize inspiration into collection");
+      const select=document.createElement("select");
+      select.setAttribute("aria-label","Choose collection");
+      const choices=[
+        ["","Unfiled (no folder)"],
+        ...dbState.collections.map(x=>[x.id,x.name]),
+        ["__new__","＋ New collection…"]
+      ];
+      for(const [id,title] of choices)select.add(new Option(title,id));
+      const current=inspirationFor(inspirationId)?.collectionId||"";
+      select.value=collectionFor(current)?current:"";
+      const input=document.createElement("input");
+      input.type="text";input.maxLength=80;input.placeholder="Collection name";
+      input.setAttribute("aria-label","New collection name");
+      input.hidden=true;
+      select.addEventListener("change",()=>{
+        input.hidden=select.value!=="__new__";
+        input.required=select.value==="__new__";
+        if(!input.hidden)input.focus();
+      });
+      const controls=node("div","collection-editor-actions");
+      const save=node("button","library-primary","Save");
+      save.type="submit";
+      controls.append(save,btn("Cancel",()=>{form.remove();toggle.setAttribute("aria-expanded","false");},"quiet-button"));
+      form.append(select,input,controls);
+      form.addEventListener("submit",event=>{
+        event.preventDefault();
+        const id=select.value==="__new__"?createCollection(input.value):select.value;
+        if(id===null)return;
+        assignToCollection(inspirationId,id);
+        if(activePage==="styles")renderStyles();
+        else{form.remove();toggle.textContent="Folder: "+collectionName(inspirationId)+" ▾";toggle.setAttribute("aria-expanded","false");}
+      });
+      container.append(form);toggle.setAttribute("aria-expanded","true");
+      select.focus();
+    },"collection-picker-button");
+    toggle.setAttribute("aria-expanded","false");
+    container.append(toggle);
+    return container;
+  }
   function refreshCounts() {
     const c=$("cart-count");
     if(c)c.textContent=dbState.cart.length?String(dbState.cart.length):"";
