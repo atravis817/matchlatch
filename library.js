@@ -22,6 +22,7 @@
   let activeTab="inspirations";
   let currentLookId=null;
   let selectedInspiration=null;
+  let selectedLookDetail=null;
   let supabase=null;
   let activeUser=null;
   const photoCache = new Map();
@@ -286,11 +287,51 @@
     const note=node("div","library-note");
     note.textContent="Your Styles is saved on this device for now. Purchase records are entered by you and linked to the original inspiration photo; MATCHLATCH does not yet receive verified retailer orders.";
     content.append(note);
+    if(selectedLookDetail)renderLookDetails(content,selectedLookDetail);
     if(selectedTab==="inspirations")renderInspirations(content);
     if(selectedTab==="outfits")renderOutfits(content);
     if(selectedTab==="favorites")renderFavorites(content);
     if(selectedTab==="purchases")renderPurchases(content);
   }
+  function openLookDetails(lookId) {
+    selectedLookDetail=lookId;
+    showPage("styles");
+    const el=$("look-detail");
+    if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  function renderLookDetails(target,lookId) {
+    const look=lookFor(lookId);
+    if(!look){selectedLookDetail=null;return;}
+    const detail=node("section","look-detail");
+    detail.id="look-detail";
+    const top=node("div","look-detail-heading");
+    const headings=node("div");
+    headings.append(node("div","micro-title","Inspired by your original photo"));
+    headings.append(node("h2",null,look.label));
+    top.append(headings,btn("Close details ×",()=>{selectedLookDetail=null;renderStyles();},"library-subtle"));
+    detail.append(top);
+    detail.append(imageFrame(look.inspirationId,"look-detail-photo"));
+    if(look.styleNotes)detail.append(node("p","library-meta",look.styleNotes));
+    const list=node("div","look-detail-items");
+    look.pieces.forEach((piece,index)=>{
+      const item=node("div","look-detail-item");
+      const text=node("div");
+      text.append(node("div","library-meta",piece.type+" · Target "+money(piece.target)));
+      text.append(node("strong",null,piece.description));
+      const actions=node("div","library-actions");
+      actions.append(link(piece.searchQuery));
+      actions.append(btn(favoriteExists(look.id,index)?"Remove favorite":"Favorite",()=>{toggleFavorite(look.id,index);renderStyles();}));
+      actions.append(btn(cartExists(look.id,index)?"In cart ✓":"Add to cart",()=>{addToCart(look.id,index);renderStyles();}));
+      item.append(text,actions);list.append(item);
+    });
+    detail.append(list);
+    const bottom=node("div","library-actions");
+    bottom.append(btn(look.saved?"Remove saved outfit":"Save outfit",()=>toggleSaveLook(look.id)));
+    bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
+    detail.append(bottom);
+    target.append(detail);
+  }
+
   function showEmpty(parent,heading,message,buttonLabel="Create a look") {
     const box=node("div","empty-state");
     box.append(node("h3",null,heading),node("p",null,message));
@@ -326,7 +367,8 @@
       card.id="inspiration-"+insp.id;
       const actions=node("div","library-actions");
       actions.append(btn("See associated looks",()=>{
-        selectedTab="outfits";renderStyles();
+        const linked=dbState.looks.find(x=>x.inspirationId===insp.id);
+        if(linked)openLookDetails(linked.id);
       }));
       body.append(actions);
       grid.append(card);
@@ -345,6 +387,7 @@
         (look.mode==="ai"?"AI curated":"Guided styling")+" · "+dateLabel(look.createdAt),
         look.pieces.map(x=>x.description).join(" · "));
       const actions=node("div","library-actions");
+      actions.append(btn("Open outfit ↗",()=>openLookDetails(look.id)));
       actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
       actions.append(btn("Remove saved outfit",()=>toggleSaveLook(look.id),"quiet-button"));
       body.append(actions);
@@ -365,6 +408,7 @@
       const actions=node("div","library-actions");
       actions.append(link(fav.searchQuery));
       actions.append(btn("Add to cart",()=>addToCart(fav.lookId,fav.pieceIndex)));
+      actions.append(btn("View outfit",()=>openLookDetails(fav.lookId)));
       actions.append(btn("View photo",()=>focusInspiration(fav.inspirationId)));
       actions.append(btn("Remove favorite",()=>toggleFavorite(fav.lookId,fav.pieceIndex),"quiet-button"));
       body.append(actions);grid.append(card);
@@ -387,6 +431,7 @@
       if(purchase.notes)content.append(node("p",null,"Notes: "+purchase.notes));
       const actions=node("div","library-actions");
       actions.append(btn("View original photo ↗",()=>focusInspiration(purchase.inspirationId)));
+      actions.append(btn("View curated outfit",()=>openLookDetails(purchase.lookId)));
       content.append(actions);entry.append(content);target.append(entry);
     }
   }
