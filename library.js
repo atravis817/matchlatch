@@ -27,6 +27,21 @@
   let activeUser=null;
   const photoCache = new Map();
 
+  let toastTimer;
+  function feedback(message,actionText,action) {
+    let toast=document.getElementById("library-feedback");
+    if(!toast) {
+      toast=node("div","feedback-toast");toast.id="library-feedback";
+      toast.setAttribute("role","status");toast.setAttribute("aria-live","polite");
+      document.body.append(toast);
+    }
+    clearTimeout(toastTimer);toast.replaceChildren();toast.append(node("span",null,message));
+    if(actionText && typeof action==="function")toast.append(btn(actionText,()=>{
+      clearTimeout(toastTimer);toast.hidden=true;action();
+    },"feedback-action"));
+    toast.hidden=false;
+    toastTimer=setTimeout(()=>toast.hidden=true,4500);
+  }
   function persist() {
     try {
       localStorage.setItem(STORAGE_KEY,JSON.stringify(dbState));
@@ -34,7 +49,7 @@
       return true;
     } catch (error) {
       console.warn("MATCHLATCH could not save local library",error);
-      window.alert("Your browser storage is full or blocked. The latest changes may not survive a refresh.");
+      feedback("Storage is unavailable. Your changes may not be saved.");
       return false;
     }
   }
@@ -152,11 +167,11 @@
       button.classList.toggle("active",active);
       if(active)button.setAttribute("aria-current","page");else button.removeAttribute("aria-current");
     });
-    if(updateHash)history.replaceState(null,"","#"+(page==="studio"?"studio":page));
+    if(updateHash && location.hash!=="#"+page)history.pushState(null,"","#"+page);
     if(page==="styles")renderStyles();
     if(page==="cart")renderCart();
     if(page==="account")renderAccount();
-    window.scrollTo({top:0,behavior:"instant"});
+    window.scrollTo({top:0,behavior:"auto"});
   }
   function readLocation() {
     const hash=(location.hash||"").replace("#","").split("?")[0].toLowerCase();
@@ -166,6 +181,7 @@
   document.querySelectorAll(".app-nav button").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
   document.querySelectorAll("[data-nav-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.navPage)));
   window.addEventListener("hashchange",()=>showPage(readLocation(),false));
+  window.addEventListener("popstate",()=>showPage(readLocation(),false));
   refreshCounts();
   showPage(readLocation(),false);
 
@@ -210,30 +226,30 @@
     const existing=dbState.favorites.find(x=>x.lookId===lookId&&x.pieceIndex===index);
     if(existing)dbState.favorites=dbState.favorites.filter(x=>x.id!==existing.id);
     else {
-      const look=lookFor(lookId);
-      const piece=look?.pieces[index];
+      const look=lookFor(lookId),piece=look?.pieces[index];
       if(!piece)return;
-      dbState.favorites.unshift({
-        id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,
-        ...piece,createdAt:new Date().toISOString()
-      });
+      dbState.favorites.unshift({id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,createdAt:new Date().toISOString()});
     }
     persist();
     if(activePage==="styles")renderStyles();
     if(activePage==="studio")decorateResult(currentLook());
+    if(existing)feedback("Removed from favorites.","Undo",()=>{
+      if(!dbState.favorites.some(x=>x.id===existing.id))dbState.favorites.unshift(existing);
+      persist();if(activePage==="styles")renderStyles();if(activePage==="studio")decorateResult(currentLook());
+    });
+    else feedback("Saved to favorites.");
   }
   function addToCart(lookId,index) {
-    const look=lookFor(lookId);
-    const piece=look?.pieces[index];
+    const look=lookFor(lookId),piece=look?.pieces[index];
     if(!piece)return;
-    if(!cartExists(lookId,index)) {
-      dbState.cart.unshift({
-        id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,createdAt:new Date().toISOString()
-      });
+    const existing=cartExists(lookId,index);
+    if(!existing) {
+      dbState.cart.unshift({id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,createdAt:new Date().toISOString()});
       persist();
     }
     if(activePage==="studio")decorateResult(currentLook());
     if(activePage==="cart")renderCart();
+    feedback(existing?"Already in your cart.":"Added to cart.","View cart",()=>showPage("cart"));
   }
   function toggleSaveLook(lookId) {
     const look=lookFor(lookId);
@@ -242,6 +258,10 @@
     persist();
     if(activePage==="studio")decorateResult(currentLook());
     if(activePage==="styles")renderStyles();
+    if(look.saved)feedback("Outfit saved.","Your Styles",()=>{selectedTab="outfits";showPage("styles");});
+    else feedback("Outfit removed from saved looks.","Undo",()=>{
+      look.saved=true;persist();if(activePage==="studio")decorateResult(currentLook());if(activePage==="styles")renderStyles();
+    });
   }
   function decorateResult(look) {
     if(!look)return;
@@ -264,7 +284,7 @@
     });
   }
 
-  let selectedTab="inspirations";
+  let selectedTab=dbState.looks.some(x=>x.saved)?"outfits":"inspirations";
   function renderStyles() {
     const nav=$("styles-tabs");
     const content=$("styles-body");
@@ -277,16 +297,16 @@
       ["purchases","Purchases",dbState.purchases.length]
     ];
     for(const [key,label,count] of tabs){
-      const b=btn(label+" ("+count+")",()=>{selectedTab=key;renderStyles();},"");
+      const b=btn(label+(count?" · "+count:""),()=>{selectedTab=key;selectedLookDetail=null;renderStyles();},"");
       b.className=selectedTab===key?"active":"";
       b.setAttribute("role","tab");
       b.setAttribute("aria-selected",String(selectedTab===key));
       nav.append(b);
     }
     nav.setAttribute("role","tablist");
-    const note=node("div","library-note");
-    note.textContent="Your Styles is saved on this device for now. Purchase records are entered by you and linked to the original inspiration photo; MATCHLATCH does not yet receive verified retailer orders.";
-    content.append(note);
+    content.append(node("p","library-caption",selectedTab==="purchases"
+      ? "Purchases are recorded by you, not verified by retailers. Each record links to its original inspiration."
+      : "Stored on this device · Cloud sync is not enabled yet."));
     if(selectedLookDetail)renderLookDetails(content,selectedLookDetail);
     if(selectedTab==="inspirations")renderInspirations(content);
     if(selectedTab==="outfits")renderOutfits(content);
@@ -440,9 +460,7 @@
     const target=$("cart-body");target.replaceChildren();
     const old=$("purchase-editor");
     if(old)old.remove();
-    const note=node("div","library-note");
-    note.textContent="This is your shopping shortlist—not a live checkout. Prices shown are suggested spending targets, not retailer quotes. Shop on the retailer's site, then optionally record what you purchased.";
-    target.append(note);
+    target.append(node("p","library-caption","Shopping shortlist · Prices are spending targets, not retailer quotes · Checkout happens at the retailer."));
     if(!dbState.cart.length) {
       showEmpty(target,"Your cart is empty.","Add a recommended piece from any outfit to start a shopping shortlist.");
       return;
@@ -461,6 +479,10 @@
       controls.append(btn("Remove",()=>{
         dbState.cart=dbState.cart.filter(x=>x.id!==item.id);
         persist();renderCart();
+        feedback("Removed from cart.","Undo",()=>{
+          if(!dbState.cart.some(x=>x.id===item.id))dbState.cart.unshift(item);
+          persist();if(activePage==="cart")renderCart();
+        });
       },"quiet-button"));
       info.append(controls);row.append(info);list.append(row);
     }
@@ -513,7 +535,9 @@
       dbState.cart=dbState.cart.filter(x=>x.id!==cart.id);
       persist();panel.remove();
       selectedTab="purchases";
+      selectedLookDetail=null;
       showPage("styles");
+      feedback("Purchase recorded and linked to its inspiration.");
     });
     panel.append(form);
     $("screen-cart").querySelector(".library-section").append(panel);
