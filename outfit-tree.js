@@ -103,10 +103,8 @@ function init(data,profile,savedSelections){
  if(!mount){mount=node("section","tree-area");mount.id="outfit-tree";mount.setAttribute("aria-label","Curated outfit tree");
   const notes=$("style-notes");notes.after(mount);
  }
- const oldList=$("suggestions");
- if(oldList)oldList.hidden=true;
- const budgetMessage=$("budget-message");
- if(budgetMessage)budgetMessage.hidden=true;
+ const suggestions=$("styling-suggestions");
+ if(suggestions)suggestions.open=false;
  render();
  setupDrawer();
  const generation=session;
