@@ -649,6 +649,23 @@
         });
       });
 
+      window.MatchlatchResetStudio=()=>{
+        imageData=null;
+        if(imageUrl)URL.revokeObjectURL(imageUrl);
+        imageUrl=null;
+        $("photo").value="";
+        $("preview").removeAttribute("src");
+        $("preview-box").style.display="none";
+        $("drop").style.display="flex";
+        $("change").hidden=true;
+        $("result-photo").removeAttribute("src");
+        $("result-photo").hidden=true;
+        $("results").style.display="none";
+        $("suggestions").replaceChildren();
+        $("look-actions").replaceChildren();
+        setStatus("");
+      };
+
       async function loadImage(file) {
         if (!file || !file.type.startsWith("image/")) { setStatus("Please choose an image file."); return; }
         if (file.size > 18 * 1024 * 1024) { setStatus("That image is too large. Choose one under 18 MB."); return; }
