@@ -413,7 +413,7 @@
           render(data);
           setStatus("AI analysis complete. Your personalized outfit is below.");
         } catch (error) { setStatus(error.message || "Analysis failed. Guided Styling is still available."); }
-        finally { button.disabled=false;button.textContent="✳ Build my look with AI ↗"; }
+        finally { button.disabled=false;button.textContent="Build my look with AI ↗"; }
       });
     })();
   
