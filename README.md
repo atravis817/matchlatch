@@ -19,7 +19,7 @@ Live: https://matchlatch.vercel.app
 - Guided Styling (no AI API charge) or optional AI photo styling, followed by live product discovery
 - Shopping suggestions link to retailers; product availability is refreshed on each search, and saved user selections are rechecked when reopened
 - Optional **OpenAI image analysis**, protected with a private beta access code
-- **Your Styles**: original inspiration-photo archive, favorited AI outfits, favorite clothing suggestions, and user-recorded purchases linked to their original photo
+- **Your Styles + Collections**: user-named folders (e.g., **Miami 2027 Ideas**, **Last Week's Job Interview**). An inspiration photo belongs to one collection; its saved outfits, favorite pieces, and self-reported purchases automatically appear with it. Renaming/deleting a folder never deletes the source items.
 - **Cart**: a persistent shopping shortlist (not a checkout), with suggested spending targets and outbound shopping searches
 - **Account**: Supabase passwordless email sign-in and private cloud syncing are connected in code; end-to-end cross-device login still needs a real-device test
 
@@ -41,6 +41,10 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 **AI limitations:** The AI analyzes *appearance* and produces styling directions; it does not verify exact garment identity or inventory. **Private Shop** then separately queries Shopify's Global Catalog for actual product variants reporting availability, images and USD prices. These are merchant/catalog signals, not guarantees at checkout. Product prices exclude shipping, tax and future price changes. The merchant completes payments; MATCHLATCH never collects card details.
 
+## Named Collections
+
+Collections are organization labels, not copied images or separate purchase records. The source inspiration stores its `collectionId`; all linked looks, favorites, purchases and any future REVEAL results inherit that grouping. **Unfiled** contains anything not yet assigned. Each collection can be renamed or removed without erasing user content. A single original inspiration lives in one collection at a time and can be moved. The client stores collection records under the existing private `matchlatch_records` table using the new `collections` kind. The live Supabase project migration `enable_named_style_collections` has been applied, and `supabase/collections.sql` records the upgrade for other deployments.
+
 ## Outfit Tree and Private Shop V1
 
 After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of nine clothing categories. Your inspiration photo occupies its relevant category without charging your shopping budget. Shirt, pants and shoes are looked up initially when not already represented by your photo. Other rows—including hat, scarf, jacket, watch, belt and socks—are optional until the user opens **Private Shop** or uses the circular arrows.
@@ -56,7 +60,7 @@ After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of n
 ## New screens and how to test
 
 - **Studio:** Upload a photo, select style and size preferences, run Guided Styling or private OpenAI analysis. Every generated look creates a local inspiration record linked to that original photo.
-- **Your Styles:** Four tabs — Inspirations (all original photos), Saved outfits (choose *Save this outfit* in results), Favorite items (choose *Favorite* on a recommended piece), and Purchases (self-reported records). Once cloud setup is configured, these sync privately per signed-in account.
+- **Your Styles:** Five tabs — Collections (named folders), Inspirations, Saved outfits, Favorite items, and Purchases. Create a collection, then use **Folder: ...** on the original photo, saved outfit, favorite item, purchase, or newly generated look. Moving a source inspiration automatically groups its linked records. Signed-in collections use the same private cloud storage as looks; guest collections stay local.
 - **Cart:** Add a verified Private Shop selection or a generic suggested piece. Saved retailer selections are checked again when viewing the cart. Actual payment stays at the retailer.
 - **Purchase records:** After buying something at a retailer, choose *Record purchase* from the cart. Enter store, amount paid, and purchase date. The record retains its original look ID and inspiration ID/photo. This is **manual**, not a verified transaction, payment collection or order-tracking integration.
 - **Account:** Secure email login is wired to the project's Supabase config. Cross-device library syncing requires a valid sign-in and still needs a real two-device smoke test.
