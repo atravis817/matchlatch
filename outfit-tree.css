@@ -1,0 +1,60 @@
+/* Outfit Tree + Private Shop: elegant, practical fashion browsing */
+.tree-area{border-top:1px solid #e9ebe7;margin-top:24px;padding-top:22px}
+.tree-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:18px}
+.tree-heading h3{margin:6px 0!important;font-size:21px!important}
+.tree-heading p{color:#848b84;font-size:11px;line-height:1.6;margin:0}
+.tree-total{min-width:145px;text-align:right}
+.tree-total strong{display:block;font-size:24px;letter-spacing:-.055em;font-weight:650}
+.tree-total small{display:block;color:#6b756b;font-size:11px;margin-top:4px}
+.tree-slots{display:grid;gap:0}
+.tree-slot{display:grid;grid-template-columns:67px 34px minmax(0,1fr) 34px auto;gap:9px;align-items:center;border-top:1px solid #e9ebe7;padding:12px 0;min-height:74px}
+.tree-slot:last-child{border-bottom:1px solid #e9ebe7}
+.tree-slot.is-optional{opacity:.94}
+.tree-slot-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:750;color:#616a61}
+.tree-slot-card{display:flex;gap:11px;align-items:center;min-width:0;min-height:56px}
+.tree-slot-card img{width:49px;height:56px;object-fit:contain;background:#f5f6f3;flex:0 0 auto}
+.tree-slot-info{min-width:0}
+.tree-slot-info strong{display:block;font-size:12px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:670}
+.tree-slot-info small{display:block;font-size:11px;line-height:1.6;color:#7c847b}
+.tree-slot-arrow{display:grid;place-items:center;background:#f6f7f4;border:1px solid #e5e7e2;border-radius:50%;height:32px;width:32px;color:#2d332d;font-size:16px;cursor:pointer}
+.tree-slot-arrow:disabled{opacity:.35;cursor:not-allowed}
+.tree-slot-arrow:hover:not(:disabled){background:#e7eae5}
+.tree-shop-btn{font-size:11px;font-weight:750;border:1px solid #d6dad3;border-radius:3px;padding:10px 11px;background:#fff;white-space:nowrap;color:#293029}
+.tree-shop-btn:hover{background:#f5f7f3}
+.tree-note{font-size:11px;color:#878e85;line-height:1.65;margin-top:15px}
+.tree-shop-help{border:0;padding:0;background:none;text-decoration:underline;font-size:11px;color:#626d63;cursor:pointer}
+.private-shop-overlay{position:fixed;inset:0;background:rgba(24,29,24,.37);z-index:200;display:flex;justify-content:flex-end}
+.private-shop-overlay[hidden]{display:none!important}
+.private-shop-panel{background:#fbfcf9;width:min(510px,100%);height:100%;overflow:auto;overscroll-behavior:contain;box-shadow:-12px 0 45px rgba(0,0,0,.13);padding:25px 24px 46px;display:flex;flex-direction:column;gap:13px}
+.private-shop-top{display:flex;align-items:start;justify-content:space-between;gap:15px}
+.private-shop-top h2{margin:6px 0;font-size:29px;font-weight:600;letter-spacing:-.055em}
+.private-shop-sub{font-size:12px;color:#747b74;line-height:1.6;margin:0}
+.private-shop-close{background:none;border:1px solid #d8dbd4;font-size:18px;width:34px;height:34px;border-radius:50%;flex:0 0 auto}
+.private-shop-controls{display:flex;gap:8px}
+.private-shop-controls input{width:100%;min-width:0;min-height:46px;padding:10px 12px;border:1px solid #dce0d9;background:white;font-size:13px}
+.private-shop-controls button{border:0;background:#202421;color:white;font-size:12px;font-weight:700;padding:0 16px}
+.private-shop-results{display:grid;gap:11px}
+.private-shop-item{display:grid;grid-template-columns:102px minmax(0,1fr);gap:14px;border:1px solid #e3e6e0;background:white;padding:12px}
+.private-shop-image{width:102px;height:117px;background:#f3f5f0;object-fit:contain}
+.private-shop-placeholder{width:102px;height:117px;display:grid;place-items:center;background:#f3f5f0;font-size:10px;color:#868c86}
+.private-shop-details strong{display:block;font-size:13px;line-height:1.5;margin-bottom:4px}
+.private-shop-details small{display:block;font-size:11px;color:#7b827a;line-height:1.5}
+.private-shop-price{display:block;font-size:15px;font-weight:760;margin:9px 0}
+.private-shop-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.private-shop-actions button{border:0;background:#212622;color:white;padding:10px 13px;font-size:11px;font-weight:750;cursor:pointer}
+.private-shop-actions a{font-size:11px;color:#343a34;text-decoration:underline}
+.private-shop-empty{padding:26px 19px;background:#f2f4f0;color:#657065;font-size:12px;line-height:1.7}
+.shop-feedback{font-size:11px;color:#707b70;line-height:1.6}
+body.private-shop-open{overflow:hidden}
+@media(max-width:620px){
+ .tree-slot{grid-template-columns:53px 29px minmax(0,1fr) 29px;gap:5px;padding:14px 0}
+ .tree-slot-label{font-size:10px;letter-spacing:.025em}
+ .tree-slot-arrow{height:28px;width:28px;font-size:15px}
+ .tree-slot-card{gap:8px}
+ .tree-slot-card img{width:39px;height:47px}
+ .tree-shop-btn{grid-column:3/-1;width:100%;padding:10px}
+ .tree-total{text-align:left}
+ .private-shop-panel{padding:19px 15px 45px}
+ .private-shop-item{grid-template-columns:76px minmax(0,1fr);gap:10px;padding:10px}
+ .private-shop-image,.private-shop-placeholder{width:76px;height:100px}
+}
