@@ -58,9 +58,13 @@ export async function POST(request) {
   const apiKey = process.env.OPENAI_API_KEY;
   const betaCode = process.env.MATCHLATCH_BETA_CODE;
   if (!apiKey || !betaCode || betaCode.length < 16) {
+    const missing = [
+      ...(!apiKey ? ["OPENAI_API_KEY"] : []),
+      ...(!betaCode || betaCode.length < 16 ? ["MATCHLATCH_BETA_CODE (at least 16 characters)"] : [])
+    ];
     return json({
       error: "AI_NOT_CONFIGURED",
-      message: "Private AI testing is not set up yet. Use Guided Styling until the owner adds two Vercel environment variables."
+      message: "Vercel configuration missing or incomplete: " + missing.join("; ") + ". Set it for Production, then redeploy."
     }, 503);
   }
 
@@ -190,5 +194,13 @@ export async function POST(request) {
 }
 
 export function GET() {
-  return json({ status: "ok", provider: "openai", privateBeta: true });
+  const keyReady = Boolean(process.env.OPENAI_API_KEY);
+  const betaReady = Boolean(process.env.MATCHLATCH_BETA_CODE && process.env.MATCHLATCH_BETA_CODE.length >= 16);
+  return json({
+    status: keyReady && betaReady ? "ready" : "configuration_needed",
+    provider: "openai",
+    openaiKeyPresent: keyReady,
+    betaCodePresentAndLongEnough: betaReady,
+    note: "Presence checks only. Secret values are never returned. API credit and model access are not verified by this check."
+  });
 }
