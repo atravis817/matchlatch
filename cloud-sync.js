@@ -3,7 +3,7 @@
 // Saved state is per-record; a deletion is a tombstone so other devices don't resurrect it.
 export function createCloudSync(supabase, hooks) {
   const BUCKET="matchlatch-inspirations";
-  const KINDS=["inspirations","looks","favorites","cart","purchases"];
+  const KINDS=["inspirations","looks","favorites","cart","purchases","collections"];
   const blank=()=>Object.fromEntries(KINDS.map(k=>[k,[]]));
   const copy=value=>JSON.parse(JSON.stringify(value));
   const cacheKey=id=>"matchlatch-cloud-cache-v1-"+id;
