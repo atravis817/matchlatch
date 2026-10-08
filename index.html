@@ -29,10 +29,6 @@
     .header-inner{min-height:74px;display:flex;justify-content:space-between;align-items:center;gap:16px}
     .brand{font-size:20px;font-weight:800;letter-spacing:-.065em;text-decoration:none;white-space:nowrap}
     .brand span{font-weight:400}
-    .header-side{display:flex;align-items:center;gap:29px}
-    .header-side a{font-size:12px;text-decoration:none;font-weight:600;color:#4c514d}
-    .header-side a:hover{text-decoration:underline}
-    .beta-label{color:#6c6f6b;border:1px solid #dbdcd9;border-radius:50px;padding:7px 12px;font-size:10px;letter-spacing:.13em;font-weight:700}
     .intro{padding:95px 0 53px;text-align:center;max-width:700px}
     .kicker{font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.2em;color:#777b76}
     h1{font-size:clamp(54px,7.2vw,86px);font-weight:550;letter-spacing:-.08em;line-height:1.04;margin:19px 0 19px}
@@ -113,6 +109,9 @@
     .found .meta{font-size:11px;font-weight:650;color:#727872;text-transform:uppercase;letter-spacing:.1em}
     .found p,.results-card>p{font-size:13px;line-height:1.7;color:var(--muted)}
     .results-card h3{font-size:24px;font-weight:600;letter-spacing:-.055em;margin:9px 0 13px}
+    .styling-suggestions{margin-top:20px;border-top:1px solid var(--line);padding-top:17px}
+    .styling-suggestions summary{cursor:pointer;font-size:11px;font-weight:650;color:#5d665d}
+    .styling-suggestions[open] summary{margin-bottom:14px}
     .budget{background:#f2f3f0;border:1px solid #eceeeb;color:#535953;font-size:12px;padding:13px 16px;line-height:1.6;margin:21px 0 5px}
     .result-item{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:17px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
     .item-index{color:#9da39c;font-size:12px;font-weight:650}
@@ -138,8 +137,6 @@
     @media(max-width:500px){
       .container{width:calc(100% - 30px)}
       .header-inner{min-height:64px}
-      .header-side{gap:10px}
-      .header-side a{display:none}
       .brand{font-size:18px}
       .intro{padding:63px 0 36px}
       h1{font-size:clamp(49px,13.2vw,66px)}
@@ -467,8 +464,11 @@
             <div class="micro-title">Complete the look</div>
             <h3>Made for your inspiration.</h3>
             <p id="style-notes"></p>
-            <div class="budget" id="budget-message"></div>
-            <div id="suggestions"></div>
+            <details class="styling-suggestions" id="styling-suggestions">
+              <summary>See the original styling suggestions</summary>
+              <div class="budget" id="budget-message"></div>
+              <div id="suggestions"></div>
+            </details>
             <div id="look-actions" class="new-look-actions" aria-label="Save outfit"></div>
             <div class="disclaimer">Live catalog availability and prices are checked as you browse, but may change at checkout. Taxes and shipping are not included. Optional pieces can be skipped.</div>
           </article>
@@ -591,7 +591,6 @@
         const fractions=["","1/8","1/4","3/8","1/2","5/8","3/4","7/8"];
         return whole+(remainder?" "+fractions[remainder]:"");
       });
-      systems["UK"]=numeric(2,16,.5);
       // Ring UK uses alphabetical sizes, while UK footwear uses numeric.
       const optionsFor=(systemId,system)=>{
         if(systemId==="ringSystem"&&system==="UK")return "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
