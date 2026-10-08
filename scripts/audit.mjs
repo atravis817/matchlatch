@@ -52,6 +52,17 @@ check(sql.includes("enable row level security")&&sql.includes("public=false"),"P
 check(auth.includes("payload.role===\"anon\""),"No service-role key exposed through config");
 check(library.includes("inspirationId:cart.inspirationId")&&library.includes("inspirationId:look.inspirationId"),"Inspiration linkage retained");
 check(!library.includes('let activeTab='),"Obsolete navigation state removed");
+check(library.includes('collections:[]')&&library.includes('function createCollection(')
+  &&library.includes('function renderCollections('),"Named collections preserve old wardrobe state");
+check(library.includes('inspiration.collectionId=collectionId')&&library.includes('delete inspiration.collectionId')
+  &&library.includes('filter(x=>ids.has(x.inspirationId))'),"Inspiration-owned folder membership cascades to linked looks/items");
+check(cloud.includes('"collections"')&&sql.includes("'collections'")
+  &&file("supabase/collections.sql").includes("matchlatch_records_kind_check"),
+  "Collections supported by private cloud records and upgrade script");
+check(html.includes('id="styles-tabs"')&&library.includes('["collections","Collections"'),
+  "Collection navigation wired into Your Styles");
+check(library.includes('dbState.collections=dbState.collections.filter')
+  &&library.includes('delete insp.collectionId'),"Deleting a folder retains linked data");
 check(!html.includes(".header-side{")&&!file("library.css").includes(".library-note{"),"Orphaned visual styles removed");
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
