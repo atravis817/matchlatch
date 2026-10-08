@@ -517,12 +517,17 @@
             <button type="button" class="library-primary" data-nav-page="studio">Continue as guest →</button>
           </div>
           <button id="logout-button" class="library-subtle" type="button" hidden>Sign out</button>
+          <div id="account-import" class="account-import" hidden>
+            <strong>Bring your guest styles?</strong>
+            <p>Transfer looks, favorites, cart items, purchase records, and their inspiration photos from this device into your account. Nothing is uploaded without your permission.</p>
+            <button id="import-guest" class="library-subtle" type="button">Import guest styles ↗</button>
+          </div>
           <p class="status-text" role="status" id="account-status">Your library is available without an account.</p>
-          <p class="small-footnote">Saved photos, outfits, favorites and purchase records stay on this browser. Signing in will not sync them until cloud storage is added.</p>
+          <p class="small-footnote">Signed-in libraries sync privately across devices after setup. Guest styles stay on this browser until you choose to import them.</p>
         </div>
         <div class="account-panel">
           <h2>Your device data</h2>
-          <p>Photos and saved looks are stored locally in this browser. If you clear this browser's storage, they may be lost until we enable cloud backup.</p>
+          <p>Guest photos and styles stay on this browser. Signed-in photos and styles use your private cloud account. Deleting guest data won't delete your account's cloud library.</p>
           <button id="clear-library" class="library-subtle" type="button">Delete local library</button>
         </div>
       </div>
@@ -613,7 +618,27 @@
       });
       for(const [system,size] of dynamicPairs)fillSizeOptions(system,size,saved[size] || "");
       const saveProfile=()=>{
-        try{localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile()));}catch{}
+        try {
+          if(window.MatchlatchCloud?.isSignedIn?.())window.MatchlatchCloud.updateProfile(profile());
+          else localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile()));
+        }catch{}
+      };
+      // Profiles are user-scoped while signed in; guest preferences remain separate.
+      window.MatchlatchStyleProfile={
+        get:profile,
+        apply:values=>{
+          const v=values&&typeof values==="object"?values:defaults;
+          storedFields.filter(id=>!dynamicSizes.has(id)).forEach(id=>{
+            const el=$(id),value=v[id]===undefined?defaults[id]:v[id];
+            el.value=el.tagName==="SELECT"&&![...el.options].some(o=>o.value===String(value))?defaults[id]:value;
+          });
+          for(const [system,size] of dynamicPairs)fillSizeOptions(system,size,v[size]||"");
+        },
+        restoreGuest:()=>{
+          let guest={};
+          try{guest=JSON.parse(localStorage.getItem("matchlatch-style-v1")||"{}")||{};}catch{}
+          window.MatchlatchStyleProfile.apply(guest);
+        }
       };
       storedFields.forEach(id=>$(id).addEventListener("change",saveProfile));
       ["budget","notes"].forEach(id=>$(id).addEventListener("input",saveProfile));
