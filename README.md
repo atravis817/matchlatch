@@ -8,9 +8,12 @@ Live: https://matchlatch.vercel.app
 
 - Mobile-friendly photo upload and preview
 - Locally saved style preferences: expression, fit, occasion, notes
-- Budget for three complementary items
-- Guided Styling (no external AI): enter item type and color for a rule-based, three-piece outfit plan
-- Shopping links that open Google Shopping searches (not verified catalog results)
+- Full 9-part shoppable outfit tree: **hat → scarf → jacket → shirt → watch → belt → pants → socks → shoes**
+- Circular arrows to cycle between retailer alternatives per category (optional pieces can be skipped)
+- **Private Shop**: slide-out, on-site catalog browser for real multi-merchant Shopify product variants, photos, USD prices, size and availability signals
+- Outfit subtotal is never allowed to exceed the specified merchandise budget; tax and shipping may exceed it
+- Guided Styling (no AI API charge) or optional AI photo styling, followed by live product discovery
+- Shopping suggestions link to retailers; product availability is refreshed on each search, and saved user selections are rechecked when reopened
 - Optional **OpenAI image analysis**, protected with a private beta access code
 - **Your Styles**: original inspiration-photo archive, favorited AI outfits, favorite clothing suggestions, and user-recorded purchases linked to their original photo
 - **Cart**: a persistent shopping shortlist (not a checkout), with suggested spending targets and outbound shopping searches
@@ -32,15 +35,27 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 **Privacy:** Style profile, saved looks, favorites, cart and manually reported purchases are saved in this browser's localStorage. Compressed original inspiration photos are stored in this browser's IndexedDB (not a remote photo database); the beta code isn't saved. When AI is requested, a compressed photo is transmitted to the MATCHLATCH Vercel server function and forwarded to OpenAI. OpenAI's API `store: false` option is set for these calls, but review OpenAI's API data use/retention policies before testing images of people or personal content.
 
-**AI limitations:** The AI analyzes *appearance* and produces styling ideas and search queries. It does not check current inventory, identify exact SKU reliably, verify stock, compare prices, or buy anything. Suggested per-piece amounts are spending targets, not real retailer quotes.
+**AI limitations:** The AI analyzes *appearance* and produces styling directions; it does not verify exact garment identity or inventory. **Private Shop** then separately queries Shopify's Global Catalog for actual product variants reporting availability, images and USD prices. These are merchant/catalog signals, not guarantees at checkout. Product prices exclude shipping, tax and future price changes. The merchant completes payments; MATCHLATCH never collects card details.
+
+## Outfit Tree and Private Shop V1
+
+After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of nine clothing categories. Your inspiration photo occupies its relevant category without charging your shopping budget. Shirt, pants and shoes are looked up initially when not already represented by your photo. Other rows—including hat, scarf, jacket, watch, belt and socks—are optional until the user opens **Private Shop** or uses the circular arrows.
+
+**How to test:** Upload a photo and generate a look. Confirm three essential categories attempt live searches. Click left/right on any row to wrap its live options. Click **Private Shop** to browse the in-app retailer list and refine the query. Select a variant; outfit merchandise subtotal updates immediately. Try a more expensive alternative when funds are low—MATCHLATCH must refuse the swap. Save or add an individual retailer selection to the cart; then open Your Styles or Cart. Original photo/curated-look provenance is preserved.
+
+**Catalog provider:** Shopify Global Catalog UCP MCP (`https://catalog.shopify.com/api/ucp/mcp`) using public `ucp-agent.json` and the server-side `api/shop.mjs` proxy. It doesn't require an API key for basic agent-profile searches, but is rate limited and catalog access may evolve. The backend accepts search/verify requests only for nine allowed clothing categories, verifies explicitly `available: true` variants with valid USD price, checks sizes as exact labels, and rejects anything above the given cap. Search listings and images are not cached; merchant images display from their original URLs. Only choices intentionally saved by the user persist as identifiers and selected-item details. Saved cart and favorites requery the provider for current price/availability.
+
+**Privacy of Private Shop:** This is an *in-app shopping drawer*, not a hidden-incognito browser. Catalog searches go to the provider and opening retailer links leaves MATCHLATCH in a separate tab. Browsers often block embedded third-party checkout, so we never pretend to host the merchant's actual site in an iframe.
+
+**Important testing limitation:** The Shopify API contract and mock response behavior are covered by tests, but provider network queries could not be executed from the development environment. The deployed Vercel `/api/shop` endpoint and agent-profile negotiation still need a live smoke test. If live results are unavailable, the app displays an empty/error state instead of fake brands, prices or stock claims.
 
 ## New screens and how to test
 
 - **Studio:** Upload a photo, select style and size preferences, run Guided Styling or private OpenAI analysis. Every generated look creates a local inspiration record linked to that original photo.
 - **Your Styles:** Four tabs — Inspirations (all original photos), Saved outfits (choose *Save this outfit* in results), Favorite items (choose *Favorite* on a recommended piece), and Purchases (self-reported records). Once cloud setup is configured, these sync privately per signed-in account.
-- **Cart:** Choose *Add to cart* on a recommended piece. This is a shopping shortlist of **unverified search suggestions**; no actual checkout or live inventory is supported yet. *Search retailers* opens a general shopping query.
+- **Cart:** Add a verified Private Shop selection or a generic suggested piece. Saved retailer selections are checked again when viewing the cart. Actual payment stays at the retailer.
 - **Purchase records:** After buying something at a retailer, choose *Record purchase* from the cart. Enter store, amount paid, and purchase date. The record retains its original look ID and inspiration ID/photo. This is **manual**, not a verified transaction, payment collection or order-tracking integration.
-- **Account:** The sign-in screen exists but email sign-in is disabled until a Supabase project is connected. *Continue as guest* lets you use all local library features immediately. Even when sign-in is enabled, personal library data does **not** yet sync across devices.
+- **Account:** Secure email login is wired to the project's Supabase config. Cross-device library syncing requires a valid sign-in and still needs a real two-device smoke test.
 
 **Data safety:** Guest libraries remain on this browser and can be erased in Account. After cloud setup, signed-in records and photos sync privately to Supabase while also using a local cache for offline retries. Browser storage is not a guaranteed backup. Cloud-account deletion/export UI is not implemented yet.
 
@@ -72,6 +87,8 @@ The website and cloud sync client are implemented, but **cloud sign-in and stora
 ## Architecture
 
 - `index.html`: responsive frontend, styling forms and Guided Styling
+- `outfit-tree.js` / `outfit-tree.css`: circular nine-piece tree and Private Shop catalog drawer
+- `api/shop.mjs` and `ucp-agent.json`: live retailer product discovery / verification and public agent profile
 - `library.js` and `library.css`: screen navigation, guest and signed-in saved libraries, linked outfits/favorites/cart/purchases, IndexedDB photos, and account UI
 - `cloud-sync.js`: authenticated, per-record cloud sync and private inspiration-photo upload/download
 - `supabase/setup.sql`: account-scoped record storage with RLS, private JPEG photo bucket and owner-only Storage policies
