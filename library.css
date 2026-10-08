@@ -1,6 +1,5 @@
 /* MATCHLATCH personal library — minimalist unisex UI */
 .site-header .header-inner{gap:16px}
-.header-side{gap:19px}
 .app-nav{display:flex;gap:4px;align-items:center}
 .app-nav button{background:none;border:0;border-radius:4px;font-size:12px;font-weight:650;color:#666d66;padding:10px 11px;white-space:nowrap}
 .app-nav button:hover{background:#ededeb;color:#1d201d}
@@ -34,8 +33,6 @@
 .library-primary{display:inline-block;background:#202421;color:#fff;text-decoration:none;border:1px solid #202421;border-radius:3px;padding:13px 18px;font-size:12px;font-weight:700;cursor:pointer}
 .library-primary:hover{background:#414740}
 .library-subtle{background:#fff;border:1px solid var(--line);color:#2c322d;border-radius:3px;padding:12px 15px;font-size:12px;font-weight:700;cursor:pointer}
-.library-note{border:1px solid #e3e5e0;background:#f0f2ed;padding:14px 17px;color:#667067;font-size:12px;line-height:1.65;margin-bottom:20px}
-.library-note strong{color:#313731}
 .cart-list{display:grid;gap:13px}
 .cart-entry{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:17px;align-items:center;padding:18px;background:#fff;border:1px solid var(--line)}
 .cart-thumb{width:90px;height:96px;background:#f1f2ef;display:grid;place-items:center;overflow:hidden}
@@ -77,8 +74,7 @@
  .header-inner{flex-wrap:wrap;padding:12px 0}
  .app-nav{order:3;flex-basis:100%;justify-content:space-between;border-top:1px solid var(--line);padding-top:9px}
  .app-nav button{padding:8px 6px}
- .header-side{margin-left:auto}
- .library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:550px){
  .library-section{padding:40px 0 75px}
