@@ -428,6 +428,7 @@
       root.append(btn(look.saved?"✓ Outfit saved":"♡ Save this outfit",()=>toggleSaveLook(look.id),
         look.saved?"look-action":"look-action primary"));
       root.append(btn("View your styles ↗",()=>showPage("styles"),"look-action"));
+      root.append(collectionPicker(look.inspirationId));
     }
     const items=document.querySelectorAll("#suggestions .result-item");
     items.forEach((row,index)=>{
@@ -637,6 +638,7 @@
     bottom.append(btn("Shop this outfit ↗",()=>void reopenTree(look.id),"library-primary"));
     bottom.append(btn(look.saved?"Remove saved outfit":"Save outfit",()=>toggleSaveLook(look.id)));
     bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
+    bottom.append(collectionPicker(look.inspirationId));
     detail.append(bottom);
     target.append(detail);
   }
@@ -662,13 +664,14 @@
     const el=document.getElementById("inspiration-"+id);
     if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
   }
-  function renderInspirations(target) {
-    if(!dbState.inspirations.length){
+  function renderInspirations(target,ids=null) {
+    const inspirations=ids?dbState.inspirations.filter(x=>ids.has(x.id)):dbState.inspirations;
+    if(!inspirations.length){
       showEmpty(target,"Your inspiration library starts here.","Analyze or style your first photo to see it connected to outfits, favorites and purchases.");
       return;
     }
     const grid=node("div","library-grid");
-    for(const insp of dbState.inspirations) {
+    for(const insp of inspirations) {
       const count=dbState.looks.filter(x=>x.inspirationId===insp.id).length;
       const {card,body}=makeCard(insp.id,insp.label,
         dateLabel(insp.createdAt)+" · "+count+" curated look"+(count===1?"":"s"),
@@ -679,13 +682,14 @@
         const linked=dbState.looks.find(x=>x.inspirationId===insp.id);
         if(linked)openLookDetails(linked.id);
       }));
+      actions.append(collectionPicker(insp.id));
       body.append(actions);
       grid.append(card);
     }
     target.append(grid);
   }
-  function renderOutfits(target) {
-    const looks=dbState.looks.filter(x=>x.saved);
+  function renderOutfits(target,ids=null) {
+    const looks=dbState.looks.filter(x=>x.saved&&(!ids||ids.has(x.inspirationId)));
     if(!looks.length) {
       showEmpty(target,"No saved outfits yet.","After MATCHLATCH builds a look, choose “Save this outfit.” Your original photo will stay connected.");
       return;
@@ -701,6 +705,7 @@
       actions.append(btn("Private Shop ↗",()=>void reopenTree(look.id)));
       actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
       actions.append(btn("Remove saved outfit",()=>toggleSaveLook(look.id),"quiet-button"));
+      actions.append(collectionPicker(look.inspirationId));
       body.append(actions);
       grid.append(card);
     }
@@ -732,13 +737,14 @@
       actions.append(node("span","library-meta","Live price unavailable"));
     }
   }
-  function renderFavorites(target) {
-    if(!dbState.favorites.length) {
+  function renderFavorites(target,ids=null) {
+    const favorites=ids?dbState.favorites.filter(x=>ids.has(x.inspirationId)):dbState.favorites;
+    if(!favorites.length) {
       showEmpty(target,"No favorite items yet.","Favorite a suggested piece from any MATCHLATCH outfit to keep it here.");
       return;
     }
     const grid=node("div","library-grid");
-    for(const fav of dbState.favorites){
+    for(const fav of favorites){
       const {card,body}=makeCard(fav.inspirationId,fav.description,
         fav.type+" · "+(fav.shopRef?"Price when selected ":"Suggested target ")+money(fav.target),
         "Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"));
@@ -748,16 +754,18 @@
       actions.append(btn("View outfit",()=>openLookDetails(fav.lookId)));
       actions.append(btn("View photo",()=>focusInspiration(fav.inspirationId)));
       actions.append(btn("Remove favorite",()=>toggleFavorite(fav.lookId,fav.pieceIndex),"quiet-button"));
+      actions.append(collectionPicker(fav.inspirationId));
       body.append(actions);grid.append(card);
     }
     target.append(grid);
   }
-  function renderPurchases(target) {
-    if(!dbState.purchases.length){
+  function renderPurchases(target,ids=null) {
+    const purchases=ids?dbState.purchases.filter(x=>ids.has(x.inspirationId)):dbState.purchases;
+    if(!purchases.length){
       showEmpty(target,"No purchases recorded yet.","After buying an item at a retailer, record it from your cart. We'll keep the original inspiration photo attached.");
       return;
     }
-    for(const purchase of dbState.purchases) {
+    for(const purchase of purchases) {
       const entry=node("article","purchase-summary");
       entry.append(imageFrame(purchase.inspirationId,"purchase-photo"));
       const content=node("div");
@@ -769,6 +777,7 @@
       const actions=node("div","library-actions");
       actions.append(btn("View original photo ↗",()=>focusInspiration(purchase.inspirationId)));
       actions.append(btn("View curated outfit",()=>openLookDetails(purchase.lookId)));
+      actions.append(collectionPicker(purchase.inspirationId));
       content.append(actions);entry.append(content);target.append(entry);
     }
   }
