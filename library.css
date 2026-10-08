@@ -95,3 +95,20 @@
  .account-panel{padding:20px}
  .app-nav button{font-size:11px}
 }
+
+/* Detailed view of one curated look, retaining its original inspiration image */
+.look-detail{background:#fff;border:1px solid var(--line);padding:24px;margin:18px 0 30px;scroll-margin-top:20px}
+.look-detail-heading{display:flex;align-items:start;justify-content:space-between;gap:18px}
+.look-detail-heading h2{margin:4px 0 15px;font-size:25px}
+.look-detail-photo{height:225px;background:#f4f5f1;display:grid;place-items:center;margin-bottom:20px;overflow:hidden}
+.look-detail-photo img{height:100%;max-width:100%;object-fit:contain}
+.look-detail-items{margin:18px 0}
+.look-detail-item{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;border-top:1px solid var(--line);padding:16px 0}
+.look-detail-item strong{display:block;margin:7px 0;font-size:14px;line-height:1.5}
+.look-detail-item .library-actions{justify-content:flex-end}
+@media(max-width:600px){
+ .look-detail{padding:17px}
+ .look-detail-item{grid-template-columns:1fr}
+ .look-detail-item .library-actions{justify-content:flex-start}
+ .look-detail-photo{height:180px}
+}
