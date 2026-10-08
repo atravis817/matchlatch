@@ -1,4 +1,6 @@
-const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+import { timingSafeEqual } from "node:crypto";
+
+const MODEL = process.env.OPENAI_MODEL || "gpt-5.4-mini";
 const LIMIT = 2_400_000;
 
 function json(data, status = 200) {
@@ -8,101 +10,185 @@ function json(data, status = 200) {
   });
 }
 
+function authorized(received, expected) {
+  if (typeof received !== "string" || received.length > 256) return false;
+  const a = Buffer.from(received, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+const itemSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    label: { type: "string" },
+    category: { type: "string" },
+    color: { type: "string" },
+    details: { type: "string" }
+  },
+  required: ["label", "category", "color", "details"]
+};
+const pieceSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    type: { type: "string" },
+    description: { type: "string" },
+    searchQuery: { type: "string" }
+  },
+  required: ["type", "description", "searchQuery"]
+};
+const schema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    item: itemSchema,
+    styleNotes: { type: "string" },
+    pieces: { type: "array", items: pieceSchema }
+  },
+  required: ["item", "styleNotes", "pieces"]
+};
+
 export async function POST(request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) {
     return json({ error: "Cross-origin requests are not allowed." }, 403);
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    return json({ error: "AI_NOT_CONFIGURED", message: "AI image analysis is not connected yet. Use Guided Styling for now." }, 503);
+  const apiKey = process.env.OPENAI_API_KEY;
+  const betaCode = process.env.MATCHLATCH_BETA_CODE;
+  if (!apiKey || !betaCode || betaCode.length < 16) {
+    return json({
+      error: "AI_NOT_CONFIGURED",
+      message: "Private AI testing is not set up yet. Use Guided Styling until the owner adds two Vercel environment variables."
+    }, 503);
+  }
+
+  let input;
+  try {
+    const raw = await request.text();
+    if (raw.length > LIMIT) return json({ error: "Photo is too large. Try a smaller photo." }, 413);
+    input = JSON.parse(raw);
+  } catch {
+    return json({ error: "Invalid request." }, 400);
+  }
+
+  if (!authorized(input?.betaCode, betaCode)) {
+    return json({ error: "BETA_ACCESS_DENIED", message: "The private beta access code is incorrect." }, 403);
+  }
+
+  const image = input?.image;
+  if (typeof image !== "string" ||
+      !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image) ||
+      image.length > 2_200_000) {
+    return json({ error: "Please select a valid photo." }, 400);
+  }
+
+  const prefs = input?.profile && typeof input.profile === "object" ? input.profile : {};
+  const clean = (value, max = 100) => String(value ?? "").slice(0, max);
+  const budget = Math.max(25, Math.min(10000, Number(prefs.budget) || 200));
+  const prompt = [
+    "You are MATCHLATCH, a practical personal stylist.",
+    "Analyze the attached clothing or accessory photo, using only visible clothing details.",
+    "Return JSON matching the provided schema. 'pieces' MUST have exactly three entries.",
+    "For item: describe the main garment or accessory. If the image contains many garments, pick the clearest piece.",
+    "For pieces: recommend exactly three wearable complementary products, with concise search queries.",
+    "Do not duplicate the photographed item's category unless layering makes sense.",
+    "Personal style: " + clean(prefs.look) + ". Desired fit: " + clean(prefs.fit) + ".",
+    "Occasion: " + clean(prefs.occasion) + ". Total shopping target for three additional pieces: $" + budget + ".",
+    "Other preferences: " + clean(prefs.notes, 260) + ".",
+    "Coordinate colors and realistic clothing. Be specific and useful.",
+    "Do not infer demographic or sensitive traits of any person pictured.",
+    "Do not claim a specific brand, product identification, price, store, discount, stock, or exact match unless clearly evident from photo.",
+    "You are generating search suggestions, not checking live retailer inventory. Never fabricate products or links.",
+    "Use concise labels, style notes, descriptions and shopping search phrases."
+  ].join("\n");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  let response;
+  try {
+    response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": "Bearer " + apiKey
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        store: false,
+        input: [{
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image_url: image, detail: "low" }
+          ]
+        }],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "matchlatch_look",
+            strict: true,
+            schema
+          }
+        },
+        max_output_tokens: 1400
+      }),
+      signal: controller.signal
+    });
+  } catch (error) {
+    console.error("MATCHLATCH OpenAI request failed:", error?.name || "Unknown");
+    return json({ error: "The vision engine could not connect. Try again later or use Guided Styling." }, 502);
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    console.error("MATCHLATCH OpenAI HTTP status:", response.status);
+    const message = response.status === 429
+      ? "AI usage is temporarily limited. Check API credits or try again later."
+      : response.status === 401
+        ? "OpenAI rejected the configured API key. Check it in Vercel settings."
+        : "The vision engine is unavailable right now. Try Guided Styling instead.";
+    return json({ error: message }, 502);
   }
 
   try {
-    const raw = await request.text();
-    if (raw.length > LIMIT) return json({ error: "Photo is too large. Try a smaller image." }, 413);
-    const { image, profile } = JSON.parse(raw);
-
-    if (typeof image !== "string" || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 2_200_000) {
-      return json({ error: "Please select a valid photo." }, 400);
+    const result = await response.json();
+    const output = (result.output || [])
+      .filter(x => x.type === "message")
+      .flatMap(x => x.content || [])
+      .filter(x => x.type === "output_text")
+      .map(x => x.text || "")
+      .join("");
+    if (!output) {
+      return json({ error: "The AI returned an empty response. Try again." }, 502);
     }
-
-    const prefs = profile && typeof profile === "object" ? profile : {};
-    const clean = (value, max = 100) => String(value ?? "").slice(0, max);
-    const budget = Math.max(25, Math.min(10000, Number(prefs.budget) || 200));
-
-    const prompt = [
-      "You are MATCHLATCH, a practical fashion stylist. Analyze the attached clothing/accessory photograph.",
-      "Return ONE valid JSON object only, with exactly this shape:",
-      '{"item":{"label":"short description","category":"top/bottom/shoes/outerwear/accessory/dress/other","color":"main color","details":"one sentence grounded in what is visible"},"styleNotes":"one sentence explaining why this outfit fits","pieces":[{"type":"category","description":"specific complementary item and color","searchQuery":"concise generic shopping search query"}]}',
-      "Pieces MUST contain exactly 3 wearable complementary items; don't duplicate the photographed item category unless layering is sensible.",
-      "Avoid brand identification unless visible and certain. Never invent prices, sellers, discounts, availability, product links or verified exact matches.",
-      "Don't infer sensitive traits about the person in the photo. Focus only on clothing.",
-      "The person's desired look is " + clean(prefs.look) + ", fit is " + clean(prefs.fit) + ", occasion is " + clean(prefs.occasion) + ", and target shopping budget (for additional pieces) is $" + budget + ".",
-      "Personal notes: " + clean(prefs.notes, 260) + ".",
-      "Use useful color coordination, realistic pieces, and easily searchable generic product phrases.",
-      "Keep all fields brief and concrete. Return JSON only."
-    ].join("\n");
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
-
-    let response;
-    try {
-      response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(MODEL) + ":generateContent", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: image.split(",")[1] } }] }],
-          generationConfig: { temperature: 0.45, maxOutputTokens: 1600, responseMimeType: "application/json" }
-        }),
-        signal: controller.signal
-      });
-    } finally {
-      clearTimeout(timeout);
+    const parsed = JSON.parse(output);
+    if (!parsed.item || !Array.isArray(parsed.pieces) || parsed.pieces.length !== 3) {
+      return json({ error: "The outfit response was incomplete. Try again." }, 502);
     }
-
-    if (!response.ok) {
-      console.error("MATCHLATCH Gemini request failed:", response.status);
-      return json({ error: "The vision engine is unavailable right now. Try Guided Styling instead." }, 502);
-    }
-
-    const payload = await response.json();
-    const output = payload?.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("") || "";
-    let parsed;
-    try {
-      parsed = JSON.parse(output.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, ""));
-    } catch {
-      return json({ error: "The vision engine returned an unexpected result. Try again." }, 502);
-    }
-
-    const item = parsed?.item;
-    if (!item || !Array.isArray(parsed.pieces) || parsed.pieces.length < 3) {
-      return json({ error: "The vision engine needs another attempt." }, 502);
-    }
-
     return json({
       mode: "ai",
       item: {
-        label: clean(item.label, 100),
-        category: clean(item.category, 40),
-        color: clean(item.color, 45),
-        details: clean(item.details, 250)
+        label: clean(parsed.item.label, 100),
+        category: clean(parsed.item.category, 50),
+        color: clean(parsed.item.color, 50),
+        details: clean(parsed.item.details, 260)
       },
       styleNotes: clean(parsed.styleNotes, 320),
-      pieces: parsed.pieces.slice(0, 3).map(piece => ({
-        type: clean(piece.type, 55),
-        description: clean(piece.description, 160),
-        searchQuery: clean(piece.searchQuery, 180)
+      pieces: parsed.pieces.map(p => ({
+        type: clean(p.type, 55),
+        description: clean(p.description, 160),
+        searchQuery: clean(p.searchQuery, 180)
       }))
     });
   } catch (error) {
-    if (error instanceof SyntaxError) return json({ error: "Invalid request." }, 400);
-    console.error("MATCHLATCH analysis error:", error?.name || "Unknown");
-    return json({ error: "Analysis is temporarily unavailable. Try Guided Styling." }, 502);
+    console.error("MATCHLATCH parsing error:", error?.name || "Unknown");
+    return json({ error: "The vision engine returned an unexpected result. Try again." }, 502);
   }
 }
 
 export function GET() {
-  return json({ status: "ok", aiConfigured: Boolean(process.env.GEMINI_API_KEY) });
+  return json({ status: "ok", provider: "openai", privateBeta: true });
 }
