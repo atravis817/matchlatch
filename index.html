@@ -172,7 +172,7 @@
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand brand-lockup" href="/" aria-label="MATCHLATCH home">
+      <a class="brand brand-lockup" href="#studio" aria-label="MATCHLATCH home">
         <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
         <span class="brand-wordmark">MATCH<span>LATCH</span></span>
       </a>
@@ -182,7 +182,7 @@
         <button type="button" data-page="cart">Cart <span id="cart-count" class="nav-counter"></span></button>
         <button type="button" data-page="account">Account</button>
       </nav>
-      <div class="header-side"><span class="beta-label">PRIVATE BETA</span></div>
+      
     </div>
   </header>
   <main>
@@ -190,7 +190,7 @@
     <section class="intro container">
       <div class="kicker">Your style, unlocked.</div>
       <h1>Find your next <span>look.</span></h1>
-      <p>Start with something you like. Explore what works with it, tailored to your style and your budget.</p>
+      <p>Upload a piece you love. Build a look around it—your style, your budget.</p>
     </section>
     <div class="sequence" aria-label="How it works">
       <strong>01 &nbsp; Upload</strong><i aria-hidden="true">—</i>
@@ -211,7 +211,7 @@
         <input id="photo" type="file" accept="image/*" aria-label="Upload a clothing or accessory photo">
         <div class="preview-box" id="preview-box"><img id="preview" alt="Selected inspiration image"></div>
         <button class="change" id="change" type="button" hidden>Change image ↗</button>
-        <div class="privacy"><span aria-hidden="true">ⓘ</span><span><b>About your photo.</b> Previews stay in your browser. AI analysis sends a compressed copy to OpenAI when you press the AI button. No photo database is connected.</span></div>
+        <div class="privacy"><span aria-hidden="true">ⓘ</span><span>Photos are saved <b>on this device</b> with your looks. AI analysis sends a compressed copy to OpenAI only when requested. No cloud photo backup yet.</span></div>
         <div class="small-divider" aria-hidden="true"></div>
         <div class="micro-title">Manual details · Optional guided mode</div>
         <div class="field-grid">
@@ -503,19 +503,21 @@
           <p>A personal home for your style, saved pieces, and shopping inspiration.</p>
         </div></div>
         <div class="account-panel">
-          <h2>Sign in with email</h2>
-          <p>We'll send you a secure sign-in link when account services are connected. No password required.</p>
-          <form id="login-form">
+          <h2>Your style, your space.</h2>
+          <p>Keep using MATCHLATCH as a guest. Secure email login will appear here when account syncing is ready.</p>
+          <form id="login-form" hidden>
             <label for="login-email">Email address</label>
             <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
             <div class="account-buttons">
-              <button id="send-login" class="library-primary" type="submit" disabled>Email me a sign-in link</button>
-              <button id="logout-button" class="library-subtle" type="button" hidden>Sign out</button>
-              <button type="button" class="library-subtle" data-nav-page="studio">Continue as guest</button>
+              <button id="send-login" class="library-primary" type="submit" disabled>Send sign-in link</button>
             </div>
           </form>
-          <p class="status-text" role="status" id="account-status">Account sign-in is not yet connected. Guest features work on this device.</p>
-          <p class="small-footnote">Signing in does not yet sync styles or images across devices. For now, this browser keeps your library locally.</p>
+          <div id="account-guest">
+            <button type="button" class="library-primary" data-nav-page="studio">Continue as guest →</button>
+          </div>
+          <button id="logout-button" class="library-subtle" type="button" hidden>Sign out</button>
+          <p class="status-text" role="status" id="account-status">Your library is available without an account.</p>
+          <p class="small-footnote">Saved photos, outfits, favorites and purchase records stay on this browser. Signing in will not sync them until cloud storage is added.</p>
         </div>
         <div class="account-panel">
           <h2>Your device data</h2>
@@ -527,7 +529,7 @@
   </main>
   <footer class="footer">
     <div class="container footer-inner">
-      <a class="brand brand-lockup" href="/" aria-label="MATCHLATCH home">
+      <a class="brand brand-lockup" href="#studio" aria-label="MATCHLATCH home">
         <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
         <span class="brand-wordmark">MATCH<span>LATCH</span></span>
       </a>
