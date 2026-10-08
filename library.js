@@ -547,20 +547,18 @@
   function renderAccount() {
     const status=$("account-status");
     const btnEmail=$("send-login");
+    const form=$("login-form");
+    const logout=$("logout-button");
+    const guest=$("account-guest");
     if(activeUser&&supabase) {
-      status.textContent="Signed in as "+activeUser.email+". Your styles, cart and photos are still saved on this device; cloud sync is not connected yet.";
-      btnEmail.hidden=true;
-      $("logout-button").hidden=false;
-    } else if(supabase){
-      status.textContent="Email sign-in is available. Saved looks and purchases are still local to this browser until cloud storage is connected.";
-      btnEmail.hidden=false;
-      btnEmail.disabled=false;
-      $("logout-button").hidden=true;
+      status.textContent="Signed in as "+activeUser.email+". Your library still stays on this device; cloud syncing comes later.";
+      form.hidden=true;logout.hidden=false;guest.hidden=true;
+    } else if(supabase) {
+      status.textContent="We'll email you a secure sign-in link. Your current library remains on this device.";
+      form.hidden=false;btnEmail.disabled=false;logout.hidden=true;guest.hidden=false;
     } else {
-      status.textContent="Email sign-in needs a Supabase project connection. You can use the full local guest library today—no password or account required.";
-      btnEmail.hidden=false;
-      btnEmail.disabled=true;
-      $("logout-button").hidden=true;
+      status.textContent="Your style library works without an account. Account sign-in will be available once secure syncing is connected.";
+      form.hidden=true;logout.hidden=true;guest.hidden=false;
     }
   }
 
@@ -586,10 +584,10 @@
   });
   $("clear-library").addEventListener("click",async()=>{
     if(!confirm("Delete all saved MATCHLATCH inspirations, photos, outfits, favorites, cart items, and manually recorded purchases from this device? This cannot be undone."))return;
-    if(!confirm("Confirm permanent deletion of the MATCHLATCH library on this device."))return;
-    dbState=empty();currentLookId=null;persist();await clearPhotos();
-    renderStyles();renderCart();
-    window.alert("Local MATCHLATCH library cleared.");
+    dbState=empty();currentLookId=null;selectedLookDetail=null;persist();await clearPhotos();
+    if(activePage==="styles")renderStyles();
+    if(activePage==="cart")renderCart();
+    feedback("Local library cleared.");
   });
 
   async function initAuth() {
