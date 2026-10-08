@@ -212,9 +212,9 @@
         <div class="preview-box" id="preview-box"><img id="preview" alt="Selected inspiration image"></div>
         <button class="change" id="change" type="button" hidden>Change image ↗</button>
         <div class="privacy"><span aria-hidden="true">ⓘ</span><span>Photos are saved <b>on this device</b> with your looks. AI analysis sends a compressed copy to OpenAI only when requested. No cloud photo backup yet.</span></div>
-        <div class="small-divider" aria-hidden="true"></div>
-        <div class="micro-title">Manual details · Optional guided mode</div>
-        <div class="field-grid">
+        <details class="extra-details manual-details">
+          <summary><span>Describe the item manually</span><small>Only for Guided Styling</small></summary>
+          <div class="field-grid extra-grid">
           <label class="field"><span>Item type</span>
             <select id="itemtype"><option value="">Choose an item</option>
               <optgroup label="Tops">
@@ -325,7 +325,8 @@
             </select>
           </label>
           <label class="field"><span>Main color</span><input id="itemcolor" type="text" maxlength="40" placeholder="e.g. graphite"></label>
-        </div>
+          </div>
+        </details>
       </div>
       <div class="panel">
         <div class="panel-top"><span class="num">02</span><span class="panel-tag">Make it yours</span></div>
@@ -675,7 +676,12 @@
         const category = $("itemtype").value.split(":")[0];
         const itemName = $("itemtype").selectedOptions[0]?.textContent || "Item";
         const color = $("itemcolor").value.trim();
-        if (!category || !color) { setStatus("For Guided Styling, choose the item type and enter its main color."); return; }
+        if (!category || !color) {
+          document.querySelector(".manual-details").open=true;
+          if(!category)$("itemtype").focus();else $("itemcolor").focus();
+          setStatus("Guided Styling needs an item type and main color first.");
+          return;
+        }
         const choices = {
           top:["bottoms","shoes","lightweight outerwear"],
           bottom:["top","shoes","accessory"],
