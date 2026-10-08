@@ -3,7 +3,7 @@
 -- All records belong to auth.uid(). No anonymous reads or writes.
 create table if not exists public.matchlatch_records (
   user_id uuid not null references auth.users(id) on delete cascade,
-  kind text not null check (kind in ('inspirations','looks','favorites','cart','purchases','profile')),
+  kind text not null check (kind in ('inspirations','looks','favorites','cart','purchases','collections','profile')),
   record_id text not null check (length(record_id) between 1 and 128),
   payload jsonb not null default '{}'::jsonb check (jsonb_typeof(payload) = 'object' and pg_column_size(payload) <= 262144),
   is_deleted boolean not null default false,
