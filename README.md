@@ -17,7 +17,7 @@ Live: https://matchlatch.vercel.app
 - Optional **OpenAI image analysis**, protected with a private beta access code
 - **Your Styles**: original inspiration-photo archive, favorited AI outfits, favorite clothing suggestions, and user-recorded purchases linked to their original photo
 - **Cart**: a persistent shopping shortlist (not a checkout), with suggested spending targets and outbound shopping searches
-- **Account**: guest mode works now; optional passwordless email sign-in activates with a Supabase connection
+- **Account**: Supabase passwordless email sign-in and private cloud syncing are connected in code; end-to-end cross-device login still needs a real-device test
 
 ## Turn on AI (private, low-cost test)
 
@@ -33,7 +33,7 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 **Before public launch:** This passcode is a testing gate, NOT production-ready login or abuse prevention. Add real authentication, distributed per-user/IP rate limits, usage monitoring, and a provider-side project budget. Keep auto-reload OFF. Do not share your beta access code or publish it in app code. Do not connect a higher-balance paid API account without stronger controls.
 
-**Privacy:** Style profile, saved looks, favorites, cart and manually reported purchases are saved in this browser's localStorage. Compressed original inspiration photos are stored in this browser's IndexedDB (not a remote photo database); the beta code isn't saved. When AI is requested, a compressed photo is transmitted to the MATCHLATCH Vercel server function and forwarded to OpenAI. OpenAI's API `store: false` option is set for these calls, but review OpenAI's API data use/retention policies before testing images of people or personal content.
+**Privacy:** Guest libraries live in this browser's localStorage, with compressed photos in IndexedDB. A signed-in account syncs its own records and photos privately to Supabase (with RLS and non-public Storage), using account-separated browser caching. Existing guest items are imported only when you choose to import. The beta code isn't saved. When AI analysis is requested, a compressed photo is sent via MATCHLATCH's server to OpenAI. OpenAI's API `store: false` option is set for these calls, but review OpenAI's API data use/retention policies before testing images of people or personal content.
 
 **AI limitations:** The AI analyzes *appearance* and produces styling directions; it does not verify exact garment identity or inventory. **Private Shop** then separately queries Shopify's Global Catalog for actual product variants reporting availability, images and USD prices. These are merchant/catalog signals, not guarantees at checkout. Product prices exclude shipping, tax and future price changes. The merchant completes payments; MATCHLATCH never collects card details.
 
@@ -61,7 +61,7 @@ After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of n
 
 ## Secure accounts + private cloud sync setup
 
-The website and cloud sync client are implemented, but **cloud sign-in and storage will not run until you finish this setup**.
+The MATCHLATCH Supabase project was created and its private records table, storage bucket and RLS policies were applied. The app's public Supabase connection is configured. These instructions are retained as a **setup reference**, not a request to create another project. Actual email magic-link login and cross-device operation still need a real-browser smoke test.
 
 1. Create a [Supabase project](https://supabase.com/dashboard) called **MATCHLATCH** on the free tier if it fits the current beta limits.
 2. Open **Supabase → SQL Editor**, copy `supabase/setup.sql`, and execute it **once**. It creates the `matchlatch_records` table with per-user row-level security policies and a private `matchlatch-inspirations` storage bucket with owner-only photo permissions. **Do not create broad anonymous/public policies** on these resources.
@@ -94,7 +94,11 @@ The website and cloud sync client are implemented, but **cloud sign-in and stora
 - `supabase/setup.sql`: account-scoped record storage with RLS, private JPEG photo bucket and owner-only Storage policies
 - `api/auth-config.mjs`: exposes only **public** Supabase connection settings when configured
 - `api/analyze.mjs`: OpenAI Responses API-backed Vercel function; checks private beta code **before** issuing a billable AI request; API key never sent to the browser
-- No npm build, database, or paid dependency required for guided testing
+- No npm build required for the static frontend; Guided Styling works as a guest without AI usage. Supabase is used for signed-in cloud features.
+
+## Code-quality audit
+
+Run `node scripts/audit.mjs` from the repository root (Node.js 20+). It checks JavaScript parsing, duplicate and missing DOM identifiers, linked CSS/JS assets, the nine-piece tree, catalog stock/currency guards, authenticated data-source references, and private database/storage policy definitions. This is a **static** audit, not a replacement for browser/device tests. Shopify, OpenAI and actual magic-link sign-ins also require live integration tests.
 
 ## Quick tests
 
@@ -105,7 +109,7 @@ The website and cloud sync client are implemented, but **cloud sign-in and stora
 ## Roadmap
 
 - Secure accounts and durable usage limits
-- Real catalog/product search with current prices, stocks and availability
+- Live end-to-end verification of Shopify catalog offers and retailer redirect behavior
 - Genuine budget optimization against retrieved products
 - Comprehensive security/RLS tests, account export and deletion, and better conflict handling on edits
 - Monetization through transparent referral/affiliate links
