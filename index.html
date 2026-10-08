@@ -44,24 +44,51 @@
       .card {
         margin: 0 auto;
         max-width: 620px;
-        padding: 28px;
+        padding: 32px;
         border: 1px solid #27272a;
         border-radius: 24px;
-        background: rgba(24,24,27,.72);
+        background: rgba(24,24,27,.78);
         backdrop-filter: blur(14px);
       }
-      .card p { color: #a1a1aa; line-height: 1.7; margin: 0; }
-      button {
-        margin-top: 24px;
+      .card p { color: #a1a1aa; line-height: 1.7; margin: 0 0 22px; }
+      .upload {
+        display: block;
+        width: 100%;
+        padding: 28px 20px;
+        border: 1px dashed #52525b;
+        border-radius: 18px;
+        background: #18181b;
+        cursor: pointer;
+        transition: border-color .2s, background .2s;
+      }
+      .upload:hover { border-color: #a1a1aa; background: #1f1f23; }
+      .upload strong { display: block; font-size: 18px; margin-bottom: 7px; }
+      .upload span { color: #71717a; font-size: 14px; }
+      input[type="file"] { display: none; }
+      #preview {
+        display: none;
+        width: 100%;
+        max-height: 360px;
+        object-fit: contain;
+        border-radius: 18px;
+        margin-bottom: 18px;
+        background: #09090b;
+      }
+      .analyze {
+        display: none;
+        width: 100%;
+        margin-top: 18px;
         border: 0;
         border-radius: 999px;
-        padding: 14px 24px;
+        padding: 15px 24px;
         background: #fafafa;
         color: #09090b;
         font-weight: 800;
+        font-size: 15px;
         cursor: pointer;
       }
-      button:hover { opacity: .88; }
+      .analyze:hover { opacity: .88; }
+      .status { min-height: 22px; margin-top: 16px; color: #a1a1aa; font-size: 14px; }
       footer { margin-top: 28px; font-size: 12px; color: #52525b; }
     </style>
   </head>
@@ -71,15 +98,53 @@
         <div class="eyebrow">MATCHLATCH</div>
         <h1>Your style,<br />unlocked.</h1>
         <div class="tagline">Show us what you like. We'll help you find what comes next.</div>
+
         <div class="card">
           <p>
-            MATCHLATCH is being built as a personal style engine that turns inspiration
-            into curated outfits, products, and shopping options that fit your taste and budget.
+            Start with a photo of something you love. MATCHLATCH will eventually identify it,
+            find matching pieces, and build a look around your style and budget.
           </p>
-          <button type="button" onclick="alert('MATCHLATCH is coming together. 🚀')">GET STARTED</button>
+
+          <img id="preview" alt="Your selected clothing photo" />
+
+          <label class="upload" for="photo">
+            <strong>📸 Choose a photo</strong>
+            <span>Upload a clothing item, shoe, accessory, or inspiration photo</span>
+          </label>
+          <input id="photo" type="file" accept="image/*" />
+
+          <button id="analyze" class="analyze" type="button">LATCH THIS ITEM →</button>
+          <div id="status" class="status"></div>
         </div>
+
         <footer>Early build • MATCHLATCH</footer>
       </div>
     </main>
+
+    <script>
+      const photo = document.getElementById('photo');
+      const preview = document.getElementById('preview');
+      const upload = document.querySelector('.upload');
+      const analyze = document.getElementById('analyze');
+      const status = document.getElementById('status');
+
+      photo.addEventListener('change', () => {
+        const file = photo.files?.[0];
+        if (!file) return;
+
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        upload.style.display = 'none';
+        analyze.style.display = 'block';
+        status.textContent = file.name;
+      });
+
+      analyze.addEventListener('click', () => {
+        status.textContent = '📸 Photo captured. The MATCHLATCH vision engine is next.';
+        analyze.textContent = 'ITEM LATCHED ✓';
+        analyze.disabled = true;
+        analyze.style.opacity = '.65';
+      });
+    </script>
   </body>
 </html>
