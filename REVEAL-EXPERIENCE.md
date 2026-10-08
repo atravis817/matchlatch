@@ -142,7 +142,7 @@ Beneath: "You decide if and when a photo is sent for an AI preview."
 - Thumbnail or compact list of the exact garment(s) pictured; item selection remains traceable to the outfit tree.
 - Primary **Try Another Piece**: reopen same category alternatives in Private Shop, then regenerate only after explicit tap. This may require another paid generation and should be made clear.
 - **Shop This Look** goes to the original retailer variant/safe merchant URL, refreshing live price and availability.
-- **Save Preview** is an opt-in, private action. Option to delete and regenerate; **Close** discards unsaved photo/output.
+- **Save Preview** is an opt-in, private action. Future saved previews should inherit their inspiration's **named Collection** (e.g., “Miami 2027 Ideas”) while retaining independent delete/privacy controls. Option to delete and regenerate; **Close** discards unsaved photo/output.
 - Provide "AI images may look realistic but aren't proof of real-world fit."
 
 ### Large screen / desktop
