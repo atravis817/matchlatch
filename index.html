@@ -655,6 +655,7 @@
       });
 
       window.MatchlatchResetStudio=()=>{
+        window.MatchlatchShop?.reset?.();
         imageData=null;
         if(imageUrl)URL.revokeObjectURL(imageUrl);
         imageUrl=null;
