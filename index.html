@@ -626,6 +626,10 @@
       // Profiles are user-scoped while signed in; guest preferences remain separate.
       window.MatchlatchStyleProfile={
         get:profile,
+        getGuest:()=>{
+          try{return JSON.parse(localStorage.getItem("matchlatch-style-v1")||"null");}
+          catch{return null;}
+        },
         apply:values=>{
           const v=values&&typeof values==="object"?values:defaults;
           storedFields.filter(id=>!dynamicSizes.has(id)).forEach(id=>{
