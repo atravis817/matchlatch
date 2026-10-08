@@ -232,7 +232,7 @@ export function createCloudSync(supabase, hooks) {
   async function importGuest(){
     if(!account||!ready)return {ok:false,message:"Cloud is not connected yet."};
     const guest=hooks.getGuestState();
-    const prev=mapState(state),next=copy(state);
+    const next=copy(state);
     let added=0;
     for(const kind of KINDS){
       const known=new Set(next[kind].map(x=>x.id));
