@@ -177,9 +177,16 @@ export function createCloudSync(supabase, hooks) {
     }
   }
   async function setUser(user){
+    const previous=account;
     epoch++;clearTimeout(timer);clearInterval(interval);
     const token=epoch;
     account=user?.id?{id:user.id,email:user.email}:null;
+    if(previous&&previous.id!==account?.id){
+      // A signed-out account must not leave its cached wardrobe/photos for the
+      // next person using this browser. Cloud copies remain protected by RLS.
+      try{localStorage.removeItem(cacheKey(previous.id));}catch{}
+      await hooks.clearAccountPhotos?.(previous.id);
+    }
     ready=false;syncing=false;fetching=false;
     pending=new Map();photos=new Set();state=blank();lastSnapshot=blank();profile=null;lastProfile=null;
     if(!account){notify("guest");hooks.setGuest();return;}
@@ -266,6 +273,7 @@ export function createCloudSync(supabase, hooks) {
   return {
     setUser,queueState,queueProfile,savePhoto,fetchPhoto,importGuest,retry,
     accountPhotoKey,getStatus:()=>status,isReady:()=>ready,isSignedIn:()=>Boolean(account),
+    hasPending:()=>pending.size>0||photos.size>0,
     getAccount:()=>account
   };
 }
