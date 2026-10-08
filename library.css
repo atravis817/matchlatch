@@ -147,3 +147,12 @@
  .library-caption{margin-bottom:16px}
 }
 @media(prefers-reduced-motion:reduce){.feedback-toast{transition:none}}
+
+/* Private account handoff: calm and explicit guest-import consent. */
+.account-import{border-top:1px solid var(--line);margin-top:25px;padding-top:24px}
+.account-import[hidden]{display:none!important}
+.account-import strong{font-size:13px;letter-spacing:-.02em}
+.account-import p{margin:10px 0 15px;color:#717871;font-size:12px;line-height:1.65}
+.account-import .library-subtle{background:#f7f8f5}
+.account-panel #account-status{margin-top:20px}
+#send-login:disabled{cursor:not-allowed}
