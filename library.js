@@ -25,7 +25,32 @@
   let selectedLookDetail=null;
   let supabase=null;
   let activeUser=null;
+  let cloudAdapter=null;
   const photoCache = new Map();
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  const guestState=()=>{
+    const state=empty();
+    try {
+      const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+      if(raw&&typeof raw==="object")
+        Object.keys(state).forEach(k=>{if(Array.isArray(raw[k]))state[k]=raw[k];});
+    }catch{}
+    return state;
+  };
+  const setState=state=>{
+    dbState=clone(state||empty());
+    currentLookId=null;selectedLookDetail=null;photoCache.clear();
+    refreshCounts();
+    if(activePage==="styles")renderStyles();
+    if(activePage==="cart")renderCart();
+    if(activePage==="account")renderAccount();
+  };
+  const setGuest=()=>{
+    activeUser=null;
+    setState(guestState());
+    window.MatchlatchStyleProfile?.restoreGuest?.();
+    if(activePage==="account")renderAccount();
+  };
 
   let toastTimer;
   function feedback(message,actionText,action) {
@@ -44,7 +69,8 @@
   }
   function persist() {
     try {
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(dbState));
+      if(activeUser&&cloudAdapter)cloudAdapter.queueState(dbState);
+      else localStorage.setItem(STORAGE_KEY,JSON.stringify(dbState));
       refreshCounts();
       return true;
     } catch (error) {
@@ -68,42 +94,73 @@
     });
   }
   let databasePromise=openImageDB();
-  async function savePhoto(id,data) {
-    if(!id||!data)return;
-    photoCache.set(id,data);
+  function photoKey(id) {
+    return activeUser?.id&&cloudAdapter
+      ? cloudAdapter.accountPhotoKey(activeUser.id,id)
+      : "guest-"+id;
+  }
+  async function writePhoto(key,data) {
+    if(!key||!data)return false;
+    photoCache.set(key,data);
     const db=await databasePromise;
-    if(!db)return;
+    if(!db)return false;
     return new Promise(resolve=>{
-      try {
+      try{
         const tx=db.transaction("photos","readwrite");
-        tx.objectStore("photos").put(data,id);
+        tx.objectStore("photos").put(data,key);
         tx.oncomplete=()=>resolve(true);
         tx.onerror=()=>resolve(false);
       }catch{resolve(false);}
     });
   }
-  async function loadPhoto(id) {
-    if(!id)return null;
-    if(photoCache.has(id))return photoCache.get(id);
+  async function readPhoto(key) {
+    if(!key)return null;
+    if(photoCache.has(key))return photoCache.get(key);
     const db=await databasePromise;
     if(!db)return null;
     return new Promise(resolve=>{
-      try {
-        const req=db.transaction("photos","readonly").objectStore("photos").get(id);
+      try{
+        const req=db.transaction("photos","readonly").objectStore("photos").get(key);
         req.onsuccess=()=>{
-          const data=typeof req.result==="string"?req.result:null;
-          if(data)photoCache.set(id,data);
-          resolve(data);
+          const result=typeof req.result==="string"?req.result:null;
+          if(result)photoCache.set(key,result);
+          resolve(result);
         };
         req.onerror=()=>resolve(null);
       }catch{resolve(null);}
     });
   }
-  async function clearPhotos() {
-    photoCache.clear();
+  async function loadGuestPhoto(id) {
+    return await readPhoto("guest-"+id) || await readPhoto(id);
+  }
+  async function savePhoto(id,data) {
+    if(!id||!data)return;
+    const key=photoKey(id);
+    await writePhoto(key,data);
+    if(activeUser&&cloudAdapter)cloudAdapter.savePhoto(id);
+  }
+  async function loadPhoto(id) {
+    if(!id)return null;
+    if(!activeUser||!cloudAdapter)return loadGuestPhoto(id);
+    const local=await readPhoto(photoKey(id));
+    if(local)return local;
+    const fromCloud=await cloudAdapter.fetchPhoto(id);
+    if(fromCloud){await writePhoto(photoKey(id),fromCloud);return fromCloud;}
+    return null;
+  }
+  async function clearGuestPhotos() {
+    for(const id of guestState().inspirations.map(x=>x.id)) {
+      photoCache.delete("guest-"+id);photoCache.delete(id);
+    }
     const db=await databasePromise;
     if(!db)return;
-    try {db.transaction("photos","readwrite").objectStore("photos").clear();}catch{}
+    try{
+      const tx=db.transaction("photos","readwrite");
+      for(const id of guestState().inspirations.map(x=>x.id)){
+        tx.objectStore("photos").delete("guest-"+id);
+        tx.objectStore("photos").delete(id);
+      }
+    }catch{}
   }
   async function attachPhoto(element,id) {
     const data=await loadPhoto(id);
@@ -123,7 +180,7 @@
         img.remove();
         const fallback=document.createElement("span");
         fallback.className="placeholder";
-        fallback.textContent="Photo not available on this device";
+        fallback.textContent=activeUser?"Photo unavailable — reconnect to sync":"Photo unavailable on this device";
         wrap.append(fallback);
       }
     });
@@ -545,20 +602,25 @@
   }
 
   function renderAccount() {
-    const status=$("account-status");
-    const btnEmail=$("send-login");
-    const form=$("login-form");
-    const logout=$("logout-button");
-    const guest=$("account-guest");
-    if(activeUser&&supabase) {
-      status.textContent="Signed in as "+activeUser.email+". Your library still stays on this device; cloud syncing comes later.";
+    const status=$("account-status"),submit=$("send-login"),form=$("login-form"),
+      logout=$("logout-button"),guest=$("account-guest"),importBox=$("account-import"),
+      clear=$("clear-library");
+    if(activeUser&&supabase&&cloudAdapter){
+      status.textContent=cloudAdapter.getStatus();
       form.hidden=true;logout.hidden=false;guest.hidden=true;
+      const guestCount=Object.values(guestState()).reduce((sum,a)=>sum+a.length,0);
+      importBox.hidden=guestCount===0;
+      $("import-guest").disabled=!cloudAdapter.isReady();
+      clear.textContent="Delete guest data on this device";
     } else if(supabase) {
-      status.textContent="We'll email you a secure sign-in link. Your current library remains on this device.";
-      form.hidden=false;btnEmail.disabled=false;logout.hidden=true;guest.hidden=false;
+      status.textContent="Secure sign-in is ready. Use email to save your styles across devices.";
+      form.hidden=false;submit.disabled=false;logout.hidden=true;guest.hidden=false;
+      importBox.hidden=true;
+      clear.textContent="Delete guest library";
     } else {
-      status.textContent="Your style library works without an account. Account sign-in will be available once secure syncing is connected.";
+      status.textContent="Continue as a guest until the secure account connection is configured.";
       form.hidden=true;logout.hidden=true;guest.hidden=false;
+      importBox.hidden=true;clear.textContent="Delete guest library";
     }
   }
 
@@ -579,36 +641,83 @@
     finally{$("send-login").disabled=false;}
   });
   $("logout-button").addEventListener("click",async()=>{
-    if(supabase)await supabase.auth.signOut();
-    activeUser=null;renderAccount();
+    if(!supabase)return;
+    const button=$("logout-button");button.disabled=true;
+    try {
+      const {error}=await supabase.auth.signOut();
+      if(error)throw error;
+      await applyAuth(null);
+      feedback("Signed out. Guest library restored.");
+    }catch(error){feedback(error?.message||"Couldn't sign out. Try again.");}
+    finally{button.disabled=false;}
+  });
+  $("import-guest").addEventListener("click",async()=>{
+    if(!cloudAdapter?.isReady())return;
+    const button=$("import-guest");button.disabled=true;
+    const result=await cloudAdapter.importGuest();
+    feedback(result.message);
+    if(activePage==="account")renderAccount();
+    button.disabled=false;
   });
   $("clear-library").addEventListener("click",async()=>{
-    if(!confirm("Delete all saved MATCHLATCH inspirations, photos, outfits, favorites, cart items, and manually recorded purchases from this device? This cannot be undone."))return;
-    dbState=empty();currentLookId=null;selectedLookDetail=null;persist();await clearPhotos();
-    if(activePage==="styles")renderStyles();
-    if(activePage==="cart")renderCart();
-    feedback("Local library cleared.");
+    const guest=guestState();
+    if(!Object.values(guest).some(x=>x.length)) {
+      feedback("There's no guest library to delete.");return;
+    }
+    if(!confirm("Delete guest styles and their saved photos from this device? Signed-in cloud data will not be changed."))return;
+    await clearGuestPhotos();
+    localStorage.removeItem(STORAGE_KEY);
+    if(!activeUser)setGuest();
+    if(activePage==="account")renderAccount();
+    feedback("Guest library deleted.");
   });
 
+  let authSwitch=0;
+  async function applyAuth(user) {
+    const run=++authSwitch;
+    activeUser=user?.id?user:null;
+    if(!activeUser) {
+      if(cloudAdapter)await cloudAdapter.setUser(null);
+      else setGuest();
+    } else if(cloudAdapter) {
+      await cloudAdapter.setUser(activeUser);
+    }
+    if(run===authSwitch && activePage==="account")renderAccount();
+  }
   async function initAuth() {
-    try {
+    try{
       const response=await fetch("/api/auth-config",{cache:"no-store"});
       if(!response.ok)return;
       const cfg=await response.json();
       if(!cfg.enabled||!cfg.url||!cfg.publishableKey)return;
-      const module=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+      const [module,cloudModule]=await Promise.all([
+        import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"),
+        import("/cloud-sync.js")
+      ]);
       supabase=module.createClient(cfg.url,cfg.publishableKey,{
         auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
       });
-      const {data}=await supabase.auth.getUser();
-      activeUser=data?.user||null;
+      cloudAdapter=cloudModule.createCloudSync(supabase,{
+        setState, setGuest,getGuestState:guestState,
+        onStatus:()=>{if(activePage==="account")renderAccount();},
+        saveAccountPhoto:writePhoto,loadAccountPhoto:readPhoto,loadGuestPhoto,
+        applyProfile:value=>window.MatchlatchStyleProfile?.apply?.(value)
+      });
+      window.MatchlatchCloud={
+        isSignedIn:()=>Boolean(activeUser&&cloudAdapter),
+        updateProfile:value=>cloudAdapter?.queueProfile(value),
+        retry:()=>cloudAdapter?.retry()
+      };
+      const {data,error}=await supabase.auth.getUser();
+      if(error)console.warn("Account session check:",error.message);
+      await applyAuth(data?.user||null);
       supabase.auth.onAuthStateChange((_event,session)=>{
-        activeUser=session?.user||null;
-        if(activePage==="account")renderAccount();
+        setTimeout(()=>void applyAuth(session?.user||null),0);
       });
       if(activePage==="account")renderAccount();
-    }catch(error) {
-      console.warn("MATCHLATCH account provider not initialized:",error?.message||error);
+    }catch(error){
+      console.warn("MATCHLATCH secure login not initialized:",error?.message||error);
+      setGuest();
     }
   }
 
