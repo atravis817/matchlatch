@@ -2,6 +2,8 @@
 
 **Your style, unlocked.** Fashion discovery MVP.
 
+**Canonical product work map:** [ROADMAP.md](ROADMAP.md) — our V0 foundation and original **V1 → V1.5 → V2 → V3 → V4 MONSTER** roadmap, including stage gates, what we've built, unverified work, next priorities and dated development history.
+
 Live: https://matchlatch.vercel.app
 
 ## Live features
@@ -108,9 +110,6 @@ Run `node scripts/audit.mjs` from the repository root (Node.js 20+). It checks J
 
 ## Roadmap
 
-- Secure accounts and durable usage limits
-- Live end-to-end verification of Shopify catalog offers and retailer redirect behavior
-- Genuine budget optimization against retrieved products
-- Comprehensive security/RLS tests, account export and deletion, and better conflict handling on edits
-- Monetization through transparent referral/affiliate links
-- Later: virtual try-on and order workflows
+See the **[living MATCHLATCH V0–V4 MONSTER work map](ROADMAP.md)**. That file is the source of truth for stage status, acceptance gates, historical decisions and future work.
+
+**Current focus:** verify V1's real photo-to-retailer shopping experience and V1.5's account/profile/photo synchronization; then start V2 virtual try-on. Saved outfits, cart and manually entered purchases are early V3 foundations, not completed payments or order tracking.
