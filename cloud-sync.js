@@ -79,7 +79,7 @@ export function createCloudSync(supabase, hooks) {
       for(let offset=0;;offset+=500){
         const {data,error}=await supabase.from("matchlatch_records")
           .select("kind,record_id,payload,is_deleted,updated_at")
-          .eq("user_id",uid).range(offset,offset+499).order("record_id");
+          .eq("user_id",uid).order("record_id").order("kind").range(offset,offset+499);
         if(error)throw error;
         if(!current(uid,token))return;
         rows.push(...(data||[]));
@@ -243,10 +243,18 @@ export function createCloudSync(supabase, hooks) {
         await hooks.saveAccountPhoto(accountPhotoKey(account.id,inspiration.id),photo);
         savePhoto(inspiration.id);
       }
-      await flush();
     }
-    if(added===0)return{ok:true,message:"No new guest items to import."};
-    return{ok:true,message:added+" items added to your private library. Syncing may continue."};
+    const guestProfile=hooks.getGuestProfile?.();
+    let profileImported=false;
+    if(!profile&&guestProfile&&typeof guestProfile==="object") {
+      queueProfile(guestProfile);
+      hooks.applyProfile(guestProfile);
+      profileImported=true;
+    }
+    if(added||profileImported)await flush();
+    if(!added&&!profileImported)return{ok:true,message:"Guest items are already in your account."};
+    return{ok:true,message:(added?added+" guest items":"Your guest preferences")+
+      " added to your private account. Cloud sync may continue."};
   }
   function retry(){
     if(!account)return;
