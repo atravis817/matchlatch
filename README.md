@@ -4,6 +4,8 @@
 
 **Canonical product work map:** [ROADMAP.md](ROADMAP.md) — our V0 foundation and original **V1 → V1.5 → V2 → V3 → V4 MONSTER** roadmap, including stage gates, what we've built, unverified work, next priorities and dated development history.
 
+**Signature V2 experience blueprint:** [REVEAL — Live, Snap & Photo](REVEAL-EXPERIENCE.md). REVEAL is a working feature name; its camera experience and AI-generated try-on are **designed but not implemented**. Motion-tracked live AR is an additional feasibility and testing milestone.
+
 Live: https://matchlatch.vercel.app
 
 ## Live features
@@ -112,4 +114,4 @@ Run `node scripts/audit.mjs` from the repository root (Node.js 20+). It checks J
 
 See the **[living MATCHLATCH V0–V4 MONSTER work map](ROADMAP.md)**. That file is the source of truth for stage status, acceptance gates, historical decisions and future work.
 
-**Current focus:** verify V1's real photo-to-retailer shopping experience and V1.5's account/profile/photo synchronization; then start V2 virtual try-on. Saved outfits, cart and manually entered purchases are early V3 foundations, not completed payments or order tracking.
+**Current focus:** validate V1's real photo-to-retailer shopping experience and V1.5's account/profile/photo synchronization while preparing V2's **REVEAL** camera foundation. [REVEAL Live and Reveal Snap UX flow](REVEAL-EXPERIENCE.md) is documented and the app code has **not** yet shipped it. Saved outfits, cart and manual purchase records are early V3 foundations—not payment or order tracking.
