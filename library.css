@@ -112,3 +112,38 @@
  .look-detail-item .library-actions{justify-content:flex-start}
  .look-detail-photo{height:180px}
 }
+
+/* Quiet interface details: concise notes, reversible actions, comfortable touch targets. */
+.library-caption{margin:0 0 22px;color:#888e88;font-size:11px;line-height:1.65}
+.feedback-toast{
+  position:fixed;left:50%;bottom:max(23px,env(safe-area-inset-bottom));
+  transform:translateX(-50%);z-index:50;
+  display:flex;align-items:center;justify-content:space-between;gap:22px;
+  width:max-content;max-width:calc(100% - 30px);
+  background:#232724;color:#fff;padding:13px 16px;
+  border-radius:8px;box-shadow:0 9px 30px rgba(0,0,0,.14);
+  font-size:12px;font-weight:550;line-height:1.45;
+}
+.feedback-toast[hidden]{display:none!important}
+.feedback-action{border:0;background:none;color:#fff;cursor:pointer;text-decoration:underline;
+  font:inherit;font-weight:800;padding:7px 2px;white-space:nowrap}
+.feedback-action:hover{color:#e1e9df}
+.app-nav button{min-height:40px}
+.library-card,.cart-entry,.purchase-summary,.look-detail{border-color:#e4e7e2}
+.library-card:focus-within,.cart-entry:focus-within{border-color:#b4bab3}
+.account-panel form[hidden],#account-guest[hidden]{display:none!important}
+#account-guest{margin:19px 0 6px}
+#logout-button:not([hidden]){margin-top:16px}
+@media(max-width:900px){
+ .header-inner{row-gap:5px}
+ .app-nav{gap:5px}
+ .app-nav button{flex:1;min-width:0}
+}
+@media(max-width:550px){
+ .app-nav button{font-size:11px;letter-spacing:-.01em}
+ .nav-counter{font-size:9px;padding:2px 4px}
+ .feedback-toast{left:15px;right:15px;bottom:max(16px,env(safe-area-inset-bottom));
+   transform:none;width:auto;padding:12px 14px}
+ .library-caption{margin-bottom:16px}
+}
+@media(prefers-reduced-motion:reduce){.feedback-toast{transition:none}}
