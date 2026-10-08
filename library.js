@@ -241,7 +241,7 @@
     return collectionForInspiration(inspirationId)?.name||"Unfiled";
   }
   function createCollection(rawName){
-    const name=esc(rawName).replace(/\\s+/g," ").trim().slice(0,80);
+    const name=esc(rawName).replace(/\s+/g," ").trim().slice(0,80);
     if(!name){feedback("Enter a collection name.");return null;}
     const existing=dbState.collections.find(x=>x.name.toLowerCase()===name.toLowerCase());
     if(existing){feedback("That collection already exists. You can add items to it.");return existing.id;}
@@ -299,8 +299,7 @@
         const id=select.value==="__new__"?createCollection(input.value):select.value;
         if(id===null)return;
         assignToCollection(inspirationId,id);
-        if(activePage==="styles")renderStyles();
-        else{form.remove();toggle.textContent="Folder: "+collectionName(inspirationId)+" ▾";toggle.setAttribute("aria-expanded","false");}
+        if(activePage!=="styles"){form.remove();toggle.textContent="Folder: "+collectionName(inspirationId)+" ▾";toggle.setAttribute("aria-expanded","false");}
       });
       container.append(form);toggle.setAttribute("aria-expanded","true");
       select.focus();
@@ -442,13 +441,114 @@
     });
   }
 
-  let selectedTab=dbState.looks.some(x=>x.saved)?"outfits":"inspirations";
+
+  function renderCollections(target){
+    if(selectedCollectionId){
+      const unfiled=selectedCollectionId==="__unfiled__";
+      const folder=unfiled?null:collectionFor(selectedCollectionId);
+      if(!unfiled&&!folder){selectedCollectionId=null;renderCollections(target);return;}
+      const heading=node("div","collection-view-heading");
+      const title=node("div");
+      title.append(node("div","micro-title","Your personal collection"));
+      title.append(node("h2",null,unfiled?"Unfiled":folder.name));
+      const actions=node("div","library-actions");
+      actions.append(btn("← All collections",()=>{selectedCollectionId=null;renderStyles();},"library-subtle"));
+      heading.append(title,actions);target.append(heading);
+      if(folder){
+        const edit=document.createElement("form");edit.className="collection-rename";
+        const input=document.createElement("input");input.type="text";input.value=folder.name;
+        input.maxLength=80;input.required=true;input.setAttribute("aria-label","Rename collection");
+        const save=node("button","library-subtle","Rename");save.type="submit";
+        edit.append(input,save);
+        edit.addEventListener("submit",event=>{
+          event.preventDefault();
+          const next=input.value.replace(/\s+/g," ").trim().slice(0,80);
+          if(!next)return;
+          if(dbState.collections.some(x=>x.id!==folder.id&&x.name.toLowerCase()===next.toLowerCase())){
+            feedback("Another collection already has that name.");return;
+          }
+          folder.name=next;folder.updatedAt=new Date().toISOString();
+          persist();renderStyles();feedback("Collection renamed.");
+        });
+        actions.append(edit,btn("Delete folder",()=>{
+          if(!confirm("Delete the collection “"+folder.name+"”? Photos, outfits, favorites and purchases will stay in Unfiled."))return;
+          for(const insp of dbState.inspirations)if(insp.collectionId===folder.id)delete insp.collectionId;
+          dbState.collections=dbState.collections.filter(x=>x.id!==folder.id);
+          selectedCollectionId=null;persist();renderStyles();
+          feedback("Collection removed. Your items are safe in Unfiled.");
+        },"quiet-button"));
+      }
+      const ids=new Set(dbState.inspirations.filter(x=>unfiled?!collectionFor(x.collectionId):x.collectionId===folder.id).map(x=>x.id));
+      const counts=[
+        ["Inspiration photos",dbState.inspirations.filter(x=>ids.has(x.id)).length,renderInspirations],
+        ["Saved outfits",dbState.looks.filter(x=>x.saved&&ids.has(x.inspirationId)).length,renderOutfits],
+        ["Favorite items",dbState.favorites.filter(x=>ids.has(x.inspirationId)).length,renderFavorites],
+        ["Recorded purchases",dbState.purchases.filter(x=>ids.has(x.inspirationId)).length,renderPurchases]
+      ];
+      if(!ids.size){
+        const empty=node("div","collection-empty");
+        empty.append(node("h3",null,"Your collection is ready."));
+        empty.append(node("p",null,"Find an inspiration or saved outfit and choose its Folder button to file it here."));
+        empty.append(btn("Browse inspirations ↗",()=>{
+          selectedTab="inspirations";renderStyles();
+        },"library-primary"));
+        target.append(empty);return;
+      }
+      for(const [name,count,render] of counts){
+        if(!count)continue;
+        const section=node("section","collection-section");
+        section.append(node("h3",null,name+" · "+count));
+        render(section,ids);target.append(section);
+      }
+      return;
+    }
+    const bar=node("div","collections-create");
+    const intro=node("div");
+    intro.append(node("h2",null,"Your collections."));
+    intro.append(node("p",null,"Name a moment, trip, occasion, or idea. Everything attached to each inspiration stays together."));
+    const form=document.createElement("form");form.className="collections-create-form";
+    const input=document.createElement("input");input.type="text";input.maxLength=80;
+    input.required=true;input.placeholder="e.g. Miami 2027 Ideas";
+    input.setAttribute("aria-label","New collection name");
+    const create=node("button","library-primary","＋ New collection");create.type="submit";
+    form.append(input,create);
+    form.addEventListener("submit",event=>{
+      event.preventDefault();
+      const id=createCollection(input.value);
+      if(!id)return;
+      selectedCollectionId=id;renderStyles();
+    });
+    bar.append(intro,form);target.append(bar);
+    const grid=node("div","collections-grid");
+    const folderRows=[...dbState.collections,{id:"__unfiled__",name:"Unfiled",system:true}];
+    for(const collection of folderRows){
+      const ids=new Set(dbState.inspirations.filter(x=>collection.system?!collectionFor(x.collectionId):x.collectionId===collection.id).map(x=>x.id));
+      const looks=dbState.looks.filter(x=>x.saved&&ids.has(x.inspirationId)).length;
+      const favorites=dbState.favorites.filter(x=>ids.has(x.inspirationId)).length;
+      const purchases=dbState.purchases.filter(x=>ids.has(x.inspirationId)).length;
+      const card=btn("",()=>{selectedCollectionId=collection.id;renderStyles();},"collection-card");
+      card.setAttribute("aria-label","Open collection "+collection.name);
+      card.append(node("span","collection-icon","▣"));
+      card.append(node("strong",null,collection.name));
+      card.append(node("span","collection-card-meta",
+        [ids.size+" inspiration"+(ids.size===1?"":"s"),
+        looks+" saved look"+(looks===1?"":"s"),
+        favorites+" favorite"+(favorites===1?"":"s"),
+        purchases+" purchase"+(purchases===1?"":"s")].join(" · ")));
+      card.append(node("span","collection-card-arrow","Open ↗"));
+      grid.append(card);
+    }
+    target.append(grid);
+  }
+
+  let selectedTab="collections";
   function renderStyles() {
     const nav=$("styles-tabs");
     const content=$("styles-body");
     nav.replaceChildren();
     content.replaceChildren();
     const tabs=[
+      ["collections","Collections",dbState.collections.length],
       ["inspirations","Inspirations",dbState.inspirations.length],
       ["outfits","Saved outfits",dbState.looks.filter(x=>x.saved).length],
       ["favorites","Favorite items",dbState.favorites.length],
@@ -462,10 +562,14 @@
       nav.append(b);
     }
     nav.setAttribute("role","tablist");
-    content.append(node("p","library-caption",selectedTab==="purchases"
-      ? "Purchases are recorded by you, not verified by retailers. Each record links to its original inspiration."
-      : "Stored on this device · Cloud sync is not enabled yet."));
+    const caption=selectedTab==="collections"
+      ? "Organize your original inspiration photos into named collections. Saved looks, favorites and purchases follow their source photos."
+      : selectedTab==="purchases"
+        ? "Purchases are recorded by you, not verified by retailers. Each record links to its original inspiration."
+        : activeUser?"Private account library · Changes sync when connected.":"Guest library · Saved on this device.";
+    content.append(node("p","library-caption",caption));
     if(selectedLookDetail)renderLookDetails(content,selectedLookDetail);
+    if(selectedTab==="collections")renderCollections(content);
     if(selectedTab==="inspirations")renderInspirations(content);
     if(selectedTab==="outfits")renderOutfits(content);
     if(selectedTab==="favorites")renderFavorites(content);
