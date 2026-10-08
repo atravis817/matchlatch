@@ -485,7 +485,8 @@
     for(const look of looks) {
       const {card,body}=makeCard(look.inspirationId,look.label,
         (look.mode==="ai"?"AI curated":"Guided styling")+" · "+dateLabel(look.createdAt),
-        look.pieces.map(x=>x.description).join(" · "));
+        [...(look.shopSelections?Object.values(look.shopSelections).map(x=>x.title):[]),
+          ...look.pieces.slice(0,3).map(x=>x.description)].join(" · "));
       const actions=node("div","library-actions");
       actions.append(btn("Open outfit ↗",()=>openLookDetails(look.id)));
       actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
@@ -503,7 +504,7 @@
     const grid=node("div","library-grid");
     for(const fav of dbState.favorites){
       const {card,body}=makeCard(fav.inspirationId,fav.description,
-        fav.type+" · Suggested target "+money(fav.target),
+        fav.type+" · "+(fav.shopRef?"Price when selected ":"Suggested target ")+money(fav.target),
         "Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"));
       const actions=node("div","library-actions");
       actions.append(link(fav.searchQuery));
@@ -550,7 +551,7 @@
       const row=node("article","cart-entry");
       row.append(imageFrame(item.inspirationId,"cart-thumb"));
       const info=node("div","cart-info");
-      info.append(node("div","library-meta",item.type+" · Target "+money(item.target)));
+      info.append(node("div","library-meta",item.type+" · "+(item.shopRef?"Price when selected ":"Budget target ")+money(item.target)));
       info.append(node("h3",null,item.description));
       info.append(node("small",null,"Inspired by: "+(inspirationFor(item.inspirationId)?.label||"original photo")));
       const controls=node("div","cart-controls");
@@ -756,6 +757,44 @@
     }
   }
 
-  window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart};
+  function shopPiece(slot,item){
+    const look=currentLook();
+    if(!look||!item?.productId||!item?.variantId)return -1;
+    let index=look.pieces.findIndex(p=>p.shopRef?.variantId===item.variantId);
+    if(index>=0)return index;
+    index=look.pieces.length;
+    look.pieces.push({
+      type:slot.charAt(0).toUpperCase()+slot.slice(1),
+      description:String(item.title||slot).slice(0,155)+" · "+String(item.merchant||"Retailer").slice(0,65),
+      searchQuery:String(item.title||slot).slice(0,165),
+      target:Number(item.price)||0,
+      priceAtSelection:Number(item.price)||0,
+      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot}
+    });
+    persist();
+    return index;
+  }
+  function chooseShopItem(slot,item){
+    const look=currentLook();
+    if(!look||!item?.variantId||!item?.productId)return;
+    if(!look.shopSelections)look.shopSelections={};
+    look.shopSelections[slot]={
+      productId:String(item.productId),variantId:String(item.variantId),
+      title:String(item.title||slot).slice(0,155),slot
+    };
+    persist();
+  }
+  function favoriteShopItem(slot,item){
+    const index=shopPiece(slot,item);
+    if(index<0)return;
+    if(!favoriteExists(currentLookId,index))toggleFavorite(currentLookId,index);
+    else feedback("This item is already in your favorites.");
+  }
+  function cartShopItem(slot,item){
+    const index=shopPiece(slot,item);
+    if(index>=0)addToCart(currentLookId,index);
+  }
+  window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,
+    chooseShopItem,favoriteShopItem,cartShopItem};
   void initAuth();
 })();
