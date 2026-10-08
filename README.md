@@ -12,6 +12,9 @@ Live: https://matchlatch.vercel.app
 - Guided Styling (no external AI): enter item type and color for a rule-based, three-piece outfit plan
 - Shopping links that open Google Shopping searches (not verified catalog results)
 - Optional **OpenAI image analysis**, protected with a private beta access code
+- **Your Styles**: original inspiration-photo archive, favorited AI outfits, favorite clothing suggestions, and user-recorded purchases linked to their original photo
+- **Cart**: a persistent shopping shortlist (not a checkout), with suggested spending targets and outbound shopping searches
+- **Account**: guest mode works now; optional passwordless email sign-in activates with a Supabase connection
 
 ## Turn on AI (private, low-cost test)
 
@@ -27,13 +30,37 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 **Before public launch:** This passcode is a testing gate, NOT production-ready login or abuse prevention. Add real authentication, distributed per-user/IP rate limits, usage monitoring, and a provider-side project budget. Keep auto-reload OFF. Do not share your beta access code or publish it in app code. Do not connect a higher-balance paid API account without stronger controls.
 
-**Privacy:** Style profile is saved in your browser's localStorage; the beta code isn't saved. Photos are previewed/compressed in the browser. When AI is requested, a compressed photo is transmitted to the MATCHLATCH Vercel server function and forwarded to OpenAI. No photo database storage is implemented. OpenAI's API `store: false` option is set for these calls, but review OpenAI's API data use/retention policies before testing images of people or personal content.
+**Privacy:** Style profile, saved looks, favorites, cart and manually reported purchases are saved in this browser's localStorage. Compressed original inspiration photos are stored in this browser's IndexedDB (not a remote photo database); the beta code isn't saved. When AI is requested, a compressed photo is transmitted to the MATCHLATCH Vercel server function and forwarded to OpenAI. OpenAI's API `store: false` option is set for these calls, but review OpenAI's API data use/retention policies before testing images of people or personal content.
 
 **AI limitations:** The AI analyzes *appearance* and produces styling ideas and search queries. It does not check current inventory, identify exact SKU reliably, verify stock, compare prices, or buy anything. Suggested per-piece amounts are spending targets, not real retailer quotes.
 
+## New screens and how to test
+
+- **Studio:** Upload a photo, select style and size preferences, run Guided Styling or private OpenAI analysis. Every generated look creates a local inspiration record linked to that original photo.
+- **Your Styles:** Four tabs — Inspirations (all original photos), Saved outfits (choose *Save this outfit* in results), Favorite items (choose *Favorite* on a recommended piece), and Purchases (self-reported records).
+- **Cart:** Choose *Add to cart* on a recommended piece. This is a shopping shortlist of **unverified search suggestions**; no actual checkout or live inventory is supported yet. *Search retailers* opens a general shopping query.
+- **Purchase records:** After buying something at a retailer, choose *Record purchase* from the cart. Enter store, amount paid, and purchase date. The record retains its original look ID and inspiration ID/photo. This is **manual**, not a verified transaction, payment collection or order-tracking integration.
+- **Account:** The sign-in screen exists but email sign-in is disabled until a Supabase project is connected. *Continue as guest* lets you use all local library features immediately. Even when sign-in is enabled, personal library data does **not** yet sync across devices.
+
+**Data safety:** The library is tied to the current browser/device. Browser data deletion, private browsing, or storage restrictions may remove saved inspiration photos and purchases. Avoid treating this prototype as a permanent purchase archive until cloud storage/backups are implemented. Delete local library in Account if you need to erase saved local photos, outfits and purchase records.
+
+## Optional email sign-in setup
+
+1. Create a [Supabase](https://supabase.com/) project (the free tier may suffice for early development).
+2. In Vercel **MATCHLATCH → Settings → Environment Variables**, for Production add:
+   - `SUPABASE_URL` = your project's HTTPS URL, such as `https://your-project.supabase.co`.
+   - `SUPABASE_PUBLISHABLE_KEY` = your public publishable/anon key. **Never** use the service-role or secret key in this field; the endpoint intentionally returns these public settings to the browser.
+3. In Supabase Auth **URL Configuration**, allow `https://matchlatch.vercel.app` as site URL and `https://matchlatch.vercel.app/#account` as a redirect URL.
+4. Enable Email OTP/magic-link sign-in in Supabase Auth and configure its email provider/template as needed.
+5. Redeploy production. MATCHLATCH's Account email form will become available.
+
+This enables **identity only**. The next phase needs Supabase tables, image storage, row-level security and data migrations to sync saved outfits, favorites, cart and purchases between devices. Do not represent local data as cloud-backed until that exists. Real payments and verified retailer orders need separate checkout integrations.
+
 ## Architecture
 
-- `index.html`: self-contained responsive frontend and Guided Styling
+- `index.html`: responsive frontend, styling forms and Guided Styling
+- `library.js` and `library.css`: screen navigation, guest saved library, linked outfits/favorites/cart/purchases, IndexedDB photos and optional Supabase Auth client
+- `api/auth-config.mjs`: exposes only **public** Supabase connection settings when configured
 - `api/analyze.mjs`: OpenAI Responses API-backed Vercel function; checks private beta code **before** issuing a billable AI request; API key never sent to the browser
 - No npm build, database, or paid dependency required for guided testing
 
@@ -48,6 +75,6 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 - Secure accounts and durable usage limits
 - Real catalog/product search with current prices, stocks and availability
 - Genuine budget optimization against retrieved products
-- Saved favorites and outfits
+- Cloud syncing for existing local favorites, looks, carts and purchase records
 - Monetization through transparent referral/affiliate links
 - Later: virtual try-on and order workflows
