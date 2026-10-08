@@ -38,8 +38,11 @@
     return state;
   };
   const setState=state=>{
+    const previousLook=currentLookId;
     dbState=clone(state||empty());
-    currentLookId=null;selectedLookDetail=null;photoCache.clear();
+    currentLookId=dbState.looks.some(x=>x.id===previousLook)?previousLook:null;
+    if(selectedLookDetail&&!dbState.looks.some(x=>x.id===selectedLookDetail))selectedLookDetail=null;
+    photoCache.clear();
     refreshCounts();
     if(activePage==="styles")renderStyles();
     if(activePage==="cart")renderCart();
@@ -674,8 +677,16 @@
 
   let authSwitch=0;
   async function applyAuth(user) {
+    const nextId=user?.id||null;
+    if(cloudAdapter?.getAccount()?.id===nextId && cloudAdapter?.isReady())return;
+    const priorId=activeUser?.id||null;
     const run=++authSwitch;
-    activeUser=user?.id?user:null;
+    if(nextId!==priorId) {
+      window.MatchlatchResetStudio?.();
+      currentLookId=null;
+      selectedLookDetail=null;
+    }
+    activeUser=nextId?user:null;
     if(!activeUser) {
       if(cloudAdapter)await cloudAdapter.setUser(null);
       else setGuest();
@@ -701,6 +712,7 @@
         setState, setGuest,getGuestState:guestState,
         onStatus:()=>{if(activePage==="account")renderAccount();},
         saveAccountPhoto:writePhoto,loadAccountPhoto:readPhoto,loadGuestPhoto,
+        getGuestProfile:()=>window.MatchlatchStyleProfile?.getGuest?.(),
         applyProfile:value=>window.MatchlatchStyleProfile?.apply?.(value)
       });
       window.MatchlatchCloud={
