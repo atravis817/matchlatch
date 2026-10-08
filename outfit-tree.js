@@ -47,7 +47,7 @@ function sizeFor(slot) {
   case "hat":return p.hatSize||"";
   case "jacket":return p.suitJacketSize && /formal|work|business|wedding|black tie|gala/i.test(p.occasion||"")?p.suitJacketSize:p.topSize||"";
   case "shirt":return p.topSize||"";
-  case "pants":return p.waist||p.bottomSize||"";
+  case "pants":return p.waist||String(p.bottomSize||"").replace(/^(US|UK|EU)\s+/,"");
   case "belt":return p.beltSize||"";
   case "shoes":return p.shoeSize||"";
   default:return "";
@@ -285,7 +285,8 @@ function renderDrawer(){
   const info=node("div","private-shop-details");
   info.append(node("strong",null,item.title),node("small",null,item.merchant+(item.size?" · Size "+item.size:"")));
   info.append(node("span","private-shop-price",money(item.price)));
-  info.append(node("small",null,"Available when checked · retailer stock may change"));
+  const checkedTime=item.checkedAt?new Date(item.checkedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"recently";
+  info.append(node("small",null,"In stock at "+checkedTime+" · subject to change"));
   const actions=node("div","private-shop-actions");
   actions.append(button(state.selected?.variantId===item.variantId?"Selected ✓":"Select this",()=>{
     select(id,i);window.MatchlatchLibrary?.chooseShopItem?.(id,item);
@@ -298,7 +299,14 @@ function renderDrawer(){
  }
  if(!state.loading&&!results.children.length)results.append(node("div","private-shop-empty","No confirmed in-stock alternatives in this size and price range. Try broader search terms or skip this piece."));
  panel.append(results);
- panel.append(node("p","tree-note","You are browsing verified catalog offers inside MATCHLATCH. Retailer checkout opens on the merchant website. Product images and search results are not saved."));
+ panel.append(node("p","tree-note","Live catalog browsing inside MATCHLATCH, not incognito browsing. Retailer visits open on the seller's site. Product images and result lists aren't saved; only your selected items are."));
 }
-window.MatchlatchShop={init,openShop,closeShop};
+function reset(){
+ session++;inspiration=null;shopSlot=null;
+ for(const key of Object.keys(catalogs))delete catalogs[key];
+ const mount=$("outfit-tree");if(mount)mount.replaceChildren();
+ const overlay=$("private-shop-overlay");if(overlay)overlay.hidden=true;
+ document.body.classList.remove("private-shop-open");
+}
+window.MatchlatchShop={init,openShop,closeShop,reset};
 })();
