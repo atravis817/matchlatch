@@ -37,29 +37,44 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 ## New screens and how to test
 
 - **Studio:** Upload a photo, select style and size preferences, run Guided Styling or private OpenAI analysis. Every generated look creates a local inspiration record linked to that original photo.
-- **Your Styles:** Four tabs — Inspirations (all original photos), Saved outfits (choose *Save this outfit* in results), Favorite items (choose *Favorite* on a recommended piece), and Purchases (self-reported records).
+- **Your Styles:** Four tabs — Inspirations (all original photos), Saved outfits (choose *Save this outfit* in results), Favorite items (choose *Favorite* on a recommended piece), and Purchases (self-reported records). Once cloud setup is configured, these sync privately per signed-in account.
 - **Cart:** Choose *Add to cart* on a recommended piece. This is a shopping shortlist of **unverified search suggestions**; no actual checkout or live inventory is supported yet. *Search retailers* opens a general shopping query.
 - **Purchase records:** After buying something at a retailer, choose *Record purchase* from the cart. Enter store, amount paid, and purchase date. The record retains its original look ID and inspiration ID/photo. This is **manual**, not a verified transaction, payment collection or order-tracking integration.
 - **Account:** The sign-in screen exists but email sign-in is disabled until a Supabase project is connected. *Continue as guest* lets you use all local library features immediately. Even when sign-in is enabled, personal library data does **not** yet sync across devices.
 
-**Data safety:** The library is tied to the current browser/device. Browser data deletion, private browsing, or storage restrictions may remove saved inspiration photos and purchases. Avoid treating this prototype as a permanent purchase archive until cloud storage/backups are implemented. Delete local library in Account if you need to erase saved local photos, outfits and purchase records.
+**Data safety:** Guest libraries remain on this browser and can be erased in Account. After cloud setup, signed-in records and photos sync privately to Supabase while also using a local cache for offline retries. Browser storage is not a guaranteed backup. Cloud-account deletion/export UI is not implemented yet.
 
-## Optional email sign-in setup
+## Secure accounts + private cloud sync setup
 
-1. Create a [Supabase](https://supabase.com/) project (the free tier may suffice for early development).
-2. In Vercel **MATCHLATCH → Settings → Environment Variables**, for Production add:
-   - `SUPABASE_URL` = your project's HTTPS URL, such as `https://your-project.supabase.co`.
-   - `SUPABASE_PUBLISHABLE_KEY` = your public publishable/anon key. **Never** use the service-role or secret key in this field; the endpoint intentionally returns these public settings to the browser.
-3. In Supabase Auth **URL Configuration**, allow `https://matchlatch.vercel.app` as site URL and `https://matchlatch.vercel.app/#account` as a redirect URL.
-4. Enable Email OTP/magic-link sign-in in Supabase Auth and configure its email provider/template as needed.
-5. Redeploy production. MATCHLATCH's Account email form will become available.
+The website and cloud sync client are implemented, but **cloud sign-in and storage will not run until you finish this setup**.
 
-This enables **identity only**. The next phase needs Supabase tables, image storage, row-level security and data migrations to sync saved outfits, favorites, cart and purchases between devices. Do not represent local data as cloud-backed until that exists. Real payments and verified retailer orders need separate checkout integrations.
+1. Create a [Supabase project](https://supabase.com/dashboard) called **MATCHLATCH** on the free tier if it fits the current beta limits.
+2. Open **Supabase → SQL Editor**, copy `supabase/setup.sql`, and execute it **once**. It creates the `matchlatch_records` table with per-user row-level security policies and a private `matchlatch-inspirations` storage bucket with owner-only photo permissions. **Do not create broad anonymous/public policies** on these resources.
+3. In Supabase **Authentication → URL Configuration**, set **Site URL** to `https://matchlatch.vercel.app` and add `https://matchlatch.vercel.app/**` to **Redirect URLs**. Enable the **Email** provider and confirm that passwordless email link templates and your email delivery limits work.
+4. In **Vercel → MATCHLATCH → Settings → Environment Variables**, configure **Production**:
+   - `SUPABASE_URL`: your project's URL (`https://YOUR-ID.supabase.co`)
+   - `SUPABASE_PUBLISHABLE_KEY`: the **public** `sb_publishable_...` key, or legacy Supabase `anon` JWT if necessary. **Never put `service_role`, `sb_secret_...`, or any OpenAI key here.** MATCHLATCH explicitly refuses to expose a secret key through the public config endpoint.
+5. Redeploy the Production app. In **Account**, enter an email and open its sign-in link. Once signed in, create an outfit, save it, and open MATCHLATCH on another device with the same account to verify it appears. Test photos, sizing choices, cart and manually recorded purchases separately.
+6. If you have existing on-device guest styles, open **Account → Import guest styles** after signing in. Importing is always opt-in to avoid transferring another person's local photos from a shared browser without permission.
+
+**How sync behaves:** While signed in, records are stored as individual user-owned rows, including favorites, outfits, cart, purchase logs, and style/sizing profile. Inspiration photos upload as private JPEG files under the user's ID. Changes are queued locally and retried when network service returns; another device fetches updates when it comes online/gets focus and periodically while open. There is no retailer checkout or verified purchase import yet. Cloud records are isolated with RLS, and switching accounts resets the displayed account library. Signing out returns to this device's separate guest library. **An account is not automatically active unless configured and signed in.**
+
+**Limitations for beta:** A second device can edit the same individual record concurrently; the latest successful write for that specific record wins. Offline changes are cached locally and re-sent when online, but the browser storage is not guaranteed durable. Cloud storage is subject to your project's quotas and email delivery limits. Before public launch, add account-data export/deletion, comprehensive integration/RLS tests, abuse protections, reliable backups, and policy reviews.
+
+### Security smoke tests before opening public sign-ups
+
+- Check `select relrowsecurity from pg_class where oid='public.matchlatch_records'::regclass;` returns `true`.
+- Check `select id, public from storage.buckets where id='matchlatch-inspirations';` returns `public=false`.
+- Create two real test accounts. Account A cannot read or modify Account B's `matchlatch_records` using its own Supabase user token, and cannot read B's photo bucket path. Signed-out/anonymous requests cannot access either account's private data. Test with actual authenticated users—do not rely on SQL Editor's database admin role, which bypasses RLS.
+- If any storage policy allows unrestricted `storage.objects` access to the same bucket, remove it; policies can be permissively combined.
+- Ensure no secret key is present in HTML, GitHub, or `/api/auth-config`.
 
 ## Architecture
 
 - `index.html`: responsive frontend, styling forms and Guided Styling
-- `library.js` and `library.css`: screen navigation, guest saved library, linked outfits/favorites/cart/purchases, IndexedDB photos and optional Supabase Auth client
+- `library.js` and `library.css`: screen navigation, guest and signed-in saved libraries, linked outfits/favorites/cart/purchases, IndexedDB photos, and account UI
+- `cloud-sync.js`: authenticated, per-record cloud sync and private inspiration-photo upload/download
+- `supabase/setup.sql`: account-scoped record storage with RLS, private JPEG photo bucket and owner-only Storage policies
 - `api/auth-config.mjs`: exposes only **public** Supabase connection settings when configured
 - `api/analyze.mjs`: OpenAI Responses API-backed Vercel function; checks private beta code **before** issuing a billable AI request; API key never sent to the browser
 - No npm build, database, or paid dependency required for guided testing
@@ -75,6 +90,6 @@ This enables **identity only**. The next phase needs Supabase tables, image stor
 - Secure accounts and durable usage limits
 - Real catalog/product search with current prices, stocks and availability
 - Genuine budget optimization against retrieved products
-- Cloud syncing for existing local favorites, looks, carts and purchase records
+- Comprehensive security/RLS tests, account export and deletion, and better conflict handling on edits
 - Monetization through transparent referral/affiliate links
 - Later: virtual try-on and order workflows
