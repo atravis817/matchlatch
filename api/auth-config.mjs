@@ -18,8 +18,8 @@ function isPublicKey(key) {
 export function GET() {
   // This endpoint exposes ONLY a project's public browser key.
   // Never set SUPABASE_PUBLISHABLE_KEY to a service-role or sb_secret_ key.
-  const url=(process.env.SUPABASE_URL||"").trim();
-  const key=(process.env.SUPABASE_PUBLISHABLE_KEY||"").trim();
+  const url=(process.env.SUPABASE_URL||"https://odxqxymwlwnbqginqems.supabase.co").trim();
+  const key=(process.env.SUPABASE_PUBLISHABLE_KEY||"sb_publishable_-sWs8xMX6F2r9nZOMJk6oA_9Wxyt5DZ").trim();
   if(!/^https:\/\/[A-Za-z0-9.-]+\.supabase\.co$/.test(url)||!isPublicKey(key)){
     return json({enabled:false});
   }
