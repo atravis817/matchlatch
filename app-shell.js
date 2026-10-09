@@ -15,8 +15,9 @@ const shippingInfo=item=>{
  const label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
  // Forecast dates may be shown only from a provider's explicitly supplied
  // destination-specific estimate, not from nationwide shipping eligibility.
- const estimate=item?.deliveryEstimate;
- const eligible=zip&&estimate?.destinationZip===zip&&estimate?.source==="retailer"
+ const verified=item?.delivery?.tier==="retailer_confirmed"?item.delivery:null;
+ const estimate=verified;
+ const eligible=zip&&estimate?.earliest&&estimate?.latest
   &&/^\\d{4}-\\d{2}-\\d{2}$/.test(estimate?.earliest||"")
   &&/^\\d{4}-\\d{2}-\\d{2}$/.test(estimate?.latest||"")
   &&estimate.earliest<=estimate.latest;
@@ -241,14 +242,6 @@ function storeSizeFor(slot,p){
 }
 const USD=value=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
 let searchId=0,controller=null;
-function deliveryByDate(item,deadline,zip){
- if(!deadline)return true;
- const e=item?.deliveryEstimate;
- return Boolean(zip&&e?.source==="retailer"&&e.destinationZip===zip
-  &&/^\d{4}-\d{2}-\d{2}$/.test(e.latest||"")
-  &&/^\d{4}-\d{2}-\d{2}$/.test(e.earliest||"")
-  &&e.earliest<=e.latest&&e.latest<=deadline);
-}
 function storeCard(item){
  const card=el("article","store-card v12-product-card");
  const cover=el("div","store-card-cover");
@@ -557,6 +550,8 @@ function renderStore(){
    const params=new URLSearchParams({mode:"search",slot:criteria.slot,q:criteria.q,max:String(criteria.max)});
    if(criteria.size)params.set("size",criteria.size);
    if(criteria.color)params.set("color",criteria.color);
+   if(shippingZip())params.set("postal",shippingZip());
+   if(storeState.needBy)params.set("needBy",storeState.needBy);
    const response=await fetch("/api/shop?"+params,{signal:controller.signal,cache:"no-store"});
    const data=await response.json();
    if(run!==searchId)return;
@@ -564,7 +559,7 @@ function renderStore(){
    // Hard preference/variant and suitability gates are mandatory for Store
    // just as they are for AI-originated Outfit Tree recommendations.
    const ranked=matcher.rank(Array.isArray(data.items)?data.items:[],criteria);
-   const items=ranked.filter(item=>deliveryByDate(item,storeState.needBy,shippingZip()));
+   const items=ranked; // Server already enforces deadline eligibility against trusted provider data.
    storeState.items=items;storeState.checkedAt=Date.now();
    const matches=window.MatchlatchRetailerMatch;
    const merchants=matches?.merchants?.(items)||[];
@@ -572,7 +567,7 @@ function renderStore(){
    status.textContent=storeState.needBy&&!shippingZip()
     ?"Set a five-digit destination ZIP in Me before searching by delivery deadline.":
     storeState.needBy&&!items.length?
-    "No retailer-confirmed delivery forecasts meet "+storeState.needBy+". "+ranked.length+" otherwise matching product(s) withheld; clear the deadline to browse them.":items.length?
+    "No trusted retailer delivery forecasts meet "+storeState.needBy+". "+(data.deliveryFilter?.withheld||0)+" otherwise matching product(s) withheld; clear the deadline to browse them.":items.length?
     items.length+" retailer listing"+(items.length===1?"":"s")+
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
