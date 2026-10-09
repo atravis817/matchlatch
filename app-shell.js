@@ -227,30 +227,39 @@ function storeSizeFor(slot,p){
 const USD=value=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
 let searchId=0,controller=null;
 function storeCard(item){
- const card=el("article","store-card");
+ const card=el("article","store-card v12-product-card");
  const cover=el("div","store-card-cover");
  if(item.image){
   try{
    const url=new URL(item.image);
    if(url.protocol==="https:"){
-    const img=el("img");img.src=url.href;img.alt=item.imageAlt||item.title||"Retailer item";img.loading="lazy";
+    const img=el("img");img.src=url.href;img.alt=item.imageAlt||item.title||"Retailer product";
+    img.loading="lazy";img.decoding="async";
+    img.addEventListener("error",()=>{cover.replaceChildren(el("span","store-no-photo","Image unavailable"));},{once:true});
     cover.append(img);
    }
   }catch{}
  }
- if(!cover.children.length)cover.append(el("span","store-no-photo","No image"));
- card.append(cover);
+ if(!cover.children.length)cover.append(el("span","store-no-photo","Image unavailable"));
  const info=el("div","store-card-info");
+ const source=el("span","v12-product-source",item.source==="awin"?"AWIN RETAILER FEED":"SHOPIFY RETAILER CATALOG");
+ info.append(source);
  info.append(el("span","micro-title",item.merchant||"Retailer"));
  info.append(el("h3",null,item.title||"Retailer product"));
- info.append(el("strong","store-price",USD(item.price)));
- if(item.source==="awin")info.append(el("small","store-data-note","Retailer feed · confirm stock before purchase"));
- if(item.size)info.append(el("span","store-size","Size "+item.size));
+ const meta=el("div","v12-product-meta");
+ meta.append(el("strong","store-price",USD(item.price)));
+ if(item.size)meta.append(el("span","store-size","Size "+item.size));
+ else meta.append(el("span","store-size","Size not specified"));
+ info.append(meta);
+ const time=Date.parse(String(item.checkedAt||""));
+ const timing=Number.isFinite(time)?"Checked "+new Date(time).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"Check latest price and stock";
+ info.append(el("small","store-data-note",timing+" · Confirm final price, size and shipping at retailer"));
  const actions=el("div","store-card-actions store-card-shopping");
- actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
- actions.append(button("Details ↗",()=>openProduct(item),"store-view-details"));
+ actions.append(button("View product details ↗",()=>openProduct(item),"store-view-details"));
+ actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
  info.append(actions);
- card.append(info);return card;
+ card.append(cover,info);
+ return card;
 }
 function showStoreView(view,push=true){
  const target=$("store-body");
