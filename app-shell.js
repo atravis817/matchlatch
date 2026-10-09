@@ -676,7 +676,7 @@ function renderMePreferences(){
  root.append(grid);
  const shipping=el("section","v12-shipping-preference");
  shipping.append(el("h3",null,"Delivery destination"));
- shipping.append(el("p","v12-me-context","Optional US ZIP code for delivery forecasting. Saved on this device only; never sent to product search, analytics or OpenAI. A retailer-specific estimate is required before dates appear."));
+ shipping.append(el("p","v12-me-context","Optional US ZIP code for delivery forecasting. Saved on this device only; sent only to retailer catalog search when needed for destination filtering; never to OpenAI research. A retailer-specific estimate is required before dates appear."));
  const zipLabel=el("label","me-setting");
  zipLabel.append(el("span","me-setting-label","US ZIP code"));
  const input=el("input");input.type="text";input.inputMode="numeric";input.maxLength=5;
