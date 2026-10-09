@@ -409,8 +409,9 @@ check(appShell.includes('const requestedView=(location.hash||"")')
   &&appShell.includes('storeState.searched&&!initialStoreQuery')
   &&appShell.includes('Previous results · prices and availability may have changed. Search again to refresh.'),
   "V1.2 Store restores prior results with a stock freshness warning");
-check(file("V1.2-UX-SPEC.md").includes("Production")===false || file("V1.2-UX-SPEC.md").includes("production"),
-  "V1.2 UX specification remains available");
+check(file("V1.2-UX-SPEC.md").includes("## Milestone A") &&
+  file("V1.2-TAB-IMPLEMENTATION.md").includes("## MY CLOSET"),
+  "V1.2 journey and five-tab acceptance plans are present");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
