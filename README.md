@@ -20,7 +20,7 @@ Live: https://matchlatch.vercel.app
 - Shopping suggestions link to retailers; product availability is refreshed on each search, and saved user selections are rechecked when reopened
 - Optional **OpenAI image analysis**, protected with a private beta access code
 - **Your Styles + Collections**: user-named folders (e.g., **Miami 2027 Ideas**, **Last Week's Job Interview**). An inspiration photo belongs to one collection; its saved outfits, favorite pieces, and self-reported purchases automatically appear with it. Renaming/deleting a folder never deletes the source items.
-- **Cart**: a persistent shopping shortlist (not a checkout), with suggested spending targets and outbound shopping searches
+- **Cart**: a persistent shopping shortlist (not a checkout), with selected retailer offers and optional **Savings Check** for provider-listed public discount codes; displayed totals do not assume codes work
 - **Account**: Supabase passwordless email sign-in and private cloud syncing are connected in code; end-to-end cross-device login still needs a real-device test
 
 ## Turn on AI (private, low-cost test)
@@ -40,6 +40,10 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 **Privacy:** Guest libraries live in this browser's localStorage, with compressed photos in IndexedDB. A signed-in account syncs its own records and photos privately to Supabase (with RLS and non-public Storage), using account-separated browser caching. Existing guest items are imported only when you choose to import. The beta code isn't saved. When AI analysis is requested, a compressed photo is sent via MATCHLATCH's server to OpenAI. OpenAI's API `store: false` option is set for these calls, but review OpenAI's API data use/retention policies before testing images of people or personal content.
 
 **AI limitations:** The AI analyzes *appearance* and produces styling directions; it does not verify exact garment identity or inventory. **Private Shop** then separately queries Shopify's Global Catalog for actual product variants reporting availability, images and USD prices. These are merchant/catalog signals, not guarantees at checkout. Product prices exclude shipping, tax and future price changes. The merchant completes payments; MATCHLATCH never collects card details.
+
+## Savings Check — public retailer coupon discovery
+
+**[Full provider integration and activation guide](SAVINGS-CHECK.md)**. Private Shop and saved retailer items now run an automatic merchant-domain coupon lookup through `/api/savings`, using the LinkMyDeals feed **only when a private server-side `LINKMYDEALS_API_KEY` is configured**. No provider subscription or real feed key has been connected yet. Until then, the UI honestly says the feed is not connected. Provider-listed public codes and expiry dates are **not checkout-verified**; shoppers must confirm at the retailer. We do not adjust prices or outfit budgets based on unconfirmed coupons.
 
 ## Named Collections
 
@@ -97,6 +101,7 @@ The MATCHLATCH Supabase project was created and its private records table, stora
 - `index.html`: responsive frontend, styling forms and Guided Styling
 - `outfit-tree.js` / `outfit-tree.css`: circular nine-piece tree and Private Shop catalog drawer
 - `api/shop.mjs` and `ucp-agent.json`: live retailer product discovery / verification and public agent profile
+- `api/savings.mjs`, `savings.js`, `savings.css`: optional merchant-matched public coupon feed, server-only key, non-guaranteed checkout disclosure
 - `library.js` and `library.css`: screen navigation, guest and signed-in saved libraries, linked outfits/favorites/cart/purchases, IndexedDB photos, and account UI
 - `cloud-sync.js`: authenticated, per-record cloud sync and private inspiration-photo upload/download
 - `supabase/setup.sql`: account-scoped record storage with RLS, private JPEG photo bucket and owner-only Storage policies
