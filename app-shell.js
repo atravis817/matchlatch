@@ -509,7 +509,7 @@ function renderStore(){
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   const q=query.value.trim(),max=Number(budget.value);
-  if(deadline.value&&(!/^\\d{4}-\\d{2}-\\d{2}$/.test(deadline.value)||deadline.value<localToday())){status.textContent="Choose today or a future delivery date.";return;}
+  if(deadline.value&&(!/^\d{4}-\d{2}-\d{2}$/.test(deadline.value)||deadline.value<localToday())){status.textContent="Choose today or a future delivery date.";return;}
   if(deadline.value&&!shippingZip()){status.textContent="Save your destination ZIP in Me before using Need it by.";return;}
   if(q.length<2||!Number.isFinite(max)||max<1||max>10000){
    status.textContent="Enter a search of at least 2 characters and a budget between $1 and $10,000.";
