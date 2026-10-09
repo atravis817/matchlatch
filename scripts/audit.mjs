@@ -440,5 +440,16 @@ check(appShell.includes('button("View product details ↗"') &&
   file("app-shell.css").includes(".v12-product-card"),
   "V1.2 Store cards consistently present details and shortlist actions");
 
+/* V1.2 delivery forecast: destination alone never fabricates shipping times. */
+check(appShell.includes('const SHIPPING_KEY="matchlatch-shipping-region-v12"')
+  &&appShell.includes('estimate?.destinationZip===zip')
+  &&appShell.includes('estimate?.source==="retailer"')
+  &&appShell.includes('Delivery estimate unavailable until retailer confirms transit times'),
+  "Shipping forecast requires a retailer-sourced destination-specific date range");
+check(appShell.includes('input.pattern="[0-9]{5}"')
+  &&appShell.includes('localStorage.removeItem(SHIPPING_KEY)')
+  &&appShell.includes("never sent to product search, analytics or OpenAI"),
+  "Shipping destination is optional, editable and kept locally");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
