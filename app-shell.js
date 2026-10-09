@@ -144,8 +144,11 @@ function useMood(direction){
  $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 let initialStoreQuery="";
+let initialStoreSlot="";
 function sendMoodToStore(direction){
  initialStoreQuery=direction.query;
+ const category=String(direction.anchorType||"").split(":")[0];
+ initialStoreSlot=({top:"shirt",outerwear:"jacket",bottom:"pants",shoes:"shoes",accessory:"hat"})[category]||"shirt";
  showPage("store");
 }
 function renderMood(){
@@ -337,7 +340,8 @@ function renderStore(){
  query.value=initialStoreQuery||storeState.query||"";
  const select=el("select");select.setAttribute("aria-label","Clothing category");
  for(const [value,label] of supportedSlots){const option=new Option(label,value);select.add(option);}
- select.value=storeState.slot;
+ select.value=initialStoreSlot||storeState.slot;
+ initialStoreSlot="";
  const budget=el("input");budget.type="number";budget.min="1";budget.max="10000";budget.step="5";
  budget.setAttribute("aria-label","Maximum price in USD");
  budget.value=String(storeState.max||p.budget||200);
@@ -424,12 +428,15 @@ function renderStore(){
  results.append(webPanel);
  target.append(results);
  const product=el("section","store-product-shell");product.id="store-product";target.append(product);
- const view=(location.hash||"").slice(1).split("/")[1]||"search";
+ const requestedView=(location.hash||"").slice(1).split("/")[1]||"search";
+ // Returning from another tab restores the prior results page without implying fresh stock.
+ const view=requestedView==="search"&&storeState.searched&&!initialStoreQuery?
+  (storeState.selected?"results":"results"):requestedView;
  if(initialStoreQuery){
   status.textContent="Your mood is ready to shop. Choose a category and search.";
   initialStoreQuery="";
  }else if(storeState.searched){
-  status.textContent="Prices and availability may change. Search again to refresh.";
+  status.textContent="Previous results · prices and availability may have changed. Search again to refresh.";
   list.replaceChildren(...storeState.items.map(storeCard));
   webPanel.hidden=false;
  }else status.textContent="Find your next piece.";
