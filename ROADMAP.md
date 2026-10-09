@@ -139,11 +139,13 @@ A returning user can save their questionnaire, sign in, open a second device and
 - [x] Favorites and a shortlist/cart (not a payment cart).
 - [x] Manual, self-reported purchase records (not confirmed orders).
 - [x] Selected variant references and retailer handoff. Live rechecks must still be verified.
+- [x] **Savings Check V1 code:** automatic coupon-feed lookup hooks for retailer items in Private Shop/favorites/cart, provider-listed/expiry filters, copy-to-checkout controls and no speculative price deduction. **Provider feed not activated**; live merchant/cart verification remains open. See [SAVINGS-CHECK.md](SAVINGS-CHECK.md).
 
 ### Later V3 builds
 
 - [ ] Merchant/affiliate integrations and transparent outbound attribution; prove terms, accurate tracking and actual revenue.
 - [ ] Better variant resolution, size charts, shipping costs, taxes, merchant coverage and pricing freshness.
+- [ ] Activate a permitted coupon feed with a real provider key, durable quota-conscious cache and actual merchant coverage; show **"verified working"** only after the retailer confirms code applicability to a specific basket.
 - [ ] Price-drop, discount and restock monitoring **only if a compliant, reliable data source permits it**; alert opt-in and sensible polling.
 - [ ] Order capture/tracking from consenting users via supported retailer/shop integrations.
 - [ ] Decide **merchant checkout vs. in-app checkout** before engineering payments; don't promise universal payment support.
@@ -199,6 +201,7 @@ These are **tasks**, not new stages. Work them in order so we don't confuse task
 | October 8, 2026 | Reconciled original stages with implemented and unverified work. | Roadmap v1.0 |
 | October 8, 2026 | Named V2 working feature **REVEAL**, defined **Reveal Live**, **Reveal Snap**, and **Use an existing photo**; committed full user journey and honest AR milestones in `REVEAL-EXPERIENCE.md`. | V2 planning complete; implementation pending |
 | October 8, 2026 | Added **named Collections** for user-uploaded inspirations and linked outfits, favorites and purchases; non-destructive folder rename/delete and owner-scoped cloud records. | V1.5 personalization + early V3; live-device testing pending |
+| October 8, 2026 | Built **Savings Check** public coupon-feed adapter and retailer UI hooks; source remains disabled until an approved API key, quota controls and checkout verification are available. | Early V3; source integration test pending |
 
 ### Keeping the work map accurate
 
