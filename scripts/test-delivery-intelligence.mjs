@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
+const today="2026-10-09",zip="10018";
+const common={zip,today,needBy:"2026-10-19"};
+const unknown=evaluateDelivery({},common);
+assert.equal(unknown.tier,"unknown");assert.equal(unknown.eligible,false);
+const retailer={deliveryEstimate:{source:"retailer",destinationZip:zip,earliest:"2026-10-14",latest:"2026-10-16",checkedAt:"2026-10-09T16:00:00Z"}};
+assert.equal(evaluateDelivery(retailer,common).eligible,true);
+assert.equal(evaluateDelivery(retailer,{...common,needBy:"2026-10-15"}).eligible,false);
+assert.equal(evaluateDelivery(retailer,{...common,zip:"90210"}).eligible,false);
+assert.equal(evaluateDelivery(retailer,{...common,today:"2026-10-10"}).eligible,false);
+const policy={shippingPolicy:{source:"retailer_policy",sourceUrl:"https://retailer.example/shipping",destinationZip:zip,checkedDate:today,cutoffVerified:true,beforeCutoff:true,calendar:"business_days",handlingMin:1,handlingMax:2,transitMin:2,transitMax:4}};
+const outcome=evaluateDelivery(policy,common);
+assert.equal(outcome.tier,"policy_forecast");assert.equal(outcome.eligible,false);
+assert.equal(outcome.earliest,"2026-10-14");assert.equal(outcome.latest,"2026-10-19");
+assert.equal(evaluateDelivery({shippingPolicy:{...policy.shippingPolicy,cutoffVerified:false}},common).tier,"unknown");
+assert.equal(evaluateDelivery(policy,{...common,zip:"10019"}).tier,"unknown");
+console.log("PASS POC-02 delivery intelligence scenarios");
