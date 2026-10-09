@@ -869,8 +869,13 @@
   function addRetailProduct(item){
     const price=moneyAmount(item?.price),url=secureProductUrl(item?.url);
     const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
+    const shopify=/^gid:\/\/shopify\//.test(productId)&&/^gid:\/\/shopify\//.test(variantId);
+    const awin=item?.source==="awin"&&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(productId)
+      &&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(variantId)
+      &&productId.split(":")[1]===variantId.split(":")[1]
+      &&item.requiresMerchantVerification===true&&item.stockVerifiedLive===false;
     if(!item||item.available!==true||item.currency!=="USD"||!price||!url||
-       !/^gid:\/\/shopify\//.test(productId)||!/^gid:\/\/shopify\//.test(variantId)){
+       (!shopify&&!awin)){
       feedback("This item is not available to add right now.");
       return false;
     }
@@ -887,7 +892,7 @@
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||title).slice(0,150),
       size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
       checkedAt:String(item.checkedAt||""),
-      shopRef:{productId,variantId,slot:String(item.slot||"shirt")},
+      shopRef:{productId,variantId,slot:String(item.slot||"shirt"),provider:awin?"awin":"shopify"},
       createdAt:new Date().toISOString()
     });
     persist();
@@ -922,8 +927,12 @@
   async function verifyCheckoutItem(cartItem){
     const id=String(cartItem?.shopRef?.productId||"");
     const variant=String(cartItem?.shopRef?.variantId||"");
-    if(!/^gid:\/\/shopify\/p\/[A-Za-z0-9_-]+$/.test(id)
-      ||!/^gid:\/\/shopify\/ProductVariant\/[A-Za-z0-9_-]+$/.test(variant)){
+    const shopify=/^gid:\/\/shopify\/p\/[A-Za-z0-9_-]+$/.test(id)
+      &&/^gid:\/\/shopify\/ProductVariant\/[A-Za-z0-9_-]+$/.test(variant);
+    const awin=/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(id)
+      &&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(variant)
+      &&id.split(":")[1]===variant.split(":")[1];
+    if(!shopify&&!awin){
       throw new Error("This item needs a fresh Store selection.");
     }
     const qs=new URLSearchParams({mode:"verify",id,variant,max:"10000"});
@@ -949,7 +958,8 @@
     const checkout=secureProductUrl(live.checkoutUrl);
     const product=secureProductUrl(live.url);
     if(!checkout&&!product)throw new Error("This retailer isn't accepting a handoff for this item right now.");
-    return {url:checkout||product,directCheckout:Boolean(checkout),price:amount,checkedAt:Date.now()};
+    return {url:checkout||product,directCheckout:shopify&&Boolean(checkout),
+      feedOnly:awin,price:amount,checkedAt:Date.now()};
   }
   function verifiedCheckoutAction(item){
     const actions=node("div","commerce-checkout-actions");
@@ -958,7 +968,7 @@
     status.setAttribute("aria-live","polite");
     const retailer=String(item.retailer||"retailer");
     let confirmed=null;
-    const button=btn("Checkout at "+retailer+" ↗",async()=>{
+    const button=btn(item.shopRef?.provider==="awin"?"Review at "+retailer+" ↗":"Checkout at "+retailer+" ↗",async()=>{
       // Explicitly confirmed changed price or product-page fallback; short TTL.
       if(confirmed&&Date.now()-confirmed.checkedAt<45000){
         window.location.assign(confirmed.url);
@@ -966,16 +976,22 @@
       }
       confirmed=null;
       button.disabled=true;button.textContent="Checking availability…";
-      status.textContent="Checking the latest price and availability.";
+      status.textContent=item.shopRef?.provider==="awin"
+        ?"Checking the latest published retailer listing…"
+        :"Checking the latest price and availability.";
       try{
         const checked=await verifyCheckoutItem(item);
         if(!button.isConnected)return;
         if(!checked.directCheckout){
           confirmed=checked;
           button.textContent="View item at "+retailer+" ↗";
-          status.textContent=Math.abs(checked.price-Number(item.target))>.005
-            ?"Price is now "+money(checked.price)+". Direct checkout isn't offered; continue on the retailer's product page."
-            :"Direct checkout isn't offered for this listing. Continue on the retailer's product page.";
+          status.textContent=checked.feedOnly
+            ? (Math.abs(checked.price-Number(item.target))>.005
+               ? "Feed price is now "+money(checked.price)+". Confirm price, size and stock on the retailer's site before buying."
+               : "Retailer feed listing confirmed. Check current price, size and stock on the retailer's site before buying.")
+            : (Math.abs(checked.price-Number(item.target))>.005
+               ? "Price is now "+money(checked.price)+". Direct checkout isn't offered; continue on the retailer's product page."
+               : "Direct checkout isn't offered for this listing. Continue on the retailer's product page.");
         }else if(Math.abs(checked.price-Number(item.target))>.005){
           confirmed=checked;
           button.textContent="Continue at "+money(checked.price)+" ↗";
@@ -1039,6 +1055,9 @@
     aside.append(node("p",null,"Each retailer handles payment and delivery. Final prices, taxes and shipping are shown there."));
     aside.append(node("p","commerce-checkout-trust",
       "MATCHLATCH does not collect payment or place orders yet."));
+    if(dbState.cart.some(x=>x.shopRef?.provider==="awin"))
+      aside.append(node("p","commerce-checkout-trust",
+        "Some retailer links may earn MATCHLATCH a commission. Product choices are based on your style, not commissions."));
     aside.append(btn("← Back to cart",()=>openClosetTab("shortlist"),"commerce-secondary"));
     grid.append(items,aside);shell.append(grid);target.append(shell);
   }
@@ -1284,7 +1303,7 @@
       searchQuery:String(item.title||slot).slice(0,165),
       target:Number(item.price)||0,
       priceAtSelection:Number(item.price)||0,
-      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot},
+      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot,provider:item.source==="awin"?"awin":"shopify"},
       retailer:String(item.merchant||"Retailer").slice(0,90),
       productUrl:secureProductUrl(item.url),
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||item.title||slot).slice(0,150),

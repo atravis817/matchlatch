@@ -226,6 +226,7 @@ function storeCard(item){
  info.append(el("span","micro-title",item.merchant||"Retailer"));
  info.append(el("h3",null,item.title||"Retailer product"));
  info.append(el("strong","store-price",USD(item.price)));
+ if(item.source==="awin")info.append(el("small","store-data-note","Retailer feed · confirm stock before purchase"));
  if(item.size)info.append(el("span","store-size","Size "+item.size));
  const actions=el("div","store-card-actions store-card-shopping");
  actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
@@ -277,7 +278,9 @@ function renderProduct(){
  if(item.variant&&item.variant!==item.size)specifics.append(el("span",null,item.variant));
  if(!specifics.children.length)specifics.append(el("span",null,"Selected retailer listing"));
  details.append(specifics);
- details.append(el("p","store-product-disclaimer","Price and availability are checked when listed and may change before checkout."));
+ details.append(el("p","store-product-disclaimer",item.source==="awin"
+  ?"Retailer-feed listing. Confirm size, stock, final price and shipping on the retailer’s website."
+  :"Price and availability are checked when listed and may change before checkout."));
  const actions=el("div","store-product-actions");
  actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
  actions.append(button("View cart ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
@@ -433,7 +436,7 @@ function renderStore(){
    const merchants=matches?.merchants?.(items)||[];
    storeState.retailers=merchants;
    status.textContent=items.length?
-    items.length+" available listing"+(items.length===1?"":"s")+
+    items.length+" retailer listing"+(items.length===1?"":"s")+
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
     "No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";

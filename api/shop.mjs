@@ -1,3 +1,4 @@
+import {searchAwin,verifyAwin,postgrestConfig} from "../lib/awin-public-catalog.mjs";
 // MATCHLATCH Private Shop: live Shopify Global Catalog UCP interface.
 // No server-side catalog-result caching. A listing is displayed only when a
 // purchasable variant is explicitly reported available at a valid USD price.
@@ -119,16 +120,28 @@ export async function GET(request){
       if(size)attributes.push({name:"Size",values:[size]});
       if(color)attributes.push({name:"Color",values:[color]});
       if(attributes.length)filters.attributes=attributes;
-      const data=await catalog("search_catalog",{
-        query:q+" "+slot,
-        filters,context:{address_country:"US",...(region?{address_region:region}:{}),...(postal?{postal_code:postal}:{}),currency:"USD"},
-        pagination:{limit:32}
-      });
+      const provider=[...await Promise.allSettled([
+        catalog("search_catalog",{
+          query:q+" "+slot,
+          filters,context:{address_country:"US",...(region?{address_region:region}:{}),...(postal?{postal_code:postal}:{}),currency:"USD"},
+          pagination:{limit:32}
+        }),
+        // Reads only RLS-published, joined + verified + fresh Awin feed rows.
+        // Awin feed downloads never run in a shopper's request.
+        searchAwin({slot,q,max,size,color})
+      ])];
+      const shopify=provider[0].status==="fulfilled"?provider[0].value:null;
+      const awin=provider[1].status==="fulfilled"?provider[1].value:[];
+      if(!shopify&&!awin.length)throw new Error("CATALOG_ALL_PROVIDERS_UNAVAILABLE");
       const byProduct=new Map();
-      for(const p of collect(data,size,color)){
+      if(shopify)for(const p of collect(shopify,size,color)){
         if(p.price<=max&&!byProduct.has(p.productId))byProduct.set(p.productId,p);
       }
-      const items=[...byProduct.values()].slice(0,12);
+      for(const item of awin){
+        if(!byProduct.has(item.variantId))byProduct.set(item.variantId,item);
+      }
+      // The client performs user-first style ranking over both real providers.
+      const items=[...byProduct.values()].slice(0,36);
       const merchants=new Map();
       for(const item of items){
         const id=item.merchantId||item.merchantDomain||item.merchant;
@@ -139,18 +152,31 @@ export async function GET(request){
       return reply({items,source:"Shopify Global Catalog",checkedAt:new Date().toISOString(),
         criteria:{slot,size:size||null,color:color||null,max,currency:"USD",shipsTo:destination},
         retailerCoverage:{scope:"this search only",merchants:[...merchants.values()],count:merchants.size},
-        verification:{price:"checked at search time",stock:"reported available at search time",
-          shipping:"US destination eligible according to catalog filters; final rates not known",
-          checkout:"retailer handoff only"},
-        note:"Seller and stock signals come from live catalog data. Pricing may change; taxes and shipping rates are unknown."});
+        verification:{price:"Shopify live price or Awin recent merchant feed snapshot",
+          stock:"Shopify point-in-time or Awin published-feed availability; neither is reserved",
+          shipping:"US destination filtered for Shopify; Awin requires US eligibility in feed",
+          checkout:"Shopify retailer checkout URL if supplied; Awin retailer product-page handoff"},
+        providers:{shopify:provider[0].status==="fulfilled",
+          awinConfigured:provider[1].status==="fulfilled"&&Boolean(postgrestConfig()),
+          awinListings:awin.length},
+        note:"Matching is personalized before savings. Awin inventory is a merchant-feed snapshot, not guaranteed stock. Tax and final delivery rates are retailer-confirmed."});
     }
     if(mode==="verify"){
-      const id=clip(u.searchParams.get("id"),120);
-      const variantId=clip(u.searchParams.get("variant"),120);
+      const id=clip(u.searchParams.get("id"),250);
+      const variantId=clip(u.searchParams.get("variant"),250);
+      if(id.startsWith("awin:")){
+        if(!/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(id)||
+          !/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(variantId)||
+          !Number.isFinite(max)||max<1||max>10000)
+          return reply({error:"Invalid Awin item reference."},400);
+        const item=await verifyAwin({id,variant:variantId,max,size,color});
+        if(!item)return reply({error:"Retailer feed no longer confirms this listing. Choose another item."},409);
+        return reply({item,checkedAt:new Date().toISOString(),
+          caveat:"Awin feed prices and stock are snapshots. Final availability, total and shipping are verified by the retailer."});
+      }
       if(!gid.test(id)||!gid.test(variantId)||!Number.isFinite(max)||max<1||max>10000)
         return reply({error:"Invalid item verification request."},400);
-      // get_product accepts id, selected, preferences and context; filters belong
-      // to search_catalog only. Validate stock, currency and price after lookup.
+      // The existing Shopify verification remains unchanged.
       const data=await catalog("get_product",{
         id,filters:{ships_to:destination,available:true},
         context:{address_country:"US",...(region?{address_region:region}:{}),...(postal?{postal_code:postal}:{})}

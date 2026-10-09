@@ -14,6 +14,9 @@ const library=file("library.js");
 const tree=file("outfit-tree.js");
 const retailerMatch=file("retailer-match.js");
 const awinFeed=file("lib/awin-feed-normalize.mjs");
+const awinPublic=file("lib/awin-public-catalog.mjs");
+const awinImporter=file("scripts/sync-awin-feeds.mjs");
+const awinRegistry=file("lib/awin-retailers.mjs");
 const camera=file("camera.js");
 const cloud=file("cloud-sync.js");
 const shop=file("api/shop.mjs");
@@ -179,7 +182,7 @@ check(flowPages.includes("closet-new-look")&&library.includes('window.Matchlatch
 check(html.includes('href="/commerce.css"')
   &&html.indexOf('href="/commerce.css"')>html.indexOf('href="/greenglass.css"'),
   "Commerce shell loads after existing GreenGlass and typography");
-check(shop.includes('collect(data,size,color)')&&shop.includes('checkoutUrl:safeUrl(v.checkout_url)'),
+check(shop.includes('collect(shopify,size,color)')&&shop.includes('checkoutUrl:safeUrl(v.checkout_url)'),
   "Real retailer listings preserve exact variant and merchant-owned checkout references");
 check(library.includes('function addRetailProduct(item)')
   &&library.includes('item.available!==true||item.currency!=="USD"')
@@ -315,6 +318,49 @@ check(appShell.includes('store-retailer-summary')
 check(file("RETAILER-CAPABILITIES.md").includes("No direct crawling")
   &&file("RETAILER-CAPABILITIES.md").includes("Retailer names discovered only"),
   "Retailer coverage, exact data capabilities and unknowns documented");
+
+/* POC-05 Awin guarded integration and current account application gates. */
+for(const [name,source] of [
+ ["Awin registry",awinRegistry],
+ ["Awin public reader",awinPublic],
+ ["Awin feed importer",awinImporter]
+]){
+ try{
+  const valid=source.replace(/^import .*$/gm,"").replace(/^export\s+\{[^}]+\};?\s*$/gm,"");
+  new vm.Script(valid,{filename:name});check(true,name+" parses");
+ }catch(error){console.error(error.message);check(false,name+" parses");}
+}
+check(awinRegistry.includes("CANDIDATES=Object.freeze")
+  &&awinRegistry.includes("merchantLinkAllowed")
+  &&awinRegistry.includes("joinedCandidate"),
+  "Retailer allowlist is limited to verified Awin programme IDs and domains");
+check(awinPublic.includes('MATCHLATCH_SUPABASE_PUBLISHABLE_KEY')
+  &&awinPublic.includes('row.is_public!==true')
+  &&awinPublic.includes('stockVerifiedLive:false')
+  &&awinPublic.includes('checkoutUrl:""'),
+  "Awin products are RLS-published snapshots, not fake live stock or checkout sessions");
+check(shop.includes('searchAwin({slot,q,max,size,color})')
+  &&shop.includes('await verifyAwin({id,variant:variantId,max,size,color})')
+  &&shop.includes('Promise.allSettled'),
+  "Shopify and Awin browsing providers coexist with independent failure isolation");
+check(library.includes('item?.source==="awin"')
+  &&library.includes('directCheckout:shopify&&Boolean(checkout)')
+  &&library.includes('Retailer feed listing confirmed')
+  &&library.includes('Product choices are based on your style, not commissions'),
+  "Awin cart and retailer handoff preserve personalization and no false checkout");
+check(awinImporter.includes('AWIN_PUBLISH_APPROVED==="1"')
+  &&awinImporter.includes('joinedCandidate(joined.get(candidate.id),candidate)')
+  &&awinImporter.includes('records.at(-1)?.error')
+  &&awinImporter.includes('await delay(12500)'),
+  "Awin feed indexing is manual, fail-closed, member-gated and provider-rate-limited");
+check(file("supabase/awin_retailer_catalog.sql").includes("enable row level security")
+  &&file("supabase/awin_retailer_catalog.sql").includes("create trigger matchlatch_awin_publish_gate")
+  &&file("supabase/awin_retailer_catalog.sql").includes("create trigger matchlatch_awin_unpublish_partner"),
+  "Supabase partner and product catalog enforce database-level activation gates");
+check(file("AWIN-PARTNER-ONBOARDING.md").includes("NOT SUBMITTED")
+  &&file("AWIN-PARTNER-ONBOARDING.md").includes("Not joined")
+  &&file("scripts/test-awin-integration.mjs").includes("never use service-role auth to browse"),
+  "Awin application handoff and integration regression tests are documented");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
