@@ -51,6 +51,17 @@ function renderWorkspace(){
  const state=snapshot();
  const heading=sectionTitle("Your studio","Studio","Start a new look or continue a saved project.","h1");
  target.append(heading);
+ const p=profile();
+ const context=el("section","v12-context");
+ context.setAttribute("aria-label","Current styling preferences");
+ context.append(el("span","micro-title","YOUR CURRENT STYLE"));
+ const values=[["Style",pick(p.aesthetic,"Choose in Me")],["Fit",pick(p.fit,"Not set")],
+  ["Occasion",pick(p.occasion,"Everyday")],["Budget",p.budget&&Number(p.budget)>0?"$"+Number(p.budget).toFixed(0):"Set in Studio"]];
+ const tags=el("div","v12-context-tags");
+ for(const [label,value] of values)tags.append(el("span","v12-context-tag",label+" · "+value));
+ context.append(tags);
+ context.append(button("Edit style in Me ↗",()=>{showPage("account");window.MatchlatchMeFlow?.open("preferences");},"destination-link quiet"));
+ target.append(context);
  const actions=el("div","studio-entry-grid");
  const newCard=el("article","studio-entry studio-entry-primary");
  newCard.append(el("span","studio-entry-eyebrow","Start fresh"));
@@ -158,6 +169,10 @@ function renderMood(){
  const headline=sectionTitle("The daily edit","Curated for your taste",
   "Outfit ideas based on your saved preferences and collections. These are styling suggestions, not live products.");
  target.append(headline);
+ const jump=el("div","v12-action-strip");
+ jump.append(el("p",null,"Found your inspiration? Start from a photo or describe a favorite piece."));
+ jump.append(button("Create a look in Studio ↗",()=>lib()?.startFreshStudio?.(),"destination-link"));
+ target.append(jump);
  const meta=el("div","mood-signal");
  const collectionCount=state.collections.length;
  meta.append(el("span",null,"YOUR STYLE  /  "+pick(p.aesthetic,"MINIMALIST").toUpperCase()+" · "+pick(p.fit,"RELAXED").toUpperCase()));
@@ -351,6 +366,8 @@ function renderStore(){
  const budgetLabel=el("label","store-field");budgetLabel.append(el("span",null,"MAX PRICE · USD"),budget);
  form.append(queryLabel,categoryLabel,budgetLabel,submit);
  box.append(form);
+ const context=el("p","v12-store-context","Personal style, size and budget determine eligible results. Web references remain research-only.");
+ box.append(context);
  const quick=el("div","store-suggestions");
  quick.append(el("span","micro-title","START WITH"));
  const suggestions=[
@@ -563,6 +580,8 @@ function renderMePreferences(){
  const heading=sectionTitle("Style preferences","Your style, your rules",
   "Update the preferences used in Studio and Mood.");
  root.append(heading);
+ const context=el("p","v12-me-context","Changes affect future styling and searches. Existing saved looks are not automatically rewritten.");
+ root.append(context);
  const grid=el("div","me-settings-grid");
  const fields=[
   ["Style expression","look"],
@@ -608,7 +627,24 @@ function renderMePreferences(){
  },"destination-link"));
  root.append(footer);
 }
+function renderClosetBridge(){
+ const root=$("screen-styles")||$("screen-closet");
+ if(!root)return;
+ let bridge=root.querySelector(".v12-closet-bridge");
+ if(!bridge){
+  bridge=el("section","v12-closet-bridge");
+  bridge.setAttribute("aria-label","Continue your styling journey");
+  const target=root.querySelector(".library-top")||root.firstElementChild;
+  if(target)target.after(bridge);else root.prepend(bridge);
+ }
+ bridge.replaceChildren();
+ const state=snapshot();
+ bridge.append(el("strong",null,"Your style archive"));
+ bridge.append(el("span","v12-closet-count",state.looks.length+" saved look"+(state.looks.length===1?"":"s")+" · "+state.collections.length+" collection"+(state.collections.length===1?"":"s")));
+ bridge.append(button("Start a new look ↗",()=>lib()?.startFreshStudio?.(),"destination-link quiet"));
+}
 function renderDestination(page){
+ if(page==="styles"||page==="closet")renderClosetBridge();
  if(page==="studio")renderWorkspace();
  if(page==="mood")renderMood();
  if(page==="store")renderStore();
@@ -635,7 +671,7 @@ initThemeToggle();
 window.addEventListener("matchlatch:page",event=>renderDestination(event.detail?.page));
 window.addEventListener("matchlatch:library",()=>{
  const current=(location.hash||"#studio").slice(1);
- if(current==="studio"||current==="mood")renderDestination(current);
+ if(current==="studio"||current==="mood"||current==="closet"||current==="styles")renderDestination(current);
 });
 const hash=(location.hash||"#studio").slice(1).split("?")[0].split("/")[0];
 renderDestination(hash==="me"?"account":(["mood","studio","store","account"].includes(hash)?hash:"studio"));
