@@ -315,3 +315,10 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
 .v12-product-card .store-card-actions{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px}
 .v12-product-card .store-card-actions button{min-height:44px;flex:1 1 138px;white-space:normal}
 @media(max-width:580px){.v12-product-card .store-card-info{gap:8px}.v12-product-card .store-card-actions button{flex-basis:100%}}
+
+/* V1.2 optional destination shipping forecast: only retailer-evidenced dates. */
+.v12-delivery-note{font-size:12px;line-height:1.5;color:var(--muted,#627268);display:block}
+.v12-shipping-preference{border:1px solid var(--line,#dfe7df);border-radius:18px;margin:20px 0;padding:20px;background:var(--surface,#fff)}
+.v12-shipping-preference h3{margin:0 0 8px}
+.v12-shipping-preference input{max-width:165px;display:block;padding:10px;margin:8px 0 14px;border:1px solid var(--line,#dfe7df);border-radius:8px;background:var(--surface,#fff);color:var(--ink,#173e30)}
+.v12-shipping-preference .destination-link{min-height:44px}
