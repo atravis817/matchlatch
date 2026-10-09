@@ -69,6 +69,8 @@ check(savingsApi.includes("LINKMYDEALS_API_KEY")&&savingsApi.includes("provider_
 check(savingsApi.includes("matchesDomain(coupon.domain,d)")
   &&savingsApi.includes("Date.parse("),
   "Coupon filtering validates merchant-domain match and expiry");
+check(savings.includes("offset<domains.length;offset+=15")&&savings.includes("domains.slice(offset,offset+15)"),
+  "Coupon scanner batches multi-retailer outfits within 15-domain API limit");
 check(file("SAVINGS-CHECK.md").includes("not checkout-verified"),
   "Savings provider documentation records verification limitations");
 check(library.includes('collections:[]')&&library.includes('function createCollection(')
