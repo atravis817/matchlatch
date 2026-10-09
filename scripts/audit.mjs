@@ -52,6 +52,25 @@ check(sql.includes("enable row level security")&&sql.includes("public=false"),"P
 check(auth.includes("payload.role===\"anon\""),"No service-role key exposed through config");
 check(library.includes("inspirationId:cart.inspirationId")&&library.includes("inspirationId:look.inspirationId"),"Inspiration linkage retained");
 check(!library.includes('let activeTab='),"Obsolete navigation state removed");
+const savings=file("savings.js");
+const savingsApi=file("api/savings.mjs");
+for(const [label,code] of [["savings.js",savings],["api/savings.mjs",savingsApi.replace(/^export\s+/gm,"")]]){
+  try{new vm.Script(code,{filename:label});check(true,label+" parses");}
+  catch(error){console.error(error.message);check(false,label+" parses");}
+}
+check(html.includes('src="/savings.js"')&&html.includes('href="/savings.css"'),
+  "Automatic Savings Check UI assets linked");
+check(tree.includes("MatchlatchSavings?.attach?.(info,item)")
+  &&library.includes("MatchlatchSavings?.attach?.(actions,payload.item)"),
+  "Coupon lookups attached to live and saved retailer items");
+check(savingsApi.includes("LINKMYDEALS_API_KEY")&&savingsApi.includes("provider_listed")
+  &&savingsApi.includes("checkout acceptance is unverified"),
+  "Coupon feed uses server-only key and no false checkout verification");
+check(savingsApi.includes("matchesDomain(coupon.domain,d)")
+  &&savingsApi.includes("Date.parse("),
+  "Coupon filtering validates merchant-domain match and expiry");
+check(file("SAVINGS-CHECK.md").includes("not checkout-verified"),
+  "Savings provider documentation records verification limitations");
 check(library.includes('collections:[]')&&library.includes('function createCollection(')
   &&library.includes('function renderCollections('),"Named collections preserve old wardrobe state");
 check(library.includes('inspiration.collectionId=collectionId')&&library.includes('delete inspiration.collectionId')
