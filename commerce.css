@@ -123,3 +123,12 @@
  margin:0;max-width:420px;color:var(--muted);font-size:11px;line-height:1.6
 }
 .commerce-checkout-status:empty{display:none}
+
+/* Retailer names are displayed only when a live catalog search returns them. */
+.store-retailer-summary{border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:14px 0 21px;padding:10px 0}
+.store-retailer-summary[hidden]{display:none!important}
+.store-retailer-summary summary{font-size:11px;line-height:1.45;font-weight:690;color:var(--ink);cursor:pointer;min-height:33px;display:list-item;padding:7px 3px}
+.store-retailer-summary summary:focus-visible{outline:2px solid #87a88d;outline-offset:3px}
+.store-retailer-names{display:flex;flex-wrap:wrap;gap:8px;padding:6px 3px 12px}
+.store-retailer-name{padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:11px;color:var(--ink)}
+.private-shop-provenance{font-size:10.5px;line-height:1.55;color:var(--muted);margin:0 0 17px}

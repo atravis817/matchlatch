@@ -33,10 +33,12 @@ const pieceSchema = {
   additionalProperties: false,
   properties: {
     type: { type: "string" },
+    slot: { type: "string", enum: ["hat","scarf","jacket","shirt","watch","belt","pants","socks","shoes"] },
+    color: { type: "string" },
     description: { type: "string" },
     searchQuery: { type: "string" }
   },
-  required: ["type", "description", "searchQuery"]
+  required: ["type", "slot", "color", "description", "searchQuery"]
 };
 const schema = {
   type: "object",
@@ -114,6 +116,9 @@ export async function POST(request) {
     "Sneakers, shoes and boots: " + clean(prefs.shoeSystem || "unspecified") + " " + clean(prefs.shoeSize || "unspecified") + "; shoe width: " + clean(prefs.shoeWidth || "unspecified") + ".",
     "Hats and caps: " + clean(prefs.hatSystem || "unspecified") + " " + clean(prefs.hatSize || "unspecified") + ".",
     "Belts: " + clean(prefs.beltSystem || "unspecified") + " " + clean(prefs.beltSize || "unspecified") + ". Gloves: " + clean(prefs.gloveSize || "unspecified") + ". Rings: " + clean(prefs.ringSystem || "unspecified") + " " + clean(prefs.ringSize || "unspecified") + ".",
+    "For EACH of the three complementary pieces, use one exact shopping category slot: hat, scarf, jacket, shirt, watch, belt, pants, socks or shoes. Use a different slot for each complementary piece and do not repeat the starting-photo category.",
+    "For EACH complementary piece, set color to one specific garment color (e.g. navy, black, camel, olive) or an empty string if it cannot be specified. Do not use aesthetic palette labels as literal SKU colors.",
+    "For EACH complementary piece, write a concise searchQuery combining garment description, suggested color and aesthetic. These are query suggestions, NOT confirmed offers or stock.",
     "Respect specified sizing in descriptions and shopping search queries for relevant categories only. Never infer sizes from a photo, assume a cross-brand conversion, or claim availability or guaranteed fit. Sizing labels are retailer-specific.",
     "Other preferences: " + clean(prefs.notes, 260) + ".",
     "Coordinate colors and realistic clothing. Be specific and useful.",
@@ -151,7 +156,7 @@ export async function POST(request) {
             schema
           }
         },
-        max_output_tokens: 1400
+        max_output_tokens: 1700
       }),
       signal: controller.signal
     });
@@ -198,6 +203,8 @@ export async function POST(request) {
       styleNotes: clean(parsed.styleNotes, 320),
       pieces: parsed.pieces.map(p => ({
         type: clean(p.type, 55),
+        slot: p.slot,
+        color: clean(p.color, 40),
         description: clean(p.description, 160),
         searchQuery: clean(p.searchQuery, 180)
       }))

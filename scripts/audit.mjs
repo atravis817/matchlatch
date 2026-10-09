@@ -12,6 +12,8 @@ const check=(ok,message)=>{
 const html=file("index.html");
 const library=file("library.js");
 const tree=file("outfit-tree.js");
+const retailerMatch=file("retailer-match.js");
+const camera=file("camera.js");
 const cloud=file("cloud-sync.js");
 const shop=file("api/shop.mjs");
 const analyze=file("api/analyze.mjs");
@@ -22,7 +24,7 @@ const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map
 check(inline.length===2,"Early appearance boot and Studio logic are separate");
 for(const [name,source] of [
   ["Appearance initializer",inline[0]],["Studio initializer",inline[1]],
-  ["library.js",library],["outfit-tree.js",tree],
+  ["library.js",library],["outfit-tree.js",tree],["retailer-match.js",retailerMatch],
   ["app-shell.js",file("app-shell.js")],["flow-pages.js",file("flow-pages.js")],
   ["savings.js",file("savings.js")],["camera.js",camera]
 ]){
@@ -37,7 +39,6 @@ for(const name of ["cloud-sync.js","api/analyze.mjs","api/auth-config.mjs","api/
 const htmlIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 check(new Set(htmlIds).size===htmlIds.length,"No duplicate static element IDs");
 const appShell=file("app-shell.js");
-const camera=file("camera.js");
 const flowPages=file("flow-pages.js");
 const declared=new Set([...htmlIds,...[...library.matchAll(/\.id\s*=\s*"([^"]+)"/g),
   ...tree.matchAll(/\.id\s*=\s*"([^"]+)"/g),
@@ -54,14 +55,14 @@ check(!missing.length,"All direct DOM references resolved"+(missing.length?": "+
 for(const asset of ["logo-mark.svg","library.css","library.js","outfit-tree.css","outfit-tree.js",
   "savings.css","savings.js","app-shell.css","app-shell.js","theme.css",
   "flow-pages.css","flow-pages.js","greenglass.css","typography.css","commerce.css",
-  "camera.css","camera.js"]){
+  "camera.css","camera.js","retailer-match.js"]){
   check(fs.existsSync(path.join(root,asset)),asset+" exists");
   check(html.includes("/"+asset),asset+" linked in HTML");
 }
 check(["mood","studio","store","styles","cart","account"].every(x=>html.includes('id="screen-'+x+'"')),"Six screen surfaces preserved");
 check(tree.includes("FRESH_MS=")&&tree.includes("remaining(slotId)")&&tree.includes("cycle(slotId"),"Live tree cycle and budget safeguards present");
 check(shop.includes('v.availability?.available!==true')&&shop.includes('m?.currency==="USD"'),"Stock/price checks present");
-check(!shop.includes("id,filters:{"),"Product verification uses supported API parameters");
+check(shop.includes('id,filters:{ships_to:destination,available:true}'),"Product verification uses supported API parameters");
 check(shop.includes('"cache-control":"no-store"'),"Live catalog responses never cached by server");
 check(agent.ucp?.capabilities?.["dev.ucp.shopping.catalog.search"]!==undefined,"Shopify agent profile includes catalog search");
 check(analyze.includes('timingSafeEqual')&&analyze.includes('store: false'),"Private beta gate and no-store AI request");
@@ -88,7 +89,7 @@ check(savingsApi.includes("matches(host,d)")
   "Coupon filtering validates merchant-domain match and expiry");
 check(savings.includes("offset<domains.length;offset+=15")&&savings.includes("domains.slice(offset,offset+15)"),
   "Coupon scanner batches multi-retailer outfits within 15-domain API limit");
-check(file("SAVINGS-CHECK.md").includes("not checkout-verified"),
+check(file("SAVINGS-CHECK.md").includes("listed_not_checkout_verified"),
   "Savings provider documentation records verification limitations");
 check(library.includes('collections:[]')&&library.includes('function createCollection(')
   &&library.includes('function renderCollections('),"Named collections preserve old wardrobe state");
@@ -177,7 +178,7 @@ check(flowPages.includes("closet-new-look")&&library.includes('window.Matchlatch
 check(html.includes('href="/commerce.css"')
   &&html.indexOf('href="/commerce.css"')>html.indexOf('href="/greenglass.css"'),
   "Commerce shell loads after existing GreenGlass and typography");
-check(shop.includes('collect(data,size)')&&shop.includes('checkoutUrl:safeUrl(v.checkout_url)'),
+check(shop.includes('collect(data,size,color)')&&shop.includes('checkoutUrl:safeUrl(v.checkout_url)'),
   "Real retailer listings preserve exact variant and merchant-owned checkout references");
 check(library.includes('function addRetailProduct(item)')
   &&library.includes('item.available!==true||item.currency!=="USD"')
@@ -246,6 +247,37 @@ check(file("camera.css").includes("safe-area-inset-bottom")
 check(file("CAMERA-STAGE.md").includes("Permission behavior")
   &&file("CAMERA-STAGE.md").includes("not deployed"),
   "Camera stage privacy and deployment boundaries documented");
+
+/* POC-03: AI-generated shopping criteria and honest retailer coverage. */
+check(analyze.includes('slot: { type: "string", enum:')
+  &&analyze.includes('color: { type: "string" }')
+  &&analyze.includes('slot: p.slot'),
+  "OpenAI structured output provides retailer category and garment color");
+check(shop.includes('if(mode==="capabilities")')
+  &&shop.includes('retailerDirectoryAvailable:false')
+  &&shop.includes('retailerCoverage:{scope:"this search only"')
+  &&shop.includes('merchantId:clip(seller.id,120)'),
+  "Catalog reports observed shops without fabricating a global retailer directory");
+check(shop.includes('ships_to:destination')
+  &&shop.includes('const item=collect(data,size,color)')
+  &&shop.includes('shippingCost:null,deliveryEstimate:null')
+  &&shop.includes('lowStock:v.availability?.running_low===true'),
+  "Retailer filter checks variant price, stock, size, color and US shipping eligibility");
+check(tree.includes('function criteriaFor(id,max=')
+  &&tree.includes('engine?.rank?.(raw,criteria)')
+  &&tree.includes('qs.set("color",criteria.color)')
+  &&tree.includes('if(auto&&!custom&&criteria?.alternate'),
+  "Outfit tree searches catalog using explicit AI criteria and bounded fallback");
+check(html.includes('src="/retailer-match.js"')
+  &&html.indexOf('src="/retailer-match.js"')<html.indexOf('src="/outfit-tree.js"')
+  &&retailerMatch.includes('window.MatchlatchRetailerMatch=Object.freeze'),
+  "Retailer matching engine is loaded before outfit recommendations");
+check(appShell.includes('store-retailer-summary')
+  &&appShell.includes('matches?.merchants?.(items)'),
+  "Store shows actual merchants returned by the current live search");
+check(file("RETAILER-CAPABILITIES.md").includes("No direct crawling")
+  &&file("RETAILER-CAPABILITIES.md").includes("Retailer names discovered only"),
+  "Retailer coverage, exact data capabilities and unknowns documented");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");

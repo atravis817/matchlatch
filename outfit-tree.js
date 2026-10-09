@@ -55,7 +55,15 @@ function sizeFor(slot) {
   default:return "";
  }
 }
+function criteriaFor(id,max=remaining(id),manualQuery=""){
+ return window.MatchlatchRetailerMatch?.criteria?.({
+  slot:id,pieces:inspiration?.pieces||[],profile:prefs,
+  size:sizeFor(id),max:Math.max(1,max),manualQuery
+ })||null;
+}
 function queryFor(id){
+ const candidate=criteriaFor(id);
+ if(candidate?.q)return candidate.q;
  const source=inspiration?.pieces||[];
  const pattern={
   hat:/hat|cap|beanie/,scarf:/scarf/,jacket:/jacket|coat|blazer|outerwear|layer/,
@@ -131,11 +139,12 @@ function init(data,profile,savedSelections){
        }finally{if(session===generation){current.loading=false;render();}}
      }
    }
-   for(const slot of autoSlots){
-     if(session!==generation)return;
-     if(slot===anchor||stateFor(slot).selected)continue;
-     await fetchOptions(slot,true);
-   }
+   if(session!==generation)return;
+   // Independent catalog lookups run concurrently; each auto-selection still
+   // passes the existing remaining-budget check before entering the outfit.
+   await Promise.all(autoSlots
+     .filter(slot=>slot!==anchor&&!stateFor(slot).selected)
+     .map(slot=>fetchOptions(slot,true)));
  })();
 }
 function render(){
@@ -183,7 +192,7 @@ function render(){
   row.append(label,previous,content,next,shop);list.append(row);
  }
  mount.append(list);
- mount.append(node("p","tree-note","Only items listed as available are shown. If no option fits, leave the slot empty or try another search. Prices and stock can change."));
+ mount.append(node("p","tree-note","Retailer suggestions are based on your style, stated sizes and remaining budget, then checked against live catalog listings. Stock and prices may change."));
 }
 async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
  const slot=slotById(slotId),state=stateFor(slotId);
@@ -194,27 +203,52 @@ async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
    ? {jacket:.27,shirt:.19,pants:.24,shoes:.24}
    : {shirt:.26,pants:.33,shoes:.35};
  const cap=auto?Math.min(max,Math.max(3,Math.floor(budget*(shares[slotId]||slot.weight)))):max;
- const query=custom||state.query||queryFor(slotId);
+ const engine=window.MatchlatchRetailerMatch;
+ const manualOverride=custom||state.manualQuery||"";
+ const criteria=criteriaFor(slotId,cap,manualOverride);
+ const query=custom||state.query||criteria?.q||queryFor(slotId);
  state.loading=true;state.message="";render();if(shopSlot===slotId)renderDrawer();
  const current=session;
  try{
-  const qs=new URLSearchParams({mode:"search",slot:slotId,q:query,max:String(cap)});
-  if(sizeFor(slotId))qs.set("size",sizeFor(slotId));
-  const response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
-  const data=await response.json();
+  const searches=[query];
+  // One bounded broader search if the AI-specific phrasing yields no verified matches.
+  // Never relax selected variant size, color, destination, availability, or budget.
+  if(auto&&!custom&&criteria?.alternate
+    &&criteria.alternate.toLowerCase()!==query.toLowerCase())searches.push(criteria.alternate);
+  let items=[],usedQuery=query,coverage=null;
+  for(const phrase of searches){
+   const qs=new URLSearchParams({mode:"search",slot:slotId,q:phrase,max:String(cap)});
+   const requestedSize=criteria?.size||sizeFor(slotId);
+   if(requestedSize)qs.set("size",requestedSize);
+   if(criteria?.color)qs.set("color",criteria.color);
+   const response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
+   const data=await response.json();
+   if(current!==session)return;
+   if(!response.ok)throw Error(data.error||"Live catalog unavailable");
+   const raw=Array.isArray(data.items)?data.items:[];
+   items=engine?.rank?.(raw,criteria)||raw.filter(x=>x.available&&x.price<=cap);
+   coverage=data.retailerCoverage||null;
+   usedQuery=phrase;
+   if(items.length)break;
+  }
   if(current!==session)return;
-  if(!response.ok)throw Error(data.error||"Live catalog unavailable");
-  state.options=Array.isArray(data.items)?data.items.filter(x=>x.available&&x.price<=cap):[];
+  state.options=items;
+  state.retailers=engine?.merchants?.(items)||[];
+  state.coverage=coverage;
+  state.criteria=criteria;
   state.fetchedAt=Date.now();
-  state.query=query;
-  if(state.selected && !custom){
+  state.query=usedQuery;
+  if(custom)state.manualQuery=custom;
+  if(state.selected&&!custom){
     const refreshed=state.options.find(x=>x.variantId===state.selected.variantId);
     state.selected=refreshed||null;
     if(refreshed)state.index=state.options.indexOf(refreshed);
   }
-  // A manual query only displays alternatives; selecting one is always explicit.
+  // Explicit manual searches show choices, but do not auto-select an item.
   if(state.options.length&&!state.selected&&autoSelect)select(slotId,0,true);
-  if(!state.options.length)state.message=auto?"No matching piece found. Open Private Shop to see more options.":"No pieces found in your size and budget.";
+  if(!state.options.length)state.message=criteria?.color||criteria?.size
+    ?"No available piece confirmed in the selected size, color and budget. Try refining your search."
+    :"No available piece found within your budget. Search again or skip this item.";
  }catch(e){if(current===session)state.message=e.message||"Catalog temporarily unavailable";}
  finally{if(current===session){state.loading=false;render();if(shopSlot===slotId)renderDrawer();}}
 }
@@ -285,7 +319,14 @@ function renderDrawer(){
  const top=node("div","private-shop-top"),heading=node("div");
  heading.append(node("div","micro-title","Private Shop"),node("h2",null,slot.label+" alternatives"));
  top.append(heading,button("×",closeShop,"private-shop-close"));panel.append(top);
- panel.append(node("p","private-shop-sub",money(remaining(id))+" left for this piece · "+sizeHint(id)+" · US merchants / shipping to US"));
+ panel.append(node("p","private-shop-sub",money(remaining(id))+" left for this piece · "+sizeHint(id)+" · US shipping eligibility"));
+ if(state.options.length){
+  const n=state.retailers?.length||new Set(state.options.map(x=>x.merchant)).size;
+  const provenance=node("p","private-shop-provenance",
+    state.options.length+" verified listing"+(state.options.length===1?"":"s")+
+    " from "+n+" retailer"+(n===1?"":"s")+" in this search. Shipping cost and delivery date are confirmed by the retailer.");
+  panel.append(provenance);
+ }
  const controls=node("div","private-shop-controls");
  const input=document.createElement("input");input.type="search";input.value=state.query||queryFor(id);
  input.maxLength=170;input.setAttribute("aria-label","Refine "+slot.label+" product search");
@@ -304,6 +345,8 @@ function renderDrawer(){
   const info=node("div","private-shop-details");
   info.append(node("strong",null,item.title),node("small",null,item.merchant+(item.size?" · Size "+item.size:"")));
   info.append(node("span","private-shop-price",money(item.price)));
+ if(item.color||item.size)info.append(node("small","private-shop-variant",
+  [item.color,item.size?"Size "+item.size:""].filter(Boolean).join(" · ")));
   const checkedTime=item.checkedAt?new Date(item.checkedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"recently";
   info.append(node("small",null,"Available when checked at "+checkedTime+" · subject to change"));
   const actions=node("div","private-shop-actions");
@@ -320,7 +363,7 @@ function renderDrawer(){
  }
  if(!state.loading&&!results.children.length)results.append(node("div","private-shop-empty","No available pieces matched your size and budget. Try a different search or skip this item."));
  panel.append(results);
- panel.append(node("p","tree-note","Browse product options here, then visit the retailer to shop. Only the pieces you save are added to your closet."));
+ panel.append(node("p","tree-note","Retailers are shown only when the Shopify catalog returns qualifying listings. Stock is not reserved; taxes and shipping rates are confirmed later."));
 }
 function reset(){
  session++;inspiration=null;shopSlot=null;

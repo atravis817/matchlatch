@@ -967,6 +967,13 @@
         };
         const pieces = choices[category].map((type,index) => ({
           type:type.charAt(0).toUpperCase()+type.slice(1),
+          slot:/outerwear|jacket|blazer|coat/i.test(type)?"jacket":
+            /pants|bottoms|trousers|jeans|skirt|shorts/i.test(type)?"pants":
+            /shoe|sneaker|boot|loafer/i.test(type)?"shoes":
+            /hat|cap/i.test(type)?"hat":/scarf/i.test(type)?"scarf":
+            /watch/i.test(type)?"watch":/belt/i.test(type)?"belt":
+            /sock/i.test(type)?"socks":"shirt",
+          color:colors[index],
           description: colors[index]+" "+type+" · "+p.fit.toLowerCase()+" fit"+(sizeForType(type)?" · "+sizeForType(type):""),
           searchQuery:[colors[index],p.fit,p.aesthetic!=="No preference"?p.aesthetic:"",p.look,type,sizeForType(type),"fashion"].filter(Boolean).join(" ")
         }));
@@ -1055,6 +1062,7 @@
 
   </script>
   <script src="/library.js" defer></script>
+  <script src="/retailer-match.js" defer></script>
   <script src="/outfit-tree.js" defer></script>
   <script src="/savings.js" defer></script>
   <script src="/app-shell.js" defer></script>

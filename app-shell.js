@@ -188,7 +188,7 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0,selected:null};
+const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[]};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
@@ -352,6 +352,12 @@ function renderStore(){
  const status=el("p","store-search-status");
  status.setAttribute("role","status");status.setAttribute("aria-live","polite");
  results.append(status);
+ const retailerSummary=el("details","store-retailer-summary");
+ retailerSummary.hidden=true;
+ const summary=el("summary",null,"Retailers in these results");
+ const shops=el("div","store-retailer-names");
+ retailerSummary.append(summary,shops);
+ results.append(retailerSummary);
  const list=el("div","store-grid");results.append(list);
  target.append(results);
  const product=el("section","store-product-shell");product.id="store-product";target.append(product);
@@ -379,7 +385,7 @@ function renderStore(){
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
   storeState.searched=true;storeState.items=[];
   showStoreView("results");
-  list.replaceChildren();status.textContent="Searching available retailer products…";
+  list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();status.textContent="Checking live retailer catalogs…";
   submit.disabled=true;
   if(controller)controller.abort();
   controller=new AbortController();
@@ -392,9 +398,18 @@ function renderStore(){
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
    const items=Array.isArray(data.items)?data.items.filter(item=>item?.available&&Number(item.price)<=max):[];
    storeState.items=items;storeState.checkedAt=Date.now();
+   const matches=window.MatchlatchRetailerMatch;
+   const merchants=matches?.merchants?.(items)||[];
+   storeState.retailers=merchants;
    status.textContent=items.length?
-    items.length+" available retailer listing"+(items.length===1?"":"s")+" found. Prices and availability may change.":
-    "No available products found. Try another search or budget.";
+    items.length+" available listing"+(items.length===1?"":"s")+
+    " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
+    " in this search. US shipping eligibility filtered; prices and stock may change.":
+    "No eligible products found. Try another search, size or budget.";
+   retailerSummary.hidden=merchants.length===0;
+   retailerSummary.open=false;
+   summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
+   shops.replaceChildren(...merchants.map(merchant=>el("span","store-retailer-name",merchant.name)));
    list.replaceChildren(...items.map(storeCard));
   }catch(error){
    if(run!==searchId)return;
