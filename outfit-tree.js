@@ -125,9 +125,9 @@ function init(data,profile,savedSelections){
          if(session!==generation)return;
          if(response.ok&&result.item&&result.item.price<=remaining(slot)+.001){
            current.options=[result.item];current.selected=result.item;current.index=0;
-         } else current.message="Previously saved listing not available at this price/size.";
+         } else current.message="That saved product isn't available in your size and budget right now.";
        }catch{
-         if(session===generation)current.message="Saved listing could not be rechecked.";
+         if(session===generation)current.message="We couldn't check that saved product right now.";
        }finally{if(session===generation){current.loading=false;render();}}
      }
    }
@@ -144,7 +144,7 @@ function render(){
  const top=node("div","tree-heading");
  const intro=node("div");
  intro.append(node("div","micro-title","Build from top to toe"),node("h3",null,"Your outfit tree."));
- intro.append(node("p",null,"↶ ↷ Cycle alternatives. Private Shop opens a curated retailer browser."));
+ intro.append(node("p",null,"Use the arrows to compare pieces. Open Private Shop for more options."));
  top.append(intro);
  const amount=node("div","tree-total");
  amount.append(node("strong",null,money(sum())+" / "+money(budget)));
@@ -174,7 +174,7 @@ function render(){
     info.append(node("strong",null,item.title));
     info.append(node("small",null,item.merchant+" · "+money(item.price)+(item.size?" · "+item.size:"")));
   }else{
-    info.append(node("strong",null,state.loading?"Checking current offers…":slot.optional?"Optional · add if you like":"Choose a piece"));
+    info.append(node("strong",null,state.loading?"Finding pieces…":slot.optional?"Optional · add if you like":"Choose a piece"));
     info.append(node("small",null,state.message||((slot.id===anchor)?"":sizeHint(slot.id)+" · "+(slot.optional?"Explore when ready":"Curating options"))));
   }
   content.append(info);
@@ -183,7 +183,7 @@ function render(){
   row.append(label,previous,content,next,shop);list.append(row);
  }
  mount.append(list);
- mount.append(node("p","tree-note","Products are shown only when the retailer catalog reports an available variant and USD price. No verified alternative? We leave the slot empty. Stock, taxes, shipping and checkout totals can change."));
+ mount.append(node("p","tree-note","Only items listed as available are shown. If no option fits, leave the slot empty or try another search. Prices and stock can change."));
 }
 async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
  const slot=slotById(slotId),state=stateFor(slotId);
@@ -214,7 +214,7 @@ async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
   }
   // A manual query only displays alternatives; selecting one is always explicit.
   if(state.options.length&&!state.selected&&autoSelect)select(slotId,0,true);
-  if(!state.options.length)state.message=auto?"No verified option in this allocation. Open Private Shop to broaden.":"No available items found in this size and budget.";
+  if(!state.options.length)state.message=auto?"No matching piece found. Open Private Shop to see more options.":"No pieces found in your size and budget.";
  }catch(e){if(current===session)state.message=e.message||"Catalog temporarily unavailable";}
  finally{if(current===session){state.loading=false;render();if(shopSlot===slotId)renderDrawer();}}
 }
@@ -292,7 +292,7 @@ function renderDrawer(){
  controls.append(input,button("Search",()=>void fetchOptions(id,false,input.value),""));
  input.addEventListener("keydown",e=>{if(e.key==="Enter")void fetchOptions(id,false,input.value);});
  panel.append(controls);
- if(state.loading)panel.append(node("div","private-shop-empty","Checking retailer prices and available variants…"));
+ if(state.loading)panel.append(node("div","private-shop-empty","Finding available pieces…"));
  if(!state.loading&&state.message)panel.append(node("div","shop-feedback",state.message));
  const results=node("div","private-shop-results");
  for(let i=0;i<state.options.length;i++){
@@ -305,7 +305,7 @@ function renderDrawer(){
   info.append(node("strong",null,item.title),node("small",null,item.merchant+(item.size?" · Size "+item.size:"")));
   info.append(node("span","private-shop-price",money(item.price)));
   const checkedTime=item.checkedAt?new Date(item.checkedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"recently";
-  info.append(node("small",null,"In stock at "+checkedTime+" · subject to change"));
+  info.append(node("small",null,"Available when checked at "+checkedTime+" · subject to change"));
   const actions=node("div","private-shop-actions");
   actions.append(button(state.selected?.variantId===item.variantId?"Selected ✓":"Select this",()=>{
     select(id,i);window.MatchlatchLibrary?.chooseShopItem?.(id,item);
@@ -318,9 +318,9 @@ function renderDrawer(){
   window.MatchlatchSavings?.attach?.(info,item);
   card.append(info);results.append(card);
  }
- if(!state.loading&&!results.children.length)results.append(node("div","private-shop-empty","No confirmed in-stock alternatives in this size and price range. Try broader search terms or skip this piece."));
+ if(!state.loading&&!results.children.length)results.append(node("div","private-shop-empty","No available pieces matched your size and budget. Try a different search or skip this item."));
  panel.append(results);
- panel.append(node("p","tree-note","Live catalog browsing inside MATCHLATCH, not incognito browsing. Retailer visits open on the seller's site. Product images and result lists aren't saved; only your selected items are."));
+ panel.append(node("p","tree-note","Browse product options here, then visit the retailer to shop. Only the pieces you save are added to your closet."));
 }
 function reset(){
  session++;inspiration=null;shopSlot=null;

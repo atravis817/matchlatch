@@ -2,7 +2,7 @@
 
 > **North star:** Your style, unlocked. Turn a photo into a complete, personal, realistically shoppable outfit, and ultimately into a reliable multi-outfit shopping concierge.
 >
-> **Roadmap version:** 1.1 · **Last reviewed:** October 8, 2026 · **Canonical location:** `ROADMAP.md` on `main`.
+> **Roadmap version:** 1.2 · **Last reviewed:** October 8, 2026 · **Canonical location:** `ROADMAP.md` on `main`.
 >
 > **Current position:** **V1 — The Magic Trick** and **V1.5 — Personal Style** are built and awaiting critical live validation. **V2 — REVEAL** now has a full approved design blueprint (working name; implementation not begun). V2-A camera work can be developed independently, but generation/AR claims and broad testing wait for the necessary security, cost and real-device gates. Selected V3 foundations exist early; V3 itself is **not complete**.
 
@@ -31,16 +31,18 @@
 
 **Why it exists:** This is a retrospective inventory, **not a replacement for the original V1–V4 stages**.
 
-- [x] MATCHLATCH identity, logo, tagline, responsive monochrome UI and four app screens.
+- [x] MATCHLATCH identity, logo, tagline, responsive light/dark design and five primary destinations: Mood, My Closet, Studio, Store and Me.
 - [x] GitHub repository + Vercel-hosted site.
 - [x] Guided Styling path that doesn't require paid image analysis.
 - [x] Private beta OpenAI photo-analysis endpoint with server-side API key, gate and no-store request.
 - [x] Supabase project, owner-scoped records table, private inspiration-photo bucket and row-level policies applied.
-- [x] Static code audit added at `scripts/audit.mjs`; obsolete styles/state and dead logic cleaned up.
+- [x] Static code audit at `scripts/audit.mjs` includes current five-destination layout, accessibility wiring, theme preference and server-side safety assertions. Manual mobile/browser acceptance remains open.
 - [x] Initial documentation, privacy and integration limitations recorded.
 - [ ] **Continuous integration for the audit** — audit script exists, but automatic GitHub Actions execution was **not** confirmed or installed.
 
 **Guardrail:** Reuse existing architecture. Avoid unnecessary frameworks, shadow implementations, duplicate panels and storing retailer search results permanently.
+
+**Navigation refinement · built / verify on device:** Mood (concept inspiration), My Closet (collections, wants, favorites, shortlist and user-recorded Owned), Studio (projects and outfit building), Store (participating retailer catalog), Me (account and style settings). Studio is centered in the five-tab dock; the global appearance toggle sits beside Cart. Dark mode is persisted per browser and follows System when selected. The Vercel deployment gate and real mobile/browser checks must still be confirmed. See [README](README.md#five-destinations-purpose-and-testing).
 
 ## 🥚 V1 — The Magic Trick · BUILT / VALIDATING
 
@@ -139,7 +141,7 @@ A returning user can save their questionnaire, sign in, open a second device and
 - [x] Favorites and a shortlist/cart (not a payment cart).
 - [x] Manual, self-reported purchase records (not confirmed orders).
 - [x] Selected variant references and retailer handoff. Live rechecks must still be verified.
-- [x] **Savings Check V1 code:** automatic coupon-feed lookup hooks for retailer items in Private Shop/favorites/cart, provider-listed/expiry filters, copy-to-checkout controls and no speculative price deduction. **Provider feed not activated**; live merchant/cart verification remains open. See [SAVINGS-CHECK.md](SAVINGS-CHECK.md).
+- [x] **Savings Check V1 code:** merchant-matched Awin voucher lookup in Private Shop/favorites/cart, provider-listed/expiry filters, copy-to-checkout controls, and no speculative price deduction. Awin account credentials are configured; **successful live provider retrieval has not been proven**, and merchant cart verification remains open. See [SAVINGS-CHECK.md](SAVINGS-CHECK.md).
 
 ### Later V3 builds
 

@@ -31,9 +31,18 @@
         }
       };
       update();
-      try{window.matchMedia?.("(prefers-color-scheme: dark)")?.addEventListener("change",()=>{
-        if(preference==="system")update();
-      });}catch{}
+      try{
+        const media=window.matchMedia?.("(prefers-color-scheme: dark)");
+        const onSystemChange=()=>{
+          if(preference!=="system")return;
+          update();
+          window.dispatchEvent(new CustomEvent("matchlatch:appearance",{
+            detail:{preference,effective:window.MatchlatchAppearance.effective()}
+          }));
+        };
+        if(media?.addEventListener)media.addEventListener("change",onSystemChange);
+        else if(media?.addListener)media.addListener(onSystemChange);
+      }catch{}
     })();
   </script>
   <meta name="description" content="MATCHLATCH. Your style, unlocked. Find what works with the pieces you love.">
@@ -228,9 +237,9 @@
         <div class="destination-heading">
           <span class="kicker">01 / DISCOVER</span>
           <h1>Find your <span>mood.</span></h1>
-          <p>Curated directions shaped by the styles, preferences and collections you make your own.</p>
+          <p>Outfit ideas inspired by your style preferences and saved looks.</p>
         </div>
-        <div id="mood-body" aria-live="polite"></div>
+        <div id="mood-body"></div>
       </div>
     </section>
     <section id="screen-store" class="app-screen" hidden aria-label="MATCHLATCH Store">
@@ -238,7 +247,7 @@
         <div class="destination-heading">
           <span class="kicker">03 / EXPLORE</span>
           <h1>The <span>store.</span></h1>
-          <p>Find your next piece across participating retailer catalogs, selected for your style and budget.</p>
+          <p>Search clothing and accessories from participating retailers by style, category, and budget.</p>
         </div>
         <div id="store-body"></div>
       </div>
@@ -248,7 +257,7 @@
     <section class="intro container">
       <div class="kicker">Your style, unlocked.</div>
       <h1>Find your next <span>look.</span></h1>
-      <p>Upload a piece you love. Build a look around it—your style, your budget.</p>
+      <p>Start with a photo or describe a piece. Build an outfit that feels like you.</p>
     </section>
     <div class="sequence" aria-label="How it works">
       <strong>01 &nbsp; Upload</strong><i aria-hidden="true">—</i>
@@ -258,9 +267,9 @@
     <section class="container studio" id="studio" aria-label="Style studio">
       <div class="panel">
         <div class="panel-top"><span class="num">01</span><span class="panel-tag">Start with a piece</span></div>
-        <h2>Add your inspiration.</h2>
-        <p class="sub">A top, sneaker, accessory, or anything that caught your eye.</p>
-        <label class="drop" id="drop" for="photo">
+        <h2>Choose a starting piece.</h2>
+        <p class="sub">A shirt, sneaker, jacket, or anything that inspires your next look.</p>
+        <label class="drop" id="drop" for="photo" role="button" tabindex="0" aria-label="Choose a photo to style">
           <span class="upload-glyph" aria-hidden="true">+</span>
           <strong>Upload a photo</strong>
           <small>Choose an image from your device, or drag and drop it here.</small>
@@ -269,9 +278,9 @@
         <input id="photo" type="file" accept="image/*" aria-label="Upload a clothing or accessory photo">
         <div class="preview-box" id="preview-box"><img id="preview" alt="Selected inspiration image"></div>
         <button class="change" id="change" type="button" hidden>Change image ↗</button>
-        <div class="privacy"><span aria-hidden="true">ⓘ</span><span>Photos are saved <b>on this device</b> with your looks. AI analysis sends a compressed copy to OpenAI only when requested. No cloud photo backup yet.</span></div>
+        <div class="privacy"><span aria-hidden="true">ⓘ</span><span>Guest photos stay on this device. Signed-in photos can sync privately to your account. Your photo is sent for AI styling only when you choose it.</span></div>
         <details class="extra-details manual-details">
-          <summary><span>Describe the item manually</span><small>Only for Guided Styling</small></summary>
+          <summary><span>Describe a piece instead</span><small>No photo needed</small></summary>
           <div class="field-grid extra-grid">
           <label class="field"><span>Item type</span>
             <select id="itemtype"><option value="">Choose an item</option>
@@ -389,7 +398,7 @@
       <div class="panel">
         <div class="panel-top"><span class="num">02</span><span class="panel-tag">Make it yours</span></div>
         <h2>Set your preferences.</h2>
-        <p class="sub">Tell us what you like. Your choices, including optional sizing, are saved on this device.</p>
+        <p class="sub">Choose your style and budget. You can update these anytime in Me.</p>
         <div class="field-grid">
           <label class="field"><span>Style expression</span>
             <select id="look"><option>Unisex</option><option>Masculine</option><option>Feminine</option><option>Androgynous</option><option>Masculine-leaning</option><option>Feminine-leaning</option><option>Gender-fluid</option><option>No preference</option></select>
@@ -530,7 +539,7 @@
               <div id="suggestions"></div>
             </details>
             <div id="look-actions" class="new-look-actions" aria-label="Save outfit"></div>
-            <div class="disclaimer">Live catalog availability and prices are checked as you browse, but may change at checkout. Taxes and shipping are not included. Optional pieces can be skipped.</div>
+            <div class="disclaimer">Product listings are checked when shown. Prices and availability may change at checkout. Tax and shipping are not included.</div>
           </article>
         </div>
       </div>
@@ -540,11 +549,11 @@
       <div class="container library-section">
         <div class="library-top"><div>
           <span class="tiny-label">02 / YOUR WARDROBE</span>
-          <h1>My <span>closet.</span></h1>
-          <p>One home for the looks you've made, the things you love, the pieces you want, and your personal collections.</p>
+          <h1>My <span>Closet.</span></h1>
+          <p>Find your collections, saved looks, favorites, want list, and shopping shortlist.</p>
         </div><button class="library-subtle" type="button" data-nav-page="studio">Create a new look ↗</button></div>
         <div id="styles-tabs" class="tabs"></div>
-        <div id="styles-body"></div>
+        <div id="styles-body" role="tabpanel"></div>
       </div>
     </section>
     <section id="screen-cart" class="app-screen" hidden aria-label="Cart">
@@ -562,14 +571,14 @@
         <div class="library-top"><div>
           <span class="tiny-label">05 / YOUR SPACE</span>
           <h1>Me<span>.</span></h1>
-          <p>Personalize your style, manage your account, and decide how your information is kept.</p>
+          <p>Manage your style preferences, appearance, account, and privacy settings.</p>
         </div></div>
         <div id="profile-shortcuts" class="profile-shortcuts" aria-label="Personal settings navigation"></div>
         <section id="me-appearance" class="me-appearance" aria-label="Appearance settings"></section>
         <section id="me-preferences" class="me-preferences" aria-label="Your style preferences"></section>
         <div class="account-panel" id="me-account-panel">
           <h2>Your account.</h2>
-          <p>Keep your looks private and choose whether to sign in for account syncing. Guest mode remains available.</p>
+          <p>Use MATCHLATCH as a guest or sign in to keep your saved looks connected to your account.</p>
           <form id="login-form" hidden>
             <label for="login-email">Email address</label>
             <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
@@ -591,7 +600,7 @@
         </div>
         <div class="account-panel" id="me-privacy-panel">
           <h2>Privacy &amp; device data.</h2>
-          <p>Guest photos and styles stay on this browser. Signed-in photos and styles use your private cloud account. Deleting guest data won't delete your account's cloud library.</p>
+          <p>Guest data stays on this device. Signed-in data is stored in your private account. Deleting guest data won't delete your signed-in closet.</p>
           <button id="clear-library" class="library-subtle" type="button">Delete local library</button>
         </div>
       </div>
@@ -781,7 +790,7 @@
           $("drop").style.display = "none";
           $("change").hidden = false;
           $("results").style.display = "none";
-          setStatus("Photo ready. Choose AI analysis or build a guided outfit.");
+          setStatus("Photo ready. Build your look with AI or choose Guided Styling.");
         } catch {
           URL.revokeObjectURL(candidate);
           setStatus("This image format could not be opened. Try a JPG or PNG.");
@@ -791,6 +800,11 @@
       $("photo").addEventListener("change",event => loadImage(event.target.files && event.target.files[0]));
       $("change").addEventListener("click",() => $("photo").click());
       const drop = $("drop");
+      drop.addEventListener("keydown",event=>{
+        if(event.key!=="Enter"&&event.key!==" ")return;
+        event.preventDefault();
+        $("photo").click();
+      });
       ["dragenter","dragover"].forEach(type => drop.addEventListener(type,event => { event.preventDefault();drop.classList.add("drag"); }));
       ["dragleave","drop"].forEach(type => drop.addEventListener(type,event => { event.preventDefault();drop.classList.remove("drag"); }));
       drop.addEventListener("drop",event => loadImage(event.dataTransfer && event.dataTransfer.files[0]));
@@ -885,7 +899,7 @@
         const isAI = data.mode === "ai";
         const p = profile();
         $("result-title").textContent = isAI ? "Your photo, styled." : "Your guided look.";
-        $("mode").textContent = isAI ? "AI IMAGE ANALYSIS" : "GUIDED STYLING · MANUAL DETAILS";
+        $("mode").textContent = isAI ? "AI PHOTO STYLING" : "GUIDED STYLING";
         $("found-title").textContent = data.item.label || "Your inspiration piece";
         $("found-meta").textContent = [data.item.color,data.item.category].filter(Boolean).join(" · ");
         $("found-details").textContent = data.item.details || "";
@@ -924,19 +938,19 @@
         if (!$("beta-code").value) { document.querySelector(".beta-details").open=true; $("beta-code").focus(); setStatus("Enter your private beta access code for AI analysis."); return; }
         const button=$("analyze");
         button.disabled=true;button.textContent="CURATING YOUR LOOK…";
-        setStatus("Checking the vision engine…");
+        setStatus("Styling your photo…");
         try {
           const response=await fetch("/api/analyze",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({image:imageData,profile:profile(),betaCode:$("beta-code").value})});
           let data;
-          try { data=await response.json(); } catch { throw new Error("The AI service is not reachable yet. Try Guided Styling."); }
+          try { data=await response.json(); } catch { throw new Error("Photo styling is temporarily unavailable. Try Guided Styling."); }
           if (!response.ok) {
-            if (data.error === "AI_NOT_CONFIGURED") throw new Error(data.message || "AI is not configured yet. Check Vercel Production environment variables.");
-            if (data.error === "BETA_ACCESS_DENIED") throw new Error("Private beta access code incorrect. Check the code configured in Vercel.");
-            throw new Error(data.message || data.error || "Vision engine unavailable.");
+            if (data.error === "AI_NOT_CONFIGURED") throw new Error("Photo styling is unavailable right now. Try Guided Styling.");
+            if (data.error === "BETA_ACCESS_DENIED") throw new Error("That access code didn't work. Check it and try again.");
+            throw new Error("We couldn't style that photo right now. Please try again.");
           }
-          if (!data.item || !Array.isArray(data.pieces)) throw new Error("The AI response was incomplete.");
+          if (!data.item || !Array.isArray(data.pieces)) throw new Error("We couldn't finish styling your photo. Please try again.");
           render(data);
-          setStatus("AI analysis complete. Your personalized outfit is below.");
+          setStatus("Your look is ready.");
         } catch (error) { setStatus(error.message || "Analysis failed. Guided Styling is still available."); }
         finally { button.disabled=false;button.textContent="Build my look with AI ↗"; }
       });

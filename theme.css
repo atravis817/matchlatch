@@ -103,7 +103,7 @@
  .header-actions{gap:3px}
  .header-cart{padding:7px;gap:4px;font-size:10px}
  .header-cart svg{width:19px;height:19px}
- .header-theme-toggle{height:37px;width:37px;padding:7px}
+ .header-theme-toggle{height:44px;width:44px;padding:10px}
  .header-theme-toggle svg{width:18px;height:18px}
  .brand-lockup .brand-wordmark{font-size:16px}
  .brand-lockup .brand-mark{width:48px;height:38px}
@@ -115,3 +115,10 @@
 @media(prefers-reduced-motion:reduce){
  .header-theme-toggle{transition:none}
 }
+
+/* Minimum touch targets and keyboard focus for the navigation and account controls. */
+.dock-link{min-height:48px}
+.header-cart{min-height:44px}
+.header-theme-toggle{min-width:44px;min-height:44px}
+:where(.dock-link,.header-cart,.header-theme-toggle,.appearance-option,.closet-summary-tile,.closet-folder-tile,.folder-chip,.mood-archive-card,.store-card-actions a,.profile-shortcut):focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+:root[data-theme="dark"] .savings-copy-fallback{color:#e0ebdd}

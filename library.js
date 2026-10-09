@@ -314,8 +314,6 @@
   function refreshCounts() {
     const c=$("cart-count");
     if(c)c.textContent=dbState.cart.length?String(dbState.cart.length):"";
-    const count=$("styles-count");
-    if(count)count.textContent=dbState.looks.filter(x=>x.saved).length+dbState.favorites.length || "";
   }
 
   function showPage(page,updateHash=true) {
@@ -334,7 +332,6 @@
     const destination=page==="styles"?"closet":page==="account"?"me":page;
     if(updateHash && location.hash!=="#"+destination)history.pushState(null,"","#"+destination);
     if(page==="styles")renderStyles();
-    if(page==="cart")renderCart();
     if(page==="account")renderAccount();
     window.dispatchEvent(new CustomEvent("matchlatch:page",{detail:{page}}));
     window.scrollTo({top:0,behavior:"auto"});
@@ -424,7 +421,7 @@
     persist();
     if(activePage==="studio")decorateResult(currentLook());
     if(activePage==="styles")renderStyles();
-    if(look.saved)feedback("Outfit saved.","Your Styles",()=>{selectedTab="outfits";showPage("styles");});
+    if(look.saved)feedback("Outfit saved.","My Closet",()=>{selectedTab="outfits";showPage("styles");});
     else feedback("Outfit removed from saved looks.","Undo",()=>{
       look.saved=true;persist();if(activePage==="studio")decorateResult(currentLook());if(activePage==="styles")renderStyles();
     });
@@ -436,7 +433,7 @@
       root.replaceChildren();
       root.append(btn(look.saved?"✓ Outfit saved":"♡ Save this outfit",()=>toggleSaveLook(look.id),
         look.saved?"look-action":"look-action primary"));
-      root.append(btn("View your styles ↗",()=>showPage("styles"),"look-action"));
+      root.append(btn("View My Closet ↗",()=>showPage("styles"),"look-action"));
       root.append(collectionPicker(look.inspirationId));
     }
     const items=document.querySelectorAll("#suggestions .result-item");
@@ -490,7 +487,7 @@
       }
       const ids=new Set(dbState.inspirations.filter(x=>unfiled?!collectionFor(x.collectionId):x.collectionId===folder.id).map(x=>x.id));
       const counts=[
-        ["Inspiration photos",dbState.inspirations.filter(x=>ids.has(x.id)).length,renderInspirations],
+        ["Starting photos",dbState.inspirations.filter(x=>ids.has(x.id)).length,renderInspirations],
         ["Saved outfits",dbState.looks.filter(x=>x.saved&&ids.has(x.inspirationId)).length,renderOutfits],
         ["Favorite items",dbState.favorites.filter(x=>ids.has(x.inspirationId)).length,renderFavorites],
         ["Recorded purchases",dbState.purchases.filter(x=>ids.has(x.inspirationId)).length,renderPurchases]
@@ -648,11 +645,15 @@
     for(const [key,label,count] of tabs){
       const b=btn(label+(count?" · "+count:""),()=>{selectedTab=key;selectedLookDetail=null;if(key!=="collections")selectedCollectionId=null;renderStyles();},"");
       b.className=selectedTab===key?"active":"";
+      b.id="closet-tab-"+key;
       b.setAttribute("role","tab");
+      b.setAttribute("aria-controls","styles-body");
       b.setAttribute("aria-selected",String(selectedTab===key));
       nav.append(b);
     }
     nav.setAttribute("role","tablist");
+    nav.setAttribute("aria-label","My Closet sections");
+    content.setAttribute("aria-labelledby","closet-tab-"+selectedTab);
     const caption=selectedTab==="collections"
       ? "Named folders keep your inspiration photos, looks and shopping items together."
       : selectedTab==="purchases"
@@ -743,7 +744,7 @@
   function showEmpty(parent,heading,message,buttonLabel="Create a look") {
     const box=node("div","empty-state");
     box.append(node("h3",null,heading),node("p",null,message));
-    box.append(btn(buttonLabel,()=>showPage("studio"),"library-primary"));
+    box.append(btn(buttonLabel,()=>startFreshStudio(),"library-primary"));
     parent.append(box);
   }
   function makeCard(inspirationId,title,meta,description) {
@@ -775,7 +776,7 @@
         selectedInspiration===insp.id?"This is the original photo linked to your saved looks and purchases.":"");
       card.id="inspiration-"+insp.id;
       const actions=node("div","library-actions");
-      actions.append(btn("See associated looks",()=>{
+      actions.append(btn("View related looks",()=>{
         const linked=dbState.looks.find(x=>x.inspirationId===insp.id);
         if(linked)openLookDetails(linked.id);
       }));
@@ -788,7 +789,7 @@
   function renderOutfits(target,ids=null) {
     const looks=dbState.looks.filter(x=>x.saved&&(!ids||ids.has(x.inspirationId)));
     if(!looks.length) {
-      showEmpty(target,"No saved outfits yet.","After MATCHLATCH builds a look, choose “Save this outfit.” Your original photo will stay connected.");
+      showEmpty(target,"No saved looks yet.","After MATCHLATCH builds a look, choose “Save this outfit.” Your original photo will stay connected.");
       return;
     }
     const grid=node("div","library-grid");
@@ -825,13 +826,13 @@
         actions.append(a);
         window.MatchlatchSavings?.attach?.(actions,payload.item);
       } else {
-        actions.append(link(item.searchQuery,"Look for alternatives ↗"));
-        actions.append(node("span","library-meta","Saved offer no longer verified"));
+        actions.append(link(item.searchQuery,"Find similar pieces ↗"));
+        actions.append(node("span","library-meta","Saved product is no longer available"));
       }
     }catch {
       if(!actions.isConnected)return;
       status.remove();
-      actions.append(link(item.searchQuery,"Look for alternatives ↗"));
+      actions.append(link(item.searchQuery,"Find similar pieces ↗"));
       actions.append(node("span","library-meta","Live price unavailable"));
     }
   }
@@ -884,9 +885,9 @@
     target.replaceChildren();
     const old=$("purchase-editor");
     if(old)old.remove();
-    target.append(node("p","library-caption","Shopping shortlist · Prices are spending targets, not retailer quotes · Checkout happens at the retailer."));
+    target.append(node("p","library-caption","Your shopping shortlist. Saved prices are estimates. Checkout happens at the retailer."));
     if(!dbState.cart.length) {
-      showEmpty(target,"Your cart is empty.","Add a recommended piece from any outfit to start a shopping shortlist.");
+      showEmpty(target,"Your shortlist is empty.","Save pieces from Studio to find them here when you're ready to shop.");
       return;
     }
     const list=node("div","cart-list");
@@ -1164,7 +1165,7 @@
     currentLookId=null;
     showPage("studio");
     $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
-    $("photo")?.focus();
+    $("drop")?.focus();
   }
   window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,
     chooseShopItem,favoriteShopItem,cartShopItem,

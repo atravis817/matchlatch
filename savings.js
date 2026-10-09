@@ -30,27 +30,27 @@
   const {data}=entry;
   const summary=make("summary","savings-summary");
   if(data.status==="not_configured"){
-   summary.textContent="Savings Check · Feed not connected";
+   summary.textContent="Savings Check · Not available yet";
    container.append(summary);
-   container.append(make("p","savings-note","Coupon lookup will activate when a licensed provider is connected."));
+   container.append(make("p","savings-note","Discount codes aren't available here yet."));
    return;
   }
   if(data.status==="provider_unavailable"){
    summary.textContent="Savings Check · Unavailable";
    container.append(summary);
-   container.append(make("p","savings-note","Coupon source could not be reached. Retailer prices are unchanged."));
+   container.append(make("p","savings-note","Couldn't check for discounts. Try again later. Product prices haven't changed."));
    return;
   }
   const coupons=Array.isArray(data.offers)?data.offers.filter(c=>c?.verification==="provider_listed"):[],
    count=coupons.length;
-  summary.textContent=count?"Savings Check · "+count+" public code"+(count===1?"":"s"):"Savings Check · No listed codes";
+  summary.textContent=count?"Savings Check · "+count+" listed code"+(count===1?"":"s"):"Savings Check · No listed codes";
   container.append(summary);
   if(!count){
-   container.append(make("p","savings-note","No current codes found for this store in the connected provider's feed."));
+   container.append(make("p","savings-note","No current discount codes found for this store."));
    return;
   }
   const info=make("p","savings-note",
-   "Third-party listings only. These codes have NOT been tested at checkout and may exclude this item.");
+   "These codes haven't been checked at the retailer's checkout. They may not apply to this item.");
   container.append(info);
   for(const offer of coupons.slice(0,3)){
    const row=make("div","savings-offer");
@@ -60,21 +60,29 @@
    if(offer.terms)main.append(make("small",null,offer.terms));
    if(offer.expiresAt){
     const date=new Date(offer.expiresAt);
-    if(Number.isFinite(date.getTime()))main.append(make("small",null,"Listed expiry: "+date.toLocaleDateString()));
+    if(Number.isFinite(date.getTime()))main.append(make("small",null,"Ends: "+date.toLocaleDateString()));
    }
    const copy=make("button","savings-copy","Copy");
    copy.type="button";copy.setAttribute("aria-label","Copy discount code "+offer.code);
    copy.addEventListener("click",async()=>{
+    let temporary=null;
     try{
      if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(offer.code);
      else{
-      const el=make("textarea");el.value=offer.code;document.body.append(el);el.select();
+      temporary=make("textarea");
+      temporary.value=offer.code;
+      temporary.setAttribute("aria-label","Discount code to copy");
+      document.body.append(temporary);
+      temporary.select();
       if(!document.execCommand("copy"))throw Error("COPY_FAILED");
-      el.remove();
      }
      copy.textContent="Copied ✓";
     }catch{
-     copy.textContent="Select code";main.prepend(make("small",null,"Code: "+offer.code));
+     copy.textContent="Copy unavailable";
+     if(!main.querySelector(".savings-copy-fallback"))
+      main.append(make("small","savings-copy-fallback","Select and copy: "+offer.code));
+    }finally{
+     temporary?.remove();
     }
    });
    row.append(main,copy);container.append(row);

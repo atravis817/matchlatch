@@ -1,6 +1,8 @@
 # MATCHLATCH
 
-**Your style, unlocked.** Fashion discovery MVP.
+**Your style, unlocked.** Personal styling and retailer discovery.
+
+**App navigation:** **MOOD → MY CLOSET → STUDIO → STORE → ME**. Studio is the center destination. The header contains the shopping shortlist (Cart) and the app-wide light/dark toggle. All five destinations are implemented in the repository; the deployed site may temporarily show an older build during Vercel Hobby deployment restrictions.
 
 **Canonical product work map:** [ROADMAP.md](ROADMAP.md) — our V0 foundation and original **V1 → V1.5 → V2 → V3 → V4 MONSTER** roadmap, including stage gates, what we've built, unverified work, next priorities and dated development history.
 
@@ -8,7 +10,7 @@
 
 Live: https://matchlatch.vercel.app
 
-## Live features
+## Implemented features (live provider and device tests still pending)
 
 - Mobile-friendly photo upload and preview
 - Locally saved style preferences: expression, fit, occasion, notes
@@ -19,9 +21,9 @@ Live: https://matchlatch.vercel.app
 - Guided Styling (no AI API charge) or optional AI photo styling, followed by live product discovery
 - Shopping suggestions link to retailers; product availability is refreshed on each search, and saved user selections are rechecked when reopened
 - Optional **OpenAI image analysis**, protected with a private beta access code
-- **Your Styles + Collections**: user-named folders (e.g., **Miami 2027 Ideas**, **Last Week's Job Interview**). An inspiration photo belongs to one collection; its saved outfits, favorite pieces, and self-reported purchases automatically appear with it. Renaming/deleting a folder never deletes the source items.
-- **Cart**: a persistent shopping shortlist (not a checkout), with selected retailer offers and optional **Savings Check** for provider-listed public discount codes; displayed totals do not assume codes work
-- **Account**: Supabase passwordless email sign-in and private cloud syncing are connected in code; end-to-end cross-device login still needs a real-device test
+- **My Closet + Collections**: user-named folders (e.g., **Miami 2027 Ideas**, **Last Week's Job Interview**). An inspiration photo belongs to one collection; its saved outfits, favorite pieces, and self-reported purchases automatically appear with it. Renaming/deleting a folder never deletes the source items.
+- **Cart / Shortlist**: a persistent shopping shortlist (not a checkout), with selected retailer offers and optional **Savings Check** for provider-listed public discount codes; displayed totals do not assume codes work
+- **Me / account**: Supabase passwordless email sign-in and private cloud syncing are connected in code; end-to-end cross-device login still needs a real-device test
 
 ## Turn on AI (private, low-cost test)
 
@@ -41,9 +43,9 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 **AI limitations:** The AI analyzes *appearance* and produces styling directions; it does not verify exact garment identity or inventory. **Private Shop** then separately queries Shopify's Global Catalog for actual product variants reporting availability, images and USD prices. These are merchant/catalog signals, not guarantees at checkout. Product prices exclude shipping, tax and future price changes. The merchant completes payments; MATCHLATCH never collects card details.
 
-## Savings Check — public retailer coupon discovery
+## Savings Check — merchant discount discovery
 
-**[Full provider integration and activation guide](SAVINGS-CHECK.md)**. Private Shop and saved retailer items now run an automatic merchant-domain coupon lookup through `/api/savings`, using the LinkMyDeals feed **only when a private server-side `LINKMYDEALS_API_KEY` is configured**. No provider subscription or real feed key has been connected yet. Until then, the UI honestly says the feed is not connected. Provider-listed public codes and expiry dates are **not checkout-verified**; shoppers must confirm at the retailer. We do not adjust prices or outfit budgets based on unconfirmed coupons.
+**[Awin integration and activation guide](SAVINGS-CHECK.md)**. Savings Check uses `/api/savings` to look up merchant-matched Awin voucher listings when private `AWIN_API_TOKEN` and `AWIN_PUBLISHER_ID` credentials are present in Vercel. Account and variable configuration alone do **not** prove live promotions can be retrieved: joined advertisers, API responses, and real merchant coverage still require validation. Provider-listed codes are **not checkout-verified** and never lower displayed prices until an eligible checkout confirms a discount.
 
 ## Named Collections
 
@@ -53,7 +55,7 @@ Collections are organization labels, not copied images or separate purchase reco
 
 After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of nine clothing categories. Your inspiration photo occupies its relevant category without charging your shopping budget. Shirt, pants and shoes are looked up initially when not already represented by your photo. Other rows—including hat, scarf, jacket, watch, belt and socks—are optional until the user opens **Private Shop** or uses the circular arrows.
 
-**How to test:** Upload a photo and generate a look. Confirm three essential categories attempt live searches. Click left/right on any row to wrap its live options. Click **Private Shop** to browse the in-app retailer list and refine the query. Select a variant; outfit merchandise subtotal updates immediately. Try a more expensive alternative when funds are low—MATCHLATCH must refuse the swap. Save or add an individual retailer selection to the cart; then open Your Styles or Cart. Original photo/curated-look provenance is preserved.
+**How to test:** Upload a photo and generate a look. Confirm three essential categories attempt live searches. Click left/right on any row to wrap its live options. Click **Private Shop** to browse the in-app retailer list and refine the query. Select a variant; outfit merchandise subtotal updates immediately. Try a more expensive alternative when funds are low—MATCHLATCH must refuse the swap. Save or add an individual retailer selection to the cart; then open My Closet or Shortlist. Original photo/curated-look provenance is preserved.
 
 **Catalog provider:** Shopify Global Catalog UCP MCP (`https://catalog.shopify.com/api/ucp/mcp`) using public `ucp-agent.json` and the server-side `api/shop.mjs` proxy. It doesn't require an API key for basic agent-profile searches, but is rate limited and catalog access may evolve. The backend accepts search/verify requests only for nine allowed clothing categories, verifies explicitly `available: true` variants with valid USD price, checks sizes as exact labels, and rejects anything above the given cap. Search listings and images are not cached; merchant images display from their original URLs. Only choices intentionally saved by the user persist as identifiers and selected-item details. Saved cart and favorites requery the provider for current price/availability.
 
@@ -61,15 +63,21 @@ After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of n
 
 **Important testing limitation:** The Shopify API contract and mock response behavior are covered by tests, but provider network queries could not be executed from the development environment. The deployed Vercel `/api/shop` endpoint and agent-profile negotiation still need a live smoke test. If live results are unavailable, the app displays an empty/error state instead of fake brands, prices or stock claims.
 
-## New screens and how to test
+## Five destinations, purpose and testing
 
-- **Studio:** Upload a photo, select style and size preferences, run Guided Styling or private OpenAI analysis. Every generated look creates a local inspiration record linked to that original photo.
-- **Your Styles:** Five tabs — Collections (named folders), Inspirations, Saved outfits, Favorite items, and Purchases. Create a collection, then use **Folder: ...** on the original photo, saved outfit, favorite item, purchase, or newly generated look. Moving a source inspiration automatically groups its linked records. Signed-in collections use the same private cloud storage as looks; guest collections stay local.
-- **Cart:** Add a verified Private Shop selection or a generic suggested piece. Saved retailer selections are checked again when viewing the cart. Actual payment stays at the retailer.
-- **Purchase records:** After buying something at a retailer, choose *Record purchase* from the cart. Enter store, amount paid, and purchase date. The record retains its original look ID and inspiration ID/photo. This is **manual**, not a verified transaction, payment collection or order-tracking integration.
-- **Account:** Secure email login is wired to the project's Supabase config. Cross-device library syncing requires a valid sign-in and still needs a real two-device smoke test.
+- **MOOD — Find inspiration:** Styling concepts based on the preferences, collections and past looks the user has saved. These are ideas to style or search, **not** AI-rendered outfit photos or guaranteed retailer products.
+- **MY CLOSET — Keep your wardrobe organized:** **All, Collections, Wants, Favorites, Shortlist, Saved Looks, Owned and Inspirations**. Wants combines favorites and shortlist items. Owned contains **self-recorded** purchases only; it is not an order confirmation. Folder names and existing linked outfits remain intact.
+- **STUDIO — Make and continue looks:** Start with a photo or guided item description, reopen a saved look, or browse a named collection. The nine-part outfit tree and Private Shop remain available after styling.
+- **STORE — Find products:** Search supported Shopify Global Catalog retailers by keyword, clothing category and budget; access available seller links and Savings Check. Coverage is limited to participating retailers—not every store or the entire internet. The “Style a similar piece” action preselects a starting item type in Studio rather than claiming the retailer product was imported.
+- **ME — Set up your experience:** Appearance (Light, Dark, System), style preferences, account sign-in and privacy/device controls. A sun/moon button immediately right of Cart in the header changes themes on every screen.
 
-**Data safety:** Guest libraries remain on this browser and can be erased in Account. After cloud setup, signed-in records and photos sync privately to Supabase while also using a local cache for offline retries. Browser storage is not a guaranteed backup. Cloud-account deletion/export UI is not implemented yet.
+**Appearance:** On first visit, MATCHLATCH follows the device's light/dark preference. A choice is saved on this browser; the System option responds to supported device changes. Changing the theme does not delete or reset a user's closet.
+
+**Purchase records:** After buying at a retailer, use **Record purchase** in your Shortlist to enter the retailer, date and amount. This is a user-entered wardrobe note, **not** an integrated payment or verified order.
+
+**Compatibility and quality:** Run `node scripts/audit.mjs` with Node 20+ before shipping. Test navigation and active states at small iPhone widths, on Safari, Chrome and desktop; test with an empty guest closet and with saved collections/favorites/purchases; verify keyboard focus, screen-reader labels and reduced-motion behavior. Automated static checks are not a substitute for browser testing.
+
+**Data safety:** Guest records stay on the current browser. When signed in, your own data can sync privately through the configured Supabase project. Existing guest content is imported only after explicit consent. Browser storage is not a guaranteed backup. Account-data deletion/export UI and live cross-device tests are still outstanding.
 
 ## Secure accounts + private cloud sync setup
 
@@ -81,8 +89,8 @@ The MATCHLATCH Supabase project was created and its private records table, stora
 4. In **Vercel → MATCHLATCH → Settings → Environment Variables**, configure **Production**:
    - `SUPABASE_URL`: your project's URL (`https://YOUR-ID.supabase.co`)
    - `SUPABASE_PUBLISHABLE_KEY`: the **public** `sb_publishable_...` key, or legacy Supabase `anon` JWT if necessary. **Never put `service_role`, `sb_secret_...`, or any OpenAI key here.** MATCHLATCH explicitly refuses to expose a secret key through the public config endpoint.
-5. Redeploy the Production app. In **Account**, enter an email and open its sign-in link. Once signed in, create an outfit, save it, and open MATCHLATCH on another device with the same account to verify it appears. Test photos, sizing choices, cart and manually recorded purchases separately.
-6. If you have existing on-device guest styles, open **Account → Import guest styles** after signing in. Importing is always opt-in to avoid transferring another person's local photos from a shared browser without permission.
+5. Redeploy the Production app. In **Me**, enter an email and open its sign-in link. Once signed in, create an outfit, save it, and open MATCHLATCH on another device with the same account to verify it appears. Test photos, sizing choices, cart and manually recorded purchases separately.
+6. If you have existing on-device guest styles, open **Me → Import guest styles** after signing in. Importing is always opt-in to avoid transferring another person's local photos from a shared browser without permission.
 
 **How sync behaves:** While signed in, records are stored as individual user-owned rows, including favorites, outfits, cart, purchase logs, and style/sizing profile. Inspiration photos upload as private JPEG files under the user's ID. Changes are queued locally and retried when network service returns; another device fetches updates when it comes online/gets focus and periodically while open. There is no retailer checkout or verified purchase import yet. Cloud records are isolated with RLS, and switching accounts resets the displayed account library. Signing out returns to this device's separate guest library. **An account is not automatically active unless configured and signed in.**
 

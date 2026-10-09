@@ -1,4 +1,4 @@
-/* MATCHLATCH destinations: MOOD / STUDIO / STORE / PROFILE.
+/* MATCHLATCH destinations: MOOD / MY CLOSET / STUDIO / STORE / ME.
  * Browser-side curation uses the owner's current profile and private library.
  * This is deterministic personalization, not an invented AI model output.
  */
@@ -38,7 +38,7 @@ function openFolders(){
 function photoTile(inspirationId,cls="destination-photo"){
  const wrap=el("div",cls);
  const img=el("img");img.alt="Saved inspiration";img.loading="lazy";
- const fallback=el("span","destination-photo-fallback","MATCHLATCH  /  ARCHIVE");
+ const fallback=el("span","destination-photo-fallback","SAVED PHOTO");
  wrap.append(fallback,img);
  lib()?.attachInspirationPhoto?.(img,inspirationId);
  img.addEventListener("load",()=>{fallback.hidden=true;});
@@ -49,7 +49,7 @@ function renderWorkspace(){
  const target=$("studio-workspace");if(!target)return;
  target.replaceChildren();
  const state=snapshot();
- const heading=sectionTitle("02 / CREATE","The studio.","Start something new or continue where your inspiration left off.");
+ const heading=sectionTitle("02 / CREATE","Studio.","Start a new look or continue a saved project.");
  target.append(heading);
  const actions=el("div","studio-entry-grid");
  const newCard=el("article","studio-entry studio-entry-primary");
@@ -60,10 +60,10 @@ function renderWorkspace(){
  actions.append(newCard);
  const resumeCard=el("article","studio-entry");
  resumeCard.append(el("span","studio-entry-index","02 / YOUR WORK"));
- resumeCard.append(el("h3",null,"Pick up a project."));
+ resumeCard.append(el("h3",null,"Continue a look."));
  resumeCard.append(el("p",null,state.looks.length?
    state.looks.length+" look"+(state.looks.length===1?"":"s")+" in your archive · "+state.collections.length+" folder"+(state.collections.length===1?"":"s"):
-   "Your looks and named collections will appear here as you create."));
+   "Your saved looks and collections will appear here."));
  resumeCard.append(button("Browse your folders ↗",openFolders,"studio-entry-action quiet"));
  actions.append(resumeCard);target.append(actions);
  if(state.collections.length){
@@ -82,7 +82,7 @@ function renderWorkspace(){
  }
  if(state.looks.length){
   const wrap=el("div","destination-recent");
-  wrap.append(sectionTitle("PICK UP WHERE YOU LEFT OFF","Recent projects","Return directly to the outfit editor and retailer options."));
+  wrap.append(sectionTitle("PICK UP WHERE YOU LEFT OFF","Recent looks","Open a saved look to keep styling or shopping."));
   const grid=el("div","destination-recent-grid");
   for(const look of state.looks.slice(0,3)){
    const card=el("article","destination-recent-card");
@@ -152,12 +152,12 @@ function renderMood(){
  target.replaceChildren();
  const state=snapshot(),p=profile();
  const headline=sectionTitle("THE DAILY EDIT","Curated for your taste.",
-  "Starter outfits respond to your saved preferences and collection history. These are style concepts, not newly AI-generated retailer listings.");
+  "Outfit ideas based on your saved preferences and collections. These are styling suggestions, not live products.");
  target.append(headline);
  const meta=el("div","mood-signal");
  const collectionCount=state.collections.length;
- meta.append(el("span",null,"SIGNALS  /  "+pick(p.aesthetic,"MINIMALIST").toUpperCase()+" · "+pick(p.fit,"RELAXED").toUpperCase()));
- meta.append(el("span",null,collectionCount?collectionCount+" FOLDERS":"BUILD YOUR PERSONAL ARCHIVE"));
+ meta.append(el("span",null,"YOUR STYLE  /  "+pick(p.aesthetic,"MINIMALIST").toUpperCase()+" · "+pick(p.fit,"RELAXED").toUpperCase()));
+ meta.append(el("span",null,collectionCount?collectionCount+" FOLDERS":"NEW TO YOUR CLOSET"));
  target.append(meta);
  const grid=el("div","mood-grid");
  for(const direction of curatedDirections(state,p)){
@@ -185,7 +185,7 @@ function renderMood(){
  const related=state.looks.slice(0,4);
  if(related.length){
   const sec=el("section","mood-archive");
-  sec.append(sectionTitle("ALREADY YOURS","Inspired by your archive.","Return to looks you've actually created."));
+  sec.append(sectionTitle("SAVED LOOKS","From your closet.","Continue styling an outfit you've made."));
   const rail=el("div","mood-archive-rail");
   for(const look of related){
    const card=button("",()=>lib()?.openLook?.(look.id),"mood-archive-card");
@@ -215,7 +215,7 @@ function storeCard(item){
    }
   }catch{}
  }
- if(!cover.children.length)cover.append(el("span","store-no-photo","PRODUCT IMAGE UNAVAILABLE"));
+ if(!cover.children.length)cover.append(el("span","store-no-photo","No image"));
  card.append(cover);
  const info=el("div","store-card-info");
  info.append(el("span","micro-title",item.merchant||"RETAILER"));
@@ -231,9 +231,22 @@ function storeCard(item){
    actions.append(link);
   }
  }catch{}
- actions.append(button("Build around this ↗",()=>{
+ actions.append(button("Style a similar piece ↗",()=>{
   showPage("studio");
+  const selected=$("itemtype");
+  const suggestions={
+   shirt:"top:t-shirt",pants:"bottom:jeans",jacket:"outerwear:blazer",
+   shoes:"shoes:low-top-sneakers",hat:"accessory:hat-cap",scarf:"accessory:scarf",
+   watch:"accessory:watch",belt:"accessory:belt",socks:"accessory:socks"
+  };
+  const choice=suggestions[storeState.slot];
+  if(selected&&[...selected.options].some(option=>option.value===choice))selected.value=choice;
+  const panel=document.querySelector(".manual-details");
+  if(panel)panel.open=true;
+  const status=$("status");
+  if(status)status.textContent="Choose the item type and color, then select Guided Styling. This won't add the retailer product to your closet.";
   $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
+  $("itemcolor")?.focus();
  }, "destination-link quiet"));
  info.append(actions);
  window.MatchlatchSavings?.attach?.(info,item);
@@ -244,8 +257,8 @@ function renderStore(){
  target.replaceChildren();
  const p=profile();
  const box=el("section","store-search");
- box.append(sectionTitle("FIND YOUR NEXT PIECE","Shop the edit.",
-  "Live available products from participating Shopify Global Catalog retailers. Coverage isn't the entire internet."));
+ box.append(sectionTitle("FIND YOUR NEXT PIECE","Find something new.",
+  "Search participating retailers for available products. Results don't cover every store."));
  const form=el("form","store-search-form");
  const query=el("input");query.type="search";query.placeholder="e.g. charcoal oversized shirt";
  query.maxLength=170;query.required=true;query.minLength=2;
@@ -281,10 +294,10 @@ function renderStore(){
  results.append(status);
  const list=el("div","store-grid");results.append(list);
  target.append(results);
- if(initialStoreQuery){status.textContent="Mood direction added. Choose a category and search live retailers.";initialStoreQuery="";}
+ if(initialStoreQuery){status.textContent="Your mood is ready to shop. Choose a category and search.";initialStoreQuery="";}
  else if(storeState.searched){
-  status.textContent="Previous search: "+storeState.query+". Search again for current availability and prices.";
- }else status.textContent="Search to see current in-stock retailer listings. All purchases are completed with the retailer.";
+  status.textContent="Search again for updated prices and availability.";
+ }else status.textContent="Search available products. You'll check out on the retailer's website.";
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   const q=query.value.trim(),max=Number(budget.value);
@@ -309,7 +322,7 @@ function renderStore(){
    storeState.items=items;storeState.checkedAt=Date.now();
    status.textContent=items.length?
     items.length+" available retailer listing"+(items.length===1?"":"s")+" found. Prices and availability may change.":
-    "No verified in-stock products found. Try broader keywords or a higher budget.";
+    "No available products found. Try another search or budget.";
    list.replaceChildren(...items.map(storeCard));
   }catch(error){
    if(run!==searchId)return;
@@ -340,7 +353,7 @@ function renderAppearance(){
  const root=$("me-appearance");if(!root)return;
  root.replaceChildren();
  root.append(sectionTitle("01 / YOUR SPACE","Appearance.",
-  "A quieter look, day or night. Applies everywhere in MATCHLATCH."));
+  "Choose a look that feels right, day or night."));
  const row=el("div","appearance-control");
  row.setAttribute("role","group");row.setAttribute("aria-label","App color theme");
  const options=[
@@ -366,7 +379,7 @@ function renderMePreferences(){
  const root=$("me-preferences");if(!root)return;
  root.replaceChildren();
  const heading=sectionTitle("02 / YOUR TASTE","Your style, your rules.",
-  "Edit the same preferences Studio uses to shape looks and MOOD uses to curate directions.");
+  "Update the preferences used in Studio and Mood.");
  root.append(heading);
  const grid=el("div","me-settings-grid");
  const fields=[
@@ -394,18 +407,21 @@ function renderMePreferences(){
    original.value=clone.value;
    original.dispatchEvent(new Event(id==="notes"||id==="budget"?"input":"change",{bubbles:true}));
    const status=$("me-preferences-status");
-   if(status)status.textContent="Preferences saved. Changes will guide your next look.";
+   if(status)status.textContent="Style preferences updated.";
   };
   clone.addEventListener(id==="notes"||id==="budget"?"input":"change",save);
   field.append(clone);grid.append(field);
  }
  root.append(grid);
  const footer=el("div","me-settings-bottom");
- footer.append(el("p","me-preferences-status","Changes save to your device or signed-in private account."));
+ footer.append(el("p","me-preferences-status","Changes are saved to your device or signed-in account."));
  footer.lastChild.id="me-preferences-status";
- footer.append(button("More sizes & measurements in Studio ↗",()=>{
+ footer.append(button("Edit more size details in Studio ↗",()=>{
   showPage("studio");
-  $("topSize")?.scrollIntoView({behavior:"smooth",block:"center"});
+  const field=$("topSize");
+  const details=field?.closest("details");
+  if(details)details.open=true;
+  field?.scrollIntoView({behavior:"smooth",block:"center"});
  },"destination-link"));
  root.append(footer);
 }
