@@ -444,6 +444,7 @@ function renderStore(){
  // Web references are opt-in styling research; never cart-ready products.
  const webPanel=el("section","store-web-discovery");webPanel.hidden=true;
  const webSummary=el("p","store-web-summary"),webSources=el("div","store-web-sources");
+ const retailReferences=el("section","store-public-research");retailReferences.hidden=true;
  const webMessage=el("p","store-web-note","Web sources are not verified stock or checkout offers.");
  const webCode=el("input");webCode.type="password";webCode.maxLength=256;
  webCode.placeholder="Private beta code";webCode.autocomplete="off";
@@ -455,7 +456,7 @@ function renderStore(){
   if(!code){webCode.hidden=false;webCode.focus();webMessage.textContent=
    "Your private beta code is required for web research.";return;}
   const run=searchId;
-  webButton.disabled=true;webSources.replaceChildren();webSummary.textContent="";
+  webButton.disabled=true;webSources.replaceChildren();retailReferences.replaceChildren();retailReferences.hidden=true;webSummary.textContent="";
   webMessage.textContent="Finding source-backed style references…";
   try{
    const res=await fetch("/api/discover",{
@@ -478,13 +479,27 @@ function renderStore(){
       (source.kind==="product_page_reference"?" · Product-page reference":" · Style research")));
     webSources.append(card);
    }
+   const approvedReferences=Array.isArray(found.retailResearch)?found.retailResearch:[];
+   if(approvedReferences.length){
+    retailReferences.hidden=false;
+    retailReferences.append(el("h3",null,"Retailer research references"));
+    retailReferences.append(el("p","store-web-note","Source-linked inspiration only. Prices, stock, sizes and delivery are not verified."));
+    for(const item of approvedReferences){
+     if(!/^https:\\/\\//i.test(item?.url||"")||item?.cartEligible!==false)continue;
+     const entry=el("div","store-public-reference");
+     const link=el("a",null,item.title||item.retailer||"Research source");
+     link.href=item.url;link.target="_blank";link.rel="noopener noreferrer";
+     entry.append(link,el("small",null,(item.retailer||"Retailer")+" · Research only · Not eligible for shortlist"));
+     retailReferences.append(entry);
+    }
+   }
    webMessage.textContent=references.length
     ?"Web research only · check current size, stock, price and delivery at the retailer."
     :"No suitable source found. Refine your request without relaxing personal preferences.";
   }catch(error){if(run===searchId)webMessage.textContent=error?.message||"Web search unavailable.";}
   finally{webButton.disabled=false;}
  },"store-web-launch");
- webPanel.append(webButton,webCode,webSummary,webSources,webMessage);
+ webPanel.append(webButton,webCode,webSummary,retailReferences,webSources,webMessage);
  results.append(webPanel);
  target.append(results);
  const product=el("section","store-product-shell");product.id="store-product";target.append(product);
