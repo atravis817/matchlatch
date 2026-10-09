@@ -63,10 +63,10 @@ check(html.includes('src="/savings.js"')&&html.includes('href="/savings.css"'),
 check(tree.includes("MatchlatchSavings?.attach?.(info,item)")
   &&library.includes("MatchlatchSavings?.attach?.(actions,payload.item)"),
   "Coupon lookups attached to live and saved retailer items");
-check(savingsApi.includes("LINKMYDEALS_API_KEY")&&savingsApi.includes("provider_listed")
-  &&savingsApi.includes("checkout acceptance is unverified"),
+check(savingsApi.includes("AWIN_API_TOKEN")&&savingsApi.includes("provider_listed")
+  &&savingsApi.includes("listed_not_checkout_verified"),
   "Coupon feed uses server-only key and no false checkout verification");
-check(savingsApi.includes("matchesDomain(coupon.domain,d)")
+check(savingsApi.includes("matches(host,d)")
   &&savingsApi.includes("Date.parse("),
   "Coupon filtering validates merchant-domain match and expiry");
 check(savings.includes("offset<domains.length;offset+=15")&&savings.includes("domains.slice(offset,offset+15)"),
