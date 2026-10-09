@@ -289,3 +289,15 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
  .profile-shortcut-copy small{font-size:10px}
  .feedback-toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 }
+
+
+/* V1.2 shared journey context — uses existing MATCHLATCH tokenized surfaces. */
+.v12-context,.v12-action-strip,.v12-closet-bridge{border:1px solid var(--line,#dce4dd);border-radius:18px;padding:17px 20px;margin:18px 0;background:var(--surface,#fff)}
+.v12-context-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.v12-context-tag{font-size:12px;border-radius:999px;background:var(--subtle,#ebf2ed);padding:8px 11px;color:var(--ink,#173e30)}
+.v12-action-strip,.v12-closet-bridge{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.v12-action-strip p{margin:0;max-width:40ch}
+.v12-closet-count,.v12-me-context,.v12-store-context{font-size:13px;line-height:1.6;color:var(--muted,#607269)}
+.v12-closet-bridge strong{font-size:16px;color:var(--ink,#173e30)}
+.v12-context .destination-link,.v12-action-strip .destination-link,.v12-closet-bridge .destination-link{min-height:44px}
+@media(max-width:580px){.v12-context,.v12-action-strip,.v12-closet-bridge{padding:15px}.v12-action-strip .destination-link,.v12-closet-bridge .destination-link{width:100%;text-align:center}}
