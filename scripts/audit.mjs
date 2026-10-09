@@ -429,5 +429,16 @@ check(file("app-shell.css").includes(".v12-closet-bridge")
   &&file("app-shell.css").includes("@media(max-width:580px)"),
   "V1.2 five-tab context is styled responsively");
 
+check(appShell.includes('v12-product-source') &&
+  appShell.includes('AWIN RETAILER FEED') &&
+  appShell.includes('SHOPIFY RETAILER CATALOG') &&
+  appShell.includes('Size not specified') &&
+  appShell.includes('Confirm final price, size and shipping at retailer'),
+  "V1.2 Store cards disclose product source, size limits, freshness and checkout uncertainty");
+check(appShell.includes('button("View product details ↗"') &&
+  appShell.includes('button("Add to shortlist"') &&
+  file("app-shell.css").includes(".v12-product-card"),
+  "V1.2 Store cards consistently present details and shortlist actions");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
