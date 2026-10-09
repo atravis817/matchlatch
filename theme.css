@@ -22,7 +22,7 @@
   background:var(--surface);border-color:var(--line);color:var(--ink)
 }
 :root[data-theme="dark"] .studio-entry-primary{background:#303c31;color:#f7fbf5;border-color:#465949}
-:root[data-theme="dark"] .studio-entry-primary .studio-entry-index{color:#cad5c8}
+:root[data-theme="dark"] .studio-entry-primary .studio-entry-eyebrow{color:#cad5c8}
 :root[data-theme="dark"] .studio-entry-primary p{color:#c0cbbf}
 :root[data-theme="dark"] .studio-entry p{color:#c0cbbf}
 :root[data-theme="dark"] :is(.drop,.preview-box,.result-photo-frame,.library-card-photo,.look-detail-photo,.cart-thumb,.purchase-summary img,.private-shop-image,.private-shop-placeholder,.store-card-cover,.destination-photo,.mood-archive-photo,.tree-slot-card img,.upload-glyph,.result-photo-frame,.collection-editor){
@@ -32,7 +32,7 @@
 :root[data-theme="dark"] :is(.mood-cover,.mood-charcoal .mood-cover){background:#303c31}
 :root[data-theme="dark"] .mood-stone .mood-cover{background:#354238}
 :root[data-theme="dark"] .mood-sand .mood-cover{background:#424739}
-:root[data-theme="dark"] :is(.mood-piece-name,.mood-sequence,.mood-piece-index){color:#e2ebe0}
+:root[data-theme="dark"] :is(.mood-piece-name){color:#e2ebe0}
 :root[data-theme="dark"] .mood-piece{border-color:#586a59}
 :root[data-theme="dark"] .mood-archive-copy strong{color:var(--ink)}
 :root[data-theme="dark"] :is(.primary,.library-primary,.look-action.primary,.store-submit,.private-shop-controls button,.private-shop-actions button){

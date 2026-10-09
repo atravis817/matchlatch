@@ -567,19 +567,20 @@
   function renderClosetOverview(target){
     const wants=new Set([...dbState.favorites,...dbState.cart].map(x=>x.lookId+":"+x.pieceIndex)).size;
     const sections=[
-      ["Collections",dbState.collections.length,"collections","Your folders and saved ideas"],
-      ["Saved looks",dbState.looks.filter(x=>x.saved).length,"outfits","Outfits you've kept"],
-      ["Favorites",dbState.favorites.length,"favorites","Pieces you love"],
-      ["Wants",wants,"wants","Pieces you want to explore"],
-      ["Shopping shortlist",dbState.cart.length,"shortlist","Pieces to shop later"],
-      ["Owned",dbState.purchases.length,"purchases","Purchases you've recorded"],
-      ["Inspiration photos",dbState.inspirations.length,"inspirations","Your starting images"]
+      ["Collections",dbState.collections.length,"collections","Your folders and saved ideas","folder","folders"],
+      ["Saved looks",dbState.looks.filter(x=>x.saved).length,"outfits","Outfits you've kept","saved look","saved looks"],
+      ["Favorites",dbState.favorites.length,"favorites","Pieces you love","piece","pieces"],
+      ["Wants",wants,"wants","Pieces you want to explore","piece","pieces"],
+      ["Shopping shortlist",dbState.cart.length,"shortlist","Pieces to shop later","piece","pieces"],
+      ["Owned",dbState.purchases.length,"purchases","Purchases you've recorded","recorded purchase","recorded purchases"],
+      ["Inspiration photos",dbState.inspirations.length,"inspirations","Your starting images","photo","photos"]
     ];
     const grid=node("div","closet-overview");
-    for(const [title,count,tab,description] of sections){
+    for(const [title,count,tab,description,singular,plural] of sections){
       const entry=btn("",()=>openClosetTab(tab),"closet-summary-tile");
-      entry.append(node("span","closet-summary-count",String(count)),
-        node("strong",null,title),
+      const countLabel=count ? count+" "+(count===1?singular:plural) : "Nothing saved yet";
+      entry.append(node("strong",null,title),
+        node("span","closet-summary-metric",countLabel),
         node("small",null,description),
         node("span","closet-summary-arrow","Open ↗"));
       grid.append(entry);

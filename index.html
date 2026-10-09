@@ -84,7 +84,6 @@
     .panel{padding:34px 36px 39px;min-width:0}
     .panel:first-child{border-right:1px solid var(--line)}
     .panel-top{display:flex;align-items:center;gap:13px;margin-bottom:18px}
-    .num{font-size:12px;font-weight:700;color:#929691}
     .panel-tag{font-size:10px;text-transform:uppercase;letter-spacing:.16em;font-weight:750;color:#858985}
     h2{font-size:25px;letter-spacing:-.045em;font-weight:600;margin:0 0 9px}
     .sub{color:var(--muted);font-size:13px;line-height:1.7;margin:0 0 24px}
@@ -156,8 +155,7 @@
     .styling-suggestions summary{cursor:pointer;font-size:11px;font-weight:650;color:#5d665d}
     .styling-suggestions[open] summary{margin-bottom:14px}
     .budget{background:#f2f3f0;border:1px solid #eceeeb;color:#535953;font-size:12px;padding:13px 16px;line-height:1.6;margin:21px 0 5px}
-    .result-item{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:17px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
-    .item-index{color:#9da39c;font-size:12px;font-weight:650}
+    .result-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:17px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
     .piece-label{color:#818680;text-transform:uppercase;letter-spacing:.11em;font-size:10px;font-weight:720;margin-bottom:7px}
     .result-item strong{display:block;font-size:14px;font-weight:640;line-height:1.5}
     .result-item small{display:block;color:#898e88;font-size:11px;margin-top:7px}
@@ -264,7 +262,7 @@
     <section id="screen-mood" class="app-screen" hidden aria-label="Mood inspiration">
       <div class="container destination-space">
         <div class="destination-heading">
-          <span class="kicker">01 / DISCOVER</span>
+          <span class="kicker">MOOD / INSPIRATION</span>
           <h1>Find your <span>mood.</span></h1>
           <p>Outfit ideas inspired by your style preferences and saved looks.</p>
         </div>
@@ -274,7 +272,7 @@
     <section id="screen-store" class="app-screen" hidden aria-label="MATCHLATCH Store">
       <div class="container destination-space">
         <div class="destination-heading">
-          <span class="kicker">03 / EXPLORE</span>
+          <span class="kicker">STORE / EXPLORE</span>
           <h1>The <span>store.</span></h1>
           <p>Search clothing and accessories from participating retailers by style, category, and budget.</p>
         </div>
@@ -295,7 +293,7 @@
     </div>
     <section class="container studio" id="studio" aria-label="Style studio">
       <div class="panel">
-        <div class="panel-top"><span class="num">01</span><span class="panel-tag">Start with a piece</span></div>
+        <div class="panel-top"><span class="panel-tag">Start with a piece</span></div>
         <h2>Choose a starting piece.</h2>
         <p class="sub">A shirt, sneaker, jacket, or anything that inspires your next look.</p>
         <label class="drop" id="drop" for="photo" role="button" tabindex="0" aria-label="Choose a photo to style">
@@ -425,7 +423,7 @@
         </details>
       </div>
       <div class="panel">
-        <div class="panel-top"><span class="num">02</span><span class="panel-tag">Make it yours</span></div>
+        <div class="panel-top"><span class="panel-tag">Make it yours</span></div>
         <h2>Set your preferences.</h2>
         <p class="sub">Choose your style and budget. You can update these anytime in Me.</p>
         <div class="field-grid">
@@ -547,7 +545,7 @@
     <section class="results" id="results" aria-live="polite">
       <div class="container">
         <div class="results-head">
-          <div><div class="kicker">03 / Your look</div><h2 id="result-title">Your look, unlocked.</h2></div>
+          <div><div class="kicker">YOUR LOOK</div><h2 id="result-title">Your look, unlocked.</h2></div>
           <span class="mode" id="mode">AI STYLING</span>
         </div>
         <div class="results-layout">
@@ -577,7 +575,7 @@
     <section id="screen-styles" class="app-screen" hidden aria-label="My Closet">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">02 / YOUR WARDROBE</span>
+          <span class="tiny-label">YOUR WARDROBE</span>
           <h1>My <span>Closet.</span></h1>
           <p>Find your collections, saved looks, favorites, want list, and shopping shortlist.</p>
         </div><button class="library-subtle" type="button" id="closet-new-look">Create a new look ↗</button></div>
@@ -598,7 +596,7 @@
     <section id="screen-account" class="app-screen" hidden aria-label="Account and sign in">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">05 / YOUR SPACE</span>
+          <span class="tiny-label">YOUR SPACE</span>
           <h1>Me<span>.</span></h1>
           <p>Manage your style preferences, appearance, account, and privacy settings.</p>
         </div></div>
@@ -953,7 +951,6 @@
         const ratios=[.38,.37,.25];
         data.pieces.slice(0,3).forEach((piece,index) => {
           const row=node("div","result-item");
-          const num=node("div","item-index",String(index+1).padStart(2,"0"));
           const left=node("div","result-item-content");
           left.append(node("div","piece-label",piece.type || "Matching piece"));
           left.append(node("strong",null,piece.description || "Complementary piece"));
@@ -963,7 +960,7 @@
           link.href="https://www.google.com/search?tbm=shop&q="+encodeURIComponent(query);
           link.target="_blank";link.rel="noopener noreferrer";
           link.setAttribute("aria-label","Search shopping options for "+(piece.type || "this item"));
-          row.append(num,left,link);list.append(row);
+          row.append(left,link);list.append(row);
         });
         $("results").style.display="block";
         window.MatchlatchLibrary?.captureLook(data,imageData,p);

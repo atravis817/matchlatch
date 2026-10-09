@@ -49,17 +49,17 @@ function renderWorkspace(){
  const target=$("studio-workspace");if(!target)return;
  target.replaceChildren();
  const state=snapshot();
- const heading=sectionTitle("02 / CREATE","Studio.","Start a new look or continue a saved project.");
+ const heading=sectionTitle("YOUR STUDIO","Studio.","Start a new look or continue a saved project.");
  target.append(heading);
  const actions=el("div","studio-entry-grid");
  const newCard=el("article","studio-entry studio-entry-primary");
- newCard.append(el("span","studio-entry-index","01 / NEW PROJECT"));
+ newCard.append(el("span","studio-entry-eyebrow","START FRESH"));
  newCard.append(el("h3",null,"Start with a piece."));
  newCard.append(el("p",null,"Upload an image or describe the piece you want to build around."));
  newCard.append(button("Create a new look ↗",()=>lib()?.startFreshStudio?.(),"studio-entry-action"));
  actions.append(newCard);
  const resumeCard=el("article","studio-entry");
- resumeCard.append(el("span","studio-entry-index","02 / YOUR WORK"));
+ resumeCard.append(el("span","studio-entry-eyebrow","SAVED WORK"));
  resumeCard.append(el("h3",null,"Continue a look."));
  resumeCard.append(el("p",null,state.looks.length?
    state.looks.length+" look"+(state.looks.length===1?"":"s")+" in your archive · "+state.collections.length+" folder"+(state.collections.length===1?"":"s"):
@@ -108,20 +108,20 @@ function curatedDirections(state,p){
  const firstFolder=state.collections.find(f=>state.inspirations.some(i=>i.collectionId===f.id));
  return [
   {
-   number:"01",tag:"YOUR SIGNATURE",title:aesthetic==="Minimalist"?"The quiet uniform":aesthetic+" / daily",
+   tag:"YOUR SIGNATURE",title:aesthetic==="Minimalist"?"The quiet uniform":aesthetic+" / daily",
    subtitle:"Everyday with intention.",accent:"charcoal",anchorType:"top:button-down-shirt",anchorColor:color,
    pieces:[fit+" shirt","Clean-cut trouser","Everyday sneaker","Subtle finishing layer"],
    query:[aesthetic,fit,palette,"outfit"].join(" "),reason:"Based on your "+aesthetic.toLowerCase()+" style preference."
   },
   {
-   number:"02",tag:"DRESSED UP",title:"The considered layer",
+   tag:"DRESSED UP",title:"The considered layer",
    subtitle:"A sharper way to show up.",accent:"stone",anchorType:"outerwear:blazer",anchorColor:color,
    pieces:["Structured jacket","Soft base layer","Tailored pant","Polished footwear"],
    query:[aesthetic,"tailored",occasion,"jacket"].join(" "),
    reason:"A complementary direction for "+occasion.toLowerCase()+"."
   },
   {
-   number:"03",tag:firstFolder?"FROM YOUR ARCHIVE":"OFF DUTY",
+   tag:firstFolder?"FROM YOUR ARCHIVE":"OFF DUTY",
    title:firstFolder?firstFolder.name:"The easy edit",
    subtitle:firstFolder?"A fresh take on a saved collection.":"Comfort, with a point of view.",
    accent:"sand",anchorType:"top:sweater",anchorColor:color,
@@ -164,11 +164,9 @@ function renderMood(){
  for(const direction of curatedDirections(state,p)){
   const card=el("article","mood-card mood-"+direction.accent);
   const visual=el("div","mood-cover");
-  visual.append(el("span","mood-sequence",direction.number+" / 03"));
   const outfit=el("div","mood-outfit");
-  for(const [idx,piece] of direction.pieces.entries()){
+  for(const piece of direction.pieces){
    const row=el("div","mood-piece");
-   row.append(el("span","mood-piece-index",String(idx+1).padStart(2,"0")));
    row.append(el("span","mood-piece-name",piece));
    outfit.append(row);
   }
@@ -347,10 +345,10 @@ function renderProfileLinks(){
  const root=$("profile-shortcuts");if(!root)return;
  root.replaceChildren();
  const sections=[
-  ["01","Appearance","Light, dark or your device theme.", "me-appearance"],
-  ["02","My style","Preferences, sizes and your look.", "me-preferences"],
-  ["03","My account","Guest access and secure sign-in.", "me-account-panel"],
-  ["04","Privacy & data","Device data and account controls.", "me-privacy-panel"]
+  ["DISPLAY","Appearance","Light, dark or your device theme.", "me-appearance"],
+  ["PERSONALIZATION","My style","Preferences, sizes and your look.", "me-preferences"],
+  ["ACCOUNT ACCESS","My account","Guest access and secure sign-in.", "me-account-panel"],
+  ["PRIVACY CONTROL","Privacy & data","Device data and account controls.", "me-privacy-panel"]
  ];
  for(const [number,name,description,targetId] of sections){
   const card=button("",()=>{
@@ -359,7 +357,7 @@ function renderProfileLinks(){
    window.MatchlatchMeFlow?.open(view||"home");
   },"profile-shortcut");
   const info=el("span","profile-shortcut-copy");
-  info.append(el("span","micro-title",number+" / ME"),el("strong",null,name),el("small",null,description));
+  info.append(el("span","micro-title",number),el("strong",null,name),el("small",null,description));
   card.append(info,el("span","profile-shortcut-arrow","↗"));
   root.append(card);
  }
@@ -367,7 +365,7 @@ function renderProfileLinks(){
 function renderAppearance(){
  const root=$("me-appearance");if(!root)return;
  root.replaceChildren();
- root.append(sectionTitle("01 / YOUR SPACE","Appearance.",
+ root.append(sectionTitle("DISPLAY SETTINGS","Appearance.",
   "Choose a look that feels right, day or night."));
  const row=el("div","appearance-control");
  row.setAttribute("role","group");row.setAttribute("aria-label","App color theme");
@@ -393,7 +391,7 @@ function renderAppearance(){
 function renderMePreferences(){
  const root=$("me-preferences");if(!root)return;
  root.replaceChildren();
- const heading=sectionTitle("02 / YOUR TASTE","Your style, your rules.",
+ const heading=sectionTitle("STYLE PREFERENCES","Your style, your rules.",
   "Update the preferences used in Studio and Mood.");
  root.append(heading);
  const grid=el("div","me-settings-grid");
