@@ -221,7 +221,7 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null};
+const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:""};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
@@ -241,6 +241,14 @@ function storeSizeFor(slot,p){
 }
 const USD=value=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
 let searchId=0,controller=null;
+function deliveryByDate(item,deadline,zip){
+ if(!deadline)return true;
+ const e=item?.deliveryEstimate;
+ return Boolean(zip&&e?.source==="retailer"&&e.destinationZip===zip
+  &&/^\d{4}-\d{2}-\d{2}$/.test(e.latest||"")
+  &&/^\d{4}-\d{2}-\d{2}$/.test(e.earliest||"")
+  &&e.earliest<=e.latest&&e.latest<=deadline);
+}
 function storeCard(item){
  const card=el("article","store-card v12-product-card");
  const cover=el("div","store-card-cover");
@@ -390,7 +398,16 @@ function renderStore(){
  const queryLabel=el("label","store-field store-query-field");queryLabel.append(el("span",null,"WHAT ARE YOU LOOKING FOR?"),query);
  const categoryLabel=el("label","store-field");categoryLabel.append(el("span",null,"CATEGORY"),select);
  const budgetLabel=el("label","store-field");budgetLabel.append(el("span",null,"MAX PRICE · USD"),budget);
- form.append(queryLabel,categoryLabel,budgetLabel,submit);
+ const deadlineLabel=el("label","store-field v12-date-field");
+ deadlineLabel.append(el("span",null,"NEED IT BY · OPTIONAL"));
+ const deadline=el("input");deadline.type="date";deadline.setAttribute("aria-label","Need my items by date");
+ deadline.value=storeState.needBy;
+ // Native date input opens the device calendar picker.
+ const localToday=()=>{const d=new Date(),off=d.getTimezoneOffset()*60000;return new Date(d.getTime()-off).toISOString().slice(0,10);};
+ deadline.min=localToday();
+ const deadlineNote=el("small","v12-delivery-note","Only retailer forecasts confirming arrival on or before this date qualify. Shipping estimates are not guarantees.");
+ deadlineLabel.append(deadline,deadlineNote);
+ form.append(queryLabel,categoryLabel,budgetLabel,deadlineLabel,submit);
  box.append(form);
  const context=el("p","v12-store-context","Personal style, size and budget determine eligible results. Web references remain research-only.");
  box.append(context);
@@ -492,6 +509,8 @@ function renderStore(){
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   const q=query.value.trim(),max=Number(budget.value);
+  if(deadline.value&&(!/^\\d{4}-\\d{2}-\\d{2}$/.test(deadline.value)||deadline.value<localToday())){status.textContent="Choose today or a future delivery date.";return;}
+  if(deadline.value&&!shippingZip()){status.textContent="Save your destination ZIP in Me before using Need it by.";return;}
   if(q.length<2||!Number.isFinite(max)||max<1||max>10000){
    status.textContent="Enter a search of at least 2 characters and a budget between $1 and $10,000.";
    return;
@@ -508,6 +527,7 @@ function renderStore(){
   if(!criteria){status.textContent="Choose a supported clothing category.";return;}
   storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
+  storeState.needBy=deadline.value;
   storeState.searched=true;storeState.items=[];
   showStoreView("results");
   list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
@@ -528,12 +548,16 @@ function renderStore(){
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
    // Hard preference/variant and suitability gates are mandatory for Store
    // just as they are for AI-originated Outfit Tree recommendations.
-   const items=matcher.rank(Array.isArray(data.items)?data.items:[],criteria);
+   const ranked=matcher.rank(Array.isArray(data.items)?data.items:[],criteria);
+   const items=ranked.filter(item=>deliveryByDate(item,storeState.needBy,shippingZip()));
    storeState.items=items;storeState.checkedAt=Date.now();
    const matches=window.MatchlatchRetailerMatch;
    const merchants=matches?.merchants?.(items)||[];
    storeState.retailers=merchants;
-   status.textContent=items.length?
+   status.textContent=storeState.needBy&&!shippingZip()
+    ?"Set a five-digit destination ZIP in Me before searching by delivery deadline.":
+    storeState.needBy&&!items.length?
+    "No retailer-confirmed delivery forecasts meet "+storeState.needBy+". "+ranked.length+" otherwise matching product(s) withheld; clear the deadline to browse them.":items.length?
     items.length+" retailer listing"+(items.length===1?"":"s")+
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
