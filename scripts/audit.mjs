@@ -465,11 +465,16 @@ check(file("app-shell.css").includes('.v12-date-field input[type="date"]'),
 
 check(file("lib/public-retailer-research.mjs").includes('status:"excluded"')
   &&file("lib/public-retailer-research.mjs").includes('classification:"public_research_reference"')
-  &&file("api/discover.mjs").includes("classifyPublicReference(source.url)"),
+  &&file("api/discover.mjs").includes("researchSources(sources)"),
   "POC-01 restricts commercial collection and identifies research-only citations");
 check(file("api/public-catalog.mjs").includes('automatedProductIngestion:false')
   &&file("scripts/test-public-catalog.mjs").includes('PASS POC-01 policy guardrails'),
   "POC-01 exposes honest discovery readiness and regression tests");
+check(appShell.includes("Retailer research references")
+  &&appShell.includes("Not eligible for shortlist")
+  &&file("api/public-catalog.mjs").includes("reviewQueue:REVIEW_QUEUE")
+  &&file("lib/public-retailer-research.mjs").includes("export function researchSources"),
+  "POC-01 strategic expansion remains research-only with retailer review gates");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
