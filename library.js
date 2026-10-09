@@ -48,6 +48,7 @@
     if(activePage==="styles")renderStyles();
     if(activePage==="cart")renderCart();
     if(activePage==="account")renderAccount();
+    window.dispatchEvent(new Event("matchlatch:library"));
   };
   const setGuest=()=>{
     activeUser=null;
@@ -76,6 +77,7 @@
       if(activeUser&&cloudAdapter)cloudAdapter.queueState(dbState);
       else localStorage.setItem(STORAGE_KEY,JSON.stringify(dbState));
       refreshCounts();
+      window.dispatchEvent(new Event("matchlatch:library"));
       return true;
     } catch (error) {
       console.warn("MATCHLATCH could not save local library",error);
@@ -316,11 +318,11 @@
   }
 
   function showPage(page,updateHash=true) {
-    if(!["studio","styles","cart","account"].includes(page))page="studio";
+    if(!["mood","studio","store","styles","cart","account"].includes(page))page="studio";
     activePage=page;
     document.querySelectorAll(".app-screen").forEach(section=>section.hidden=section.id!=="screen-"+page);
-    document.querySelectorAll(".app-nav button").forEach(button=>{
-      const active=button.dataset.page===page;
+    document.querySelectorAll(".bottom-nav button").forEach(button=>{
+      const active=button.dataset.page===(page==="styles"?"studio":page==="cart"?"store":page);
       button.classList.toggle("active",active);
       if(active)button.setAttribute("aria-current","page");else button.removeAttribute("aria-current");
     });
@@ -328,14 +330,15 @@
     if(page==="styles")renderStyles();
     if(page==="cart")renderCart();
     if(page==="account")renderAccount();
+    window.dispatchEvent(new CustomEvent("matchlatch:page",{detail:{page}}));
     window.scrollTo({top:0,behavior:"auto"});
   }
   function readLocation() {
     const hash=(location.hash||"").replace("#","").split("?")[0].toLowerCase();
-    if(["styles","cart","account"].includes(hash))return hash;
+    if(["mood","store","styles","cart","account"].includes(hash))return hash;
     return "studio";
   }
-  document.querySelectorAll(".app-nav button").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+  document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
   document.querySelectorAll("[data-nav-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.navPage)));
   window.addEventListener("hashchange",()=>showPage(readLocation(),false));
   window.addEventListener("popstate",()=>showPage(readLocation(),false));
@@ -1044,7 +1047,34 @@
     const index=shopPiece(slot,item);
     if(index>=0)addToCart(currentLookId,index);
   }
+  function discoverySnapshot(){
+    return {
+      collections:dbState.collections.map(x=>({id:x.id,name:x.name,createdAt:x.createdAt})),
+      inspirations:dbState.inspirations.map(x=>({id:x.id,label:x.label,createdAt:x.createdAt,collectionId:x.collectionId||""})),
+      looks:dbState.looks.map(x=>({
+        id:x.id,inspirationId:x.inspirationId,label:x.label,createdAt:x.createdAt,
+        saved:Boolean(x.saved),mode:x.mode,styleNotes:x.styleNotes||"",
+        item:x.item?{label:x.item.label,category:x.item.category,color:x.item.color}:null
+      })),
+      favorites:dbState.favorites.map(x=>({lookId:x.lookId,inspirationId:x.inspirationId})),
+      cartCount:dbState.cart.length
+    };
+  }
+  function openCollectionFromStudio(id){
+    if(id!=="__unfiled__"&&!collectionFor(id))return;
+    selectedTab="collections";selectedCollectionId=id;selectedLookDetail=null;showPage("styles");
+  }
+  function startFreshStudio(){
+    window.MatchlatchResetStudio?.();
+    currentLookId=null;
+    showPage("studio");
+    $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
+    $("photo")?.focus();
+  }
   window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,
-    chooseShopItem,favoriteShopItem,cartShopItem};
+    chooseShopItem,favoriteShopItem,cartShopItem,
+    discoverySnapshot,attachInspirationPhoto:attachPhoto,
+    openLook:lookId=>void reopenTree(lookId),
+    openCollection:openCollectionFromStudio,startFreshStudio};
   void initAuth();
 })();

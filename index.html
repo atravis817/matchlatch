@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/library.css">
   <link rel="stylesheet" href="/outfit-tree.css">
   <link rel="stylesheet" href="/savings.css">
+  <link rel="stylesheet" href="/app-shell.css">
   <style>
     :root{
       color-scheme:light;
@@ -175,17 +176,36 @@
         <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
         <span class="brand-wordmark">MATCH<span>LATCH</span></span>
       </a>
-      <nav class="app-nav" aria-label="Main navigation">
-        <button type="button" data-page="studio" class="active" aria-current="page">Studio</button>
-        <button type="button" data-page="styles">Your Styles <span id="styles-count" class="nav-counter"></span></button>
-        <button type="button" data-page="cart">Cart <span id="cart-count" class="nav-counter"></span></button>
-        <button type="button" data-page="account">Account</button>
+      <nav class="header-quick" aria-label="Your library and shopping list">
+        <button type="button" data-nav-page="styles">Collections <span id="styles-count" class="nav-counter"></span></button>
+        <button type="button" data-nav-page="cart">Cart <span id="cart-count" class="nav-counter"></span></button>
       </nav>
       
     </div>
   </header>
-  <main>
+  <main id="app-main">
+    <section id="screen-mood" class="app-screen" hidden aria-label="Mood inspiration">
+      <div class="container destination-space">
+        <div class="destination-heading">
+          <span class="kicker">01 / DISCOVER</span>
+          <h1>Find your <span>mood.</span></h1>
+          <p>Curated directions shaped by the styles, preferences and collections you make your own.</p>
+        </div>
+        <div id="mood-body" aria-live="polite"></div>
+      </div>
+    </section>
+    <section id="screen-store" class="app-screen" hidden aria-label="MATCHLATCH Store">
+      <div class="container destination-space">
+        <div class="destination-heading">
+          <span class="kicker">03 / EXPLORE</span>
+          <h1>The <span>store.</span></h1>
+          <p>Find your next piece across participating retailer catalogs, selected for your style and budget.</p>
+        </div>
+        <div id="store-body"></div>
+      </div>
+    </section>
     <div id="screen-studio" class="app-screen">
+      <section class="container studio-workspace" id="studio-workspace" aria-label="Studio projects"></section>
     <section class="intro container">
       <div class="kicker">Your style, unlocked.</div>
       <h1>Find your next <span>look.</span></h1>
@@ -501,10 +521,11 @@
     <section id="screen-account" class="app-screen" hidden aria-label="Account and sign in">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">Your MATCHLATCH account</span>
-          <h1>Welcome back.</h1>
-          <p>A personal home for your style, saved pieces, and shopping inspiration.</p>
+          <span class="tiny-label">04 / YOUR SPACE</span>
+          <h1>My <span>profile.</span></h1>
+          <p>Your preferences, collections, account and saved shopping shortlist—all in one place.</p>
         </div></div>
+        <div id="profile-shortcuts" class="profile-shortcuts" aria-label="Profile shortcuts"></div>
         <div class="account-panel">
           <h2>Your style, your space.</h2>
           <p>Keep using MATCHLATCH as a guest. Secure email login will appear here when account syncing is ready.</p>
@@ -535,6 +556,26 @@
       </div>
     </section>
   </main>
+  <nav class="bottom-nav" aria-label="Primary navigation">
+    <div class="bottom-nav-inner">
+      <button class="dock-link" type="button" data-page="mood" aria-label="Mood, inspiration">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.9 7.2L21 11l-7.1 2L12 20l-1.9-7L3 11l7.1-1.8L12 2Z"/><path d="m19 18 .65 1.35L21 20l-1.35.65L19 22l-.65-1.35L17 20l1.35-.65L19 18Z"/></svg>
+        <span>MOOD</span>
+      </button>
+      <button class="dock-link dock-studio" type="button" data-page="studio" aria-label="Studio, create or continue a project">
+        <span class="dock-studio-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8V5h3M16 5h3v3M19 16v3h-3M8 19H5v-3"/><path d="M12 8v8M8 12h8"/></svg></span>
+        <span>STUDIO</span>
+      </button>
+      <button class="dock-link" type="button" data-page="store" aria-label="Store, shop retailer catalogs">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>
+        <span>STORE</span>
+      </button>
+      <button class="dock-link" type="button" data-page="account" aria-label="My profile">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.3 2.75-5.5 7-5.5s7 2.2 7 5.5"/></svg>
+        <span>PROFILE</span>
+      </button>
+    </div>
+  </nav>
   <footer class="footer">
     <div class="container footer-inner">
       <a class="brand brand-lockup" href="#studio" aria-label="MATCHLATCH home">
@@ -861,5 +902,6 @@
   <script src="/library.js" defer></script>
   <script src="/outfit-tree.js" defer></script>
   <script src="/savings.js" defer></script>
+  <script src="/app-shell.js" defer></script>
 </body>
 </html>
