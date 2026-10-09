@@ -301,3 +301,17 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
 .v12-closet-bridge strong{font-size:16px;color:var(--ink,#173e30)}
 .v12-context .destination-link,.v12-action-strip .destination-link,.v12-closet-bridge .destination-link{min-height:44px}
 @media(max-width:580px){.v12-context,.v12-action-strip,.v12-closet-bridge{padding:15px}.v12-action-strip .destination-link,.v12-closet-bridge .destination-link{width:100%;text-align:center}}
+
+
+/* V1.2 Store result contract: photo > source > merchant > name > price/size > freshness > actions. */
+.v12-product-card{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.v12-product-card .store-card-cover{aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.v12-product-card .store-card-cover img{width:100%;height:100%;object-fit:contain}
+.v12-product-card .store-card-info{display:flex;flex:1;flex-direction:column;align-items:stretch;gap:9px}
+.v12-product-card .store-card-info h3{margin:0;overflow-wrap:anywhere;line-height:1.35}
+.v12-product-source{align-self:flex-start;font-weight:750;font-size:10px;line-height:1.5;letter-spacing:.07em;color:var(--ink,#173e30);border:1px solid var(--line,#dfe7df);border-radius:6px;padding:4px 7px}
+.v12-product-meta{display:flex;gap:9px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.v12-product-card .store-data-note{font-size:11px;line-height:1.45;color:var(--muted,#66746b)}
+.v12-product-card .store-card-actions{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px}
+.v12-product-card .store-card-actions button{min-height:44px;flex:1 1 138px;white-space:normal}
+@media(max-width:580px){.v12-product-card .store-card-info{gap:8px}.v12-product-card .store-card-actions button{flex-basis:100%}}
