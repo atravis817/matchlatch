@@ -1,4 +1,5 @@
 import {searchAwin,verifyAwin,postgrestConfig} from "../lib/awin-public-catalog.mjs";
+import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
 // MATCHLATCH Private Shop: live Shopify Global Catalog UCP interface.
 // No server-side catalog-result caching. A listing is displayed only when a
 // purchasable variant is explicitly reported available at a valid USD price.
@@ -89,6 +90,9 @@ export async function GET(request){
     const color=clip(u.searchParams.get("color"),50);
     const region=clip(u.searchParams.get("region"),2).toUpperCase();
     const postal=clip(u.searchParams.get("postal"),10);
+    const needBy=clip(u.searchParams.get("needBy"),10);
+    const today=new Date().toISOString().slice(0,10);
+    if(needBy&&(!/^\d{4}-\d{2}-\d{2}$/.test(needBy)||needBy<today||!/^\d{5}$/.test(postal)))return reply({error:"A current deadline and five-digit ZIP are required."},400);
     if((region&&!/^[A-Z]{2}$/.test(region))||(postal&&!/^\d{5}(?:-\d{4})?$/.test(postal)))
       return reply({error:"Invalid US shipping destination."},400);
     const destination={country:"US",...(region?{region}:{}),...(postal?{postal_code:postal}:{})};
@@ -142,7 +146,11 @@ export async function GET(request){
         if(!byProduct.has(item.variantId))byProduct.set(item.variantId,item);
       }
       // The client performs user-first style ranking over both real providers.
-      const items=[...byProduct.values()].slice(0,36);
+      const inventory=[...byProduct.values()].slice(0,36);
+      // Trusted provider response only: never promote caller-authored evidence.
+      const evaluated=inventory.map(item=>({...item,
+        delivery:evaluateDelivery(item,{zip:postal,needBy,today})}));
+      const items=needBy?evaluated.filter(item=>item.delivery.tier==="retailer_confirmed"&&item.delivery.eligible):evaluated;
       const merchants=new Map();
       for(const item of items){
         const id=item.merchantId||item.merchantDomain||item.merchant;
@@ -151,7 +159,8 @@ export async function GET(request){
         merchants.get(id).listingCount++;
       }
       return reply({items,source:awin.length?"Shopify Global Catalog + Awin feed":"Shopify Global Catalog",checkedAt:new Date().toISOString(),
-        criteria:{slot,size:size||null,color:color||null,max,currency:"USD",shipsTo:destination},
+        criteria:{slot,size:size||null,color:color||null,max,currency:"USD",shipsTo:destination,needBy:needBy||null},
+        deliveryFilter:{active:Boolean(needBy),evaluated:inventory.length,qualifying:items.length,withheld:inventory.length-items.length,rule:"retailer evidence only"},
         retailerCoverage:{scope:"this search only",merchants:[...merchants.values()],count:merchants.size},
         verification:{price:"Shopify live price or Awin recent merchant feed snapshot",
           stock:"Shopify point-in-time or Awin published-feed availability; neither is reserved",
