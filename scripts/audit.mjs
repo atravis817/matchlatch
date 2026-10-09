@@ -413,5 +413,21 @@ check(file("V1.2-UX-SPEC.md").includes("## Milestone A") &&
   file("V1.2-TAB-IMPLEMENTATION.md").includes("## MY CLOSET"),
   "V1.2 journey and five-tab acceptance plans are present");
 
+/* V1.2 shared journey: all five destinations provide continuity. */
+check(appShell.includes('function renderClosetBridge()')
+  &&appShell.includes('if(page==="styles"||page==="closet")renderClosetBridge()'),
+  "V1.2 Closet bridge offers a path back to Studio");
+check(appShell.includes('const context=el("section","v12-context")')
+  &&appShell.includes('Edit style in Me ↗'),
+  "V1.2 Studio exposes applied preference context");
+check(appShell.includes('Create a look in Studio ↗')
+  &&appShell.includes('initialStoreSlot='),
+  "V1.2 Mood provides explicit Studio and category-aware Store handoffs");
+check(appShell.includes('v12-store-context') && appShell.includes('v12-me-context'),
+  "V1.2 Store trust boundaries and Me profile impacts are explained");
+check(file("app-shell.css").includes(".v12-closet-bridge")
+  &&file("app-shell.css").includes("@media(max-width:580px)"),
+  "V1.2 five-tab context is styled responsively");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
