@@ -431,7 +431,7 @@ function renderStore(){
  const requestedView=(location.hash||"").slice(1).split("/")[1]||"search";
  // Returning from another tab restores the prior results page without implying fresh stock.
  const view=requestedView==="search"&&storeState.searched&&!initialStoreQuery?
-  (storeState.selected?"results":"results"):requestedView;
+  "results":requestedView;
  if(initialStoreQuery){
   status.textContent="Your mood is ready to shop. Choose a category and search.";
   initialStoreQuery="";
