@@ -322,3 +322,7 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
 .v12-shipping-preference h3{margin:0 0 8px}
 .v12-shipping-preference input{max-width:165px;display:block;padding:10px;margin:8px 0 14px;border:1px solid var(--line,#dfe7df);border-radius:8px;background:var(--surface,#fff);color:var(--ink,#173e30)}
 .v12-shipping-preference .destination-link{min-height:44px}
+
+/* Delivery deadline stays an optional, native mobile-calendar search constraint. */
+.v12-date-field input[type="date"]{min-height:44px;width:100%;max-width:300px;background:var(--surface,#fff);color:var(--ink,#173e30);border:1px solid var(--line,#dfe7df);border-radius:10px;padding:10px;margin-top:8px}
+.v12-date-field .v12-delivery-note{display:block;margin-top:7px;max-width:42ch}
