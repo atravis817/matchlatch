@@ -8,6 +8,21 @@ const $=id=>document.getElementById(id);
 const lib=()=>window.MatchlatchLibrary;
 const snapshot=()=>lib()?.discoverySnapshot?.()||{collections:[],inspirations:[],looks:[],favorites:[],cartCount:0};
 const profile=()=>window.MatchlatchStyleProfile?.get?.()||{};
+const SHIPPING_KEY="matchlatch-shipping-region-v12";
+const shippingZip=()=>{try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\\d{5}$/.test(z)?z:"";}catch{return "";}};
+const shippingInfo=item=>{
+ const zip=shippingZip();
+ const label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
+ // Forecast dates may be shown only from a provider's explicitly supplied
+ // destination-specific estimate, not from nationwide shipping eligibility.
+ const estimate=item?.deliveryEstimate;
+ const eligible=zip&&estimate?.destinationZip===zip&&estimate?.source==="retailer"
+  &&/^\\d{4}-\\d{2}-\\d{2}$/.test(estimate?.earliest||"")
+  &&/^\\d{4}-\\d{2}-\\d{2}$/.test(estimate?.latest||"")
+  &&estimate.earliest<=estimate.latest;
+ return eligible?label+" · Retailer estimated "+estimate.earliest+" to "+estimate.latest:
+  label+" · Delivery estimate unavailable until retailer confirms transit times";
+};
 const el=(tag,cls,text)=>{
  const node=document.createElement(tag);
  if(cls)node.className=cls;
@@ -254,6 +269,7 @@ function storeCard(item){
  const time=Date.parse(String(item.checkedAt||""));
  const timing=Number.isFinite(time)?"Checked "+new Date(time).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"Check latest price and stock";
  info.append(el("small","store-data-note",timing+" · Confirm final price, size and shipping at retailer"));
+ info.append(el("small","v12-delivery-note",shippingInfo(item)));
  const actions=el("div","store-card-actions store-card-shopping");
  actions.append(button("View product details ↗",()=>openProduct(item),"store-view-details"));
  actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
@@ -305,6 +321,7 @@ function renderProduct(){
  if(item.variant&&item.variant!==item.size)specifics.append(el("span",null,item.variant));
  if(!specifics.children.length)specifics.append(el("span",null,"Selected retailer listing"));
  details.append(specifics);
+ details.append(el("p","v12-delivery-note",shippingInfo(item)));
  details.append(el("p","store-product-disclaimer",item.source==="awin"
   ?"Retailer-feed listing. Confirm size, stock, final price and shipping on the retailer’s website."
   :"Price and availability are checked when listed and may change before checkout."));
@@ -623,6 +640,24 @@ function renderMePreferences(){
   field.append(clone);grid.append(field);
  }
  root.append(grid);
+ const shipping=el("section","v12-shipping-preference");
+ shipping.append(el("h3",null,"Delivery destination"));
+ shipping.append(el("p","v12-me-context","Optional US ZIP code for delivery forecasting. Saved on this device only; never sent to product search, analytics or OpenAI. A retailer-specific estimate is required before dates appear."));
+ const zipLabel=el("label","me-setting");
+ zipLabel.append(el("span","me-setting-label","US ZIP code"));
+ const input=el("input");input.type="text";input.inputMode="numeric";input.maxLength=5;
+ input.pattern="[0-9]{5}";input.placeholder="5-digit ZIP";input.autocomplete="off";
+ input.value=shippingZip();zipLabel.append(input);shipping.append(zipLabel);
+ const zipStatus=el("p","v12-me-context");zipStatus.setAttribute("role","status");
+ shipping.append(button("Save destination",()=>{
+  const value=input.value.trim();
+  if(value&&!/^\\d{5}$/.test(value)){zipStatus.textContent="Enter a valid five-digit US ZIP code.";return;}
+  try{if(value)localStorage.setItem(SHIPPING_KEY,value);else localStorage.removeItem(SHIPPING_KEY);
+   zipStatus.textContent=value?"Destination saved on this device.":"Destination cleared.";
+  }catch{zipStatus.textContent="Local storage is unavailable. Destination not saved.";}
+ },"destination-link"));
+ shipping.append(zipStatus);
+ root.append(shipping);
  const footer=el("div","me-settings-bottom");
  footer.append(el("p","me-preferences-status","Changes are saved to your device or signed-in account."));
  footer.lastChild.id="me-preferences-status";
