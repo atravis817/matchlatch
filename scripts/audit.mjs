@@ -476,5 +476,13 @@ check(appShell.includes("Retailer research references")
   &&file("lib/public-retailer-research.mjs").includes("export function researchSources"),
   "POC-01 strategic expansion remains research-only with retailer review gates");
 
+check(file("lib/delivery-intelligence.mjs").includes('tier:"policy_forecast",eligible:false')
+  &&file("lib/delivery-intelligence.mjs").includes('estimate?.source==="retailer"')
+  &&file("scripts/test-delivery-intelligence.mjs").includes("PASS POC-02 delivery intelligence scenarios"),
+  "POC-02 keeps policy projections distinct from deadline-eligible retailer evidence");
+check(file("api/delivery-intelligence.mjs").includes('mode:"evidence_evaluation_only"')
+  &&file("api/delivery-intelligence.mjs").includes("verifiedProductInventory:false"),
+  "POC-02 endpoint cannot imply inventory verification");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
