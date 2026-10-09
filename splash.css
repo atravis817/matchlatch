@@ -1,0 +1,16 @@
+/* V1.1 development-only brand entrance; independent of checkout and navigation. */
+.ml-splash{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#141b16;color:#e9f0e8;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility 0s linear .22s}
+.ml-splash.is-playing{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .16s ease}
+.ml-splash.is-exiting{opacity:0;pointer-events:none;transition:opacity .3s ease}
+.ml-splash-inner{display:grid;justify-items:center;gap:12px;transform:translateY(-9px)}
+.ml-splash-logo{width:min(58vw,230px);overflow:visible;filter:drop-shadow(0 8px 30px rgba(0,0,0,.12))}
+.ml-splash .ml-shackle{transform-box:fill-box;transform-origin:15% 94%;transition:transform .42s cubic-bezier(.2,.9,.25,1);transform:translate(13px,7px) rotate(-18deg)}
+.ml-splash .ml-tag-group{transform-box:fill-box;transform-origin:7% 8%}
+.ml-splash.is-playing .ml-shackle{animation:ml-unlock .48s .23s cubic-bezier(.2,.9,.25,1) both}
+.ml-splash.is-playing .ml-tag-group{animation:ml-tag-sway .65s .57s ease-in-out both}
+.ml-splash-word{font:700 13px/1.2 Inter,Arial,sans-serif;letter-spacing:.28em;padding-left:.28em;opacity:0}
+.ml-splash.is-playing .ml-splash-word{animation:ml-word .45s .16s ease both}
+@keyframes ml-unlock{0%{transform:translate(13px,7px) rotate(-18deg)}55%{transform:translate(2px,1px) rotate(0)}100%{transform:translate(0,0) rotate(0)}}
+@keyframes ml-tag-sway{0%{transform:rotate(0)}28%{transform:rotate(8deg)}55%{transform:rotate(-5deg)}78%{transform:rotate(2deg)}100%{transform:rotate(0)}}
+@keyframes ml-word{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.ml-splash,.ml-splash.is-exiting{transition:none}.ml-splash *{animation:none!important;transition:none!important}.ml-splash-word{opacity:1}}
