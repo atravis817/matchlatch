@@ -400,5 +400,17 @@ check(file("scripts/test-web-discovery.mjs").includes("Bad code cannot incur web
   &&file("scripts/test-awin-integration.mjs").includes("Awin joined-programmes endpoint does NOT include"),
   "Web source and Awin joined-product regression suites are present");
 
+/* V1.2 continuity: MOOD sends category context, STORE restores results honestly. */
+check(appShell.includes("initialStoreSlot=")
+  &&appShell.includes('select.value=initialStoreSlot||storeState.slot')
+  &&appShell.includes('const category=String(direction.anchorType||"").split(":")[0]'),
+  "V1.2 Mood shopping handoff carries matching clothing category");
+check(appShell.includes('const requestedView=(location.hash||"")')
+  &&appShell.includes('storeState.searched&&!initialStoreQuery')
+  &&appShell.includes('Previous results · prices and availability may have changed. Search again to refresh.'),
+  "V1.2 Store restores prior results with a stock freshness warning");
+check(file("V1.2-UX-SPEC.md").includes("Production")===false || file("V1.2-UX-SPEC.md").includes("production"),
+  "V1.2 UX specification remains available");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
