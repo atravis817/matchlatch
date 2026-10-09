@@ -2,6 +2,7 @@
 // The OpenAI web_search tool finds *references*, never cart-ready variants.
 // No direct website scraping, invented prices, native checkouts or merchant claims.
 import {timingSafeEqual} from "node:crypto";
+import {classifyPublicReference} from "../lib/public-retailer-research.mjs";
 const SLOT=new Set(["hat","scarf","jacket","shirt","watch","belt","pants","socks","shoes"]);
 const clip=(value,max=120)=>String(value??"").replace(/[\x00-\x1f]/g," ").trim().slice(0,max);
 const response=(data,status=200)=>new Response(JSON.stringify(data),{
@@ -111,7 +112,10 @@ export async function POST(request){
   if(!upstream.ok)throw Error("OPENAI_WEB_HTTP_"+upstream.status);
   const data=await upstream.json();
   if(data.error||data.status==="failed")throw Error("OPENAI_WEB_REJECTED");
-  const sources=extractSources(data);
+  const sources=extractSources(data).map(source=>({
+   ...source,
+   retailerResearch:classifyPublicReference(source.url)
+  }));
   return response({
    source:"OpenAI web search",mode:"research_only",criteria,
    summary:parseSummary(data),sources,
