@@ -1,16 +1,72 @@
-/* V1.1 development-only brand entrance; independent of checkout and navigation. */
-.ml-splash{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#141b16;color:#e9f0e8;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility 0s linear .22s}
-.ml-splash.is-playing{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .16s ease}
-.ml-splash.is-exiting{opacity:0;pointer-events:none;transition:opacity .3s ease}
-.ml-splash-inner{display:grid;justify-items:center;gap:12px;transform:translateY(-9px)}
-.ml-splash-logo{width:min(58vw,230px);overflow:visible;filter:drop-shadow(0 8px 30px rgba(0,0,0,.12))}
-.ml-splash .ml-shackle{transform-box:fill-box;transform-origin:15% 94%;transition:transform .42s cubic-bezier(.2,.9,.25,1);transform:translate(13px,7px) rotate(-18deg)}
-.ml-splash .ml-tag-group{transform-box:fill-box;transform-origin:7% 8%}
-.ml-splash.is-playing .ml-shackle{animation:ml-unlock .48s .23s cubic-bezier(.2,.9,.25,1) both}
-.ml-splash.is-playing .ml-tag-group{animation:ml-tag-sway .65s .57s ease-in-out both}
-.ml-splash-word{font:700 13px/1.2 Inter,Arial,sans-serif;letter-spacing:.28em;padding-left:.28em;opacity:0}
-.ml-splash.is-playing .ml-splash-word{animation:ml-word .45s .16s ease both}
-@keyframes ml-unlock{0%{transform:translate(13px,7px) rotate(-18deg)}55%{transform:translate(2px,1px) rotate(0)}100%{transform:translate(0,0) rotate(0)}}
-@keyframes ml-tag-sway{0%{transform:rotate(0)}28%{transform:rotate(8deg)}55%{transform:rotate(-5deg)}78%{transform:rotate(2deg)}100%{transform:rotate(0)}}
-@keyframes ml-word{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-@media(prefers-reduced-motion:reduce){.ml-splash,.ml-splash.is-exiting{transition:none}.ml-splash *{animation:none!important;transition:none!important}.ml-splash-word{opacity:1}}
+/* MATCHLATCH V1.1 — lock to exact official open-lock artwork, then zoom through. */
+.ml-splash{
+ position:fixed;inset:0;z-index:10000;display:grid;place-items:center;
+ overflow:hidden;isolation:isolate;background:#141714;color:#e9f0e8;
+ visibility:hidden;pointer-events:none;opacity:0;
+}
+.ml-splash.is-playing{
+ visibility:visible;pointer-events:auto;
+ animation:ml-splash-reveal 2.72s linear both;
+}
+body.ml-splash-active{overflow:hidden}
+.ml-splash-inner{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+ transform-origin:50% 50%;will-change:transform,opacity;
+}
+.ml-splash.is-playing .ml-splash-inner{animation:ml-splash-flight 2.72s linear both}
+.ml-splash-logo{
+ display:block;width:min(62vw,245px);height:auto;overflow:visible;
+ filter:drop-shadow(0 12px 24px rgba(0,0,0,.12));
+}
+/* +13 degrees closes the right shackle tip onto (119,67). At 0, official artwork is exact. */
+.ml-splash .ml-shackle{
+ transform-box:view-box;transform-origin:55px 59px;transform:rotate(13deg);
+}
+.ml-splash.is-playing .ml-shackle{
+ animation:ml-splash-unlock .52s .72s cubic-bezier(.18,.8,.2,1) both;
+}
+/* Rotate entire tag and cord around their actual contact point, without disconnecting. */
+.ml-splash .ml-tag-group{transform-box:view-box;transform-origin:139px 80px}
+.ml-splash.is-playing .ml-tag-group{
+ animation:ml-splash-tag-wiggle .69s 1.19s ease-in-out both;
+}
+.ml-splash-word{
+ font:800 clamp(19px,3.8vw,25px)/1.2 Inter,"Helvetica Neue",Arial,sans-serif;
+ letter-spacing:-.055em;white-space:nowrap;
+}
+.ml-splash-word span{font-weight:400}
+@keyframes ml-splash-unlock{
+ from{transform:rotate(13deg)}
+ to{transform:rotate(0deg)}
+}
+@keyframes ml-splash-tag-wiggle{
+ 0%,100%{transform:rotate(0deg)}
+ 20%{transform:rotate(8deg)}
+ 45%{transform:rotate(-5deg)}
+ 68%{transform:rotate(3deg)}
+ 84%{transform:rotate(-1deg)}
+}
+@keyframes ml-splash-flight{
+ 0%{opacity:0;transform:translate3d(0,15px,0) scale(.66);animation-timing-function:cubic-bezier(.17,1.2,.27,1)}
+ 16%{opacity:1;transform:translate3d(0,0,0) scale(1.045);animation-timing-function:ease-out}
+ 23%,68%{opacity:1;transform:translate3d(0,0,0) scale(1)}
+ 72%{opacity:1;transform:translate3d(0,0,0) scale(1.055);animation-timing-function:cubic-bezier(.24,.68,.08,1)}
+ 100%{opacity:0;transform:translate3d(0,0,0) scale(12)}
+}
+/* Overlay clears as the mark balloons forward, revealing the homepage beneath. */
+@keyframes ml-splash-reveal{
+ 0%,74%{opacity:1;visibility:visible}
+ 99%{opacity:0;visibility:visible}
+ 100%{opacity:0;visibility:hidden}
+}
+@keyframes ml-splash-reduced{
+ 0%,45%{opacity:1;visibility:visible}
+ 99%{opacity:0;visibility:visible}
+ 100%{opacity:0;visibility:hidden}
+}
+@media(prefers-reduced-motion:reduce){
+ .ml-splash.is-playing{animation:ml-splash-reduced .24s linear both}
+ .ml-splash.is-playing .ml-splash-inner{animation:none;opacity:1;transform:none}
+ .ml-splash.is-playing .ml-shackle{animation:none;transform:rotate(0deg)}
+ .ml-splash.is-playing .ml-tag-group{animation:none;transform:none}
+}
