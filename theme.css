@@ -1,0 +1,117 @@
+/* MATCHLATCH appearance theme. Loaded after all feature CSS.
+   Light keeps the existing design; dark is a full-app color treatment. */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#141714;--surface:#202620;--ink:#eef3ed;--muted:#b4c0b3;
+  --line:#3b483d;--subtle:#283228;--dark:#101510;
+}
+:root[data-theme="dark"] body{background:var(--bg);color:var(--ink)}
+:root[data-theme="dark"] :is(.site-header,.footer){background:var(--bg);border-color:var(--line)}
+:root[data-theme="dark"] :is(.brand-lockup,.brand-lockup span,.footer .brand-lockup){color:var(--ink)}
+:root[data-theme="dark"] .brand-mark{filter:brightness(0) invert(.94)}
+:root[data-theme="dark"] :is(h1 span,.destination-heading h1 span,.library-top h1 span,.intro h1 span){color:#a9b8a7}
+:root[data-theme="dark"] :is(.kicker,.micro-title,.panel-tag,.tiny-label,.library-top .tiny-label,.piece-label,.item-index,.num,.mode,.store-field,.me-setting-label,.header-signature,.destination-inline-title,.collection-icon,.collection-card-arrow){color:#9eaf9e}
+:root[data-theme="dark"] :is(.intro p,.sub,.privacy,.privacy b,.note,.disclaimer,.results-card p,.found p,.found .meta,.library-caption,.library-top p,.destination-heading p,.destination-section-title>p,.mood-card-sub,.mood-reason,.store-search-status,.library-meta,.account-panel p,.small-footnote,.account-import p,.collections-create p,.collection-empty p,.me-preferences-status,.appearance-help,.tree-note,.tree-heading p,.tree-total small,.tree-slot-info small,.private-shop-sub,.private-shop-details small,.shop-feedback,.private-shop-empty,.savings-note,.savings-offer-copy small,.cart-info small,.purchase-summary p,.purchase-form p,.collection-card-meta,.closet-summary-tile small,.closet-folder-tile small,.folder-chip small,.profile-shortcut-copy small,.store-size,.library-card p,.empty-state p,.mood-archive-copy small){color:var(--muted)}
+:root[data-theme="dark"] :is(.sequence,.sequence strong,.tree-slot-label,.result-item small,.library-actions .quiet-button,.look-detail-items .library-meta,.savings-summary,.status-text){color:#c5d0c3}
+:root[data-theme="dark"] :is(.studio,.found,.results-card,.studio-entry,.mood-card,.store-search,.store-card,.library-card,.cart-entry,.purchase-summary,.empty-state,.account-panel,.purchase-form,.look-detail,.collection-card,.collection-empty,.collection-editor,.closet-summary-tile,.closet-folder-tile,.closet-empty-feature,.me-appearance,.me-preferences,.profile-shortcut,.destination-recent-card,.mood-archive-card,.folder-chip,.private-shop-item,.store-results,.savings-offer){
+  background:var(--surface);border-color:var(--line);color:var(--ink)
+}
+:root[data-theme="dark"] .studio-entry-primary{background:#303c31;color:#f7fbf5;border-color:#465949}
+:root[data-theme="dark"] .studio-entry-primary .studio-entry-index{color:#cad5c8}
+:root[data-theme="dark"] .studio-entry-primary p{color:#c0cbbf}
+:root[data-theme="dark"] .studio-entry p{color:#c0cbbf}
+:root[data-theme="dark"] :is(.drop,.preview-box,.result-photo-frame,.library-card-photo,.look-detail-photo,.cart-thumb,.purchase-summary img,.private-shop-image,.private-shop-placeholder,.store-card-cover,.destination-photo,.mood-archive-photo,.tree-slot-card img,.upload-glyph,.result-photo-frame,.collection-editor){
+  background:#2b352d;border-color:var(--line)
+}
+:root[data-theme="dark"] .drop:hover,:root[data-theme="dark"] .drop.drag{background:#364238;border-color:#a9b6a9}
+:root[data-theme="dark"] :is(.mood-cover,.mood-charcoal .mood-cover){background:#303c31}
+:root[data-theme="dark"] .mood-stone .mood-cover{background:#354238}
+:root[data-theme="dark"] .mood-sand .mood-cover{background:#424739}
+:root[data-theme="dark"] :is(.mood-piece-name,.mood-sequence,.mood-piece-index){color:#e2ebe0}
+:root[data-theme="dark"] .mood-piece{border-color:#586a59}
+:root[data-theme="dark"] .mood-archive-copy strong{color:var(--ink)}
+:root[data-theme="dark"] :is(.primary,.library-primary,.look-action.primary,.store-submit,.private-shop-controls button,.private-shop-actions button){
+ background:#e9f0e7;border-color:#e9f0e7;color:#192219
+}
+:root[data-theme="dark"] :is(.primary,.library-primary,.look-action.primary,.store-submit,.private-shop-controls button,.private-shop-actions button):hover{
+ background:#cbd9ca;border-color:#cbd9ca;color:#192219
+}
+:root[data-theme="dark"] :is(.secondary,.library-subtle,.look-action,.tree-shop-btn,.collection-picker-button,.tree-slot-arrow,.private-shop-close,.savings-copy,.store-chip,.appearance-option,.store-card .destination-link,.studio-entry-action.quiet){
+ background:#2b352c;border-color:#586957;color:#edf4ea
+}
+:root[data-theme="dark"] :is(.secondary,.library-subtle,.look-action,.tree-shop-btn,.collection-picker-button,.tree-slot-arrow,.private-shop-close,.savings-copy,.store-chip,.appearance-option):hover{
+ background:#3b493c;color:#f2f7f1
+}
+:root[data-theme="dark"] :is(.library-actions a,.link-button,.quiet-button,.destination-link,.store-retailer-link,.private-shop-actions a,.result-item a,.footer a){color:#eff5ec;border-bottom-color:#9aa999}
+:root[data-theme="dark"] :is(.destination-link.quiet,.quiet-button){color:#afc1ae}
+:root[data-theme="dark"] :is(.item-actions button,.tree-shop-help){color:#d5e1d3}
+:root[data-theme="dark"] :is(.collection-card:hover,.folder-chip:hover,.closet-summary-tile:hover,.closet-folder-tile:hover,.profile-shortcut:hover){background:#2b362c;border-color:#8ca28b}
+:root[data-theme="dark"] :is(.tabs,.tree-area,.tree-slot,.result-item,.look-detail-item,.collection-section>h3,.budget-message,.savings-offer,.account-import,.privacy,.beta-details,.extra-details){border-color:var(--line)}
+:root[data-theme="dark"] .tabs button{color:#b8c6b6}
+:root[data-theme="dark"] .tabs button.active{color:#f5f8f3;border-bottom-color:#e8f0e6}
+:root[data-theme="dark"] :is(.collection-rename input,.collection-editor select,.collection-editor input,.collections-create-form input,.field input,.field select,.field textarea,.me-setting input,.me-setting select,.me-setting textarea,.store-field input,.store-field select,.private-shop-controls input,.account-panel input,.purchase-form input,input[type="text"],input[type="number"],input[type="password"],input[type="email"],input[type="search"],select,textarea){
+  background:#29332b;color:#eef4ec;border-color:#5c705e
+}
+:root[data-theme="dark"] :is(input,textarea)::placeholder{color:#a1afa1}
+:root[data-theme="dark"] :is(input,select,textarea):focus{border-color:#bacab7}
+:root[data-theme="dark"] :is(.budget,.private-shop-empty,.store-chip,.store-suggestions,.savings-check,.account-import .library-subtle){
+  background:#273329;border-color:var(--line);color:#d8e5d4
+}
+:root[data-theme="dark"] :is(.savings-offer,.savings-check,.tree-slot,.tree-area,.cart-total,.panel:first-child){border-color:var(--line)}
+:root[data-theme="dark"] .savings-summary{color:#e0ebdd}
+:root[data-theme="dark"] .private-shop-panel{background:#182019;color:var(--ink)}
+:root[data-theme="dark"] .private-shop-overlay{background:rgba(0,0,0,.71)}
+:root[data-theme="dark"] .private-shop-item{background:#263127}
+:root[data-theme="dark"] :is(.tree-slot-arrow,.tree-shop-btn,.private-shop-close){color:var(--ink)}
+:root[data-theme="dark"] :is(.feedback-toast,.toast){background:#e9f1e7;color:#202921}
+:root[data-theme="dark"] .feedback-action{color:#202921}
+:root[data-theme="dark"] .bottom-nav{background:rgba(31,38,32,.97);border-color:#536352;box-shadow:0 12px 34px rgba(0,0,0,.45)}
+:root[data-theme="dark"] .dock-link{color:#b6c5b5}
+:root[data-theme="dark"] .dock-link.active,:root[data-theme="dark"] .dock-link:hover{color:#fff}
+:root[data-theme="dark"] .dock-link:hover{background:#3a473a}
+:root[data-theme="dark"] .dock-studio-icon{background:#f1f5ed;border-color:#f1f5ed;color:#222b22}
+:root[data-theme="dark"] .dock-studio:hover .dock-studio-icon{background:#d6e2d3}
+:root[data-theme="dark"] .dock-studio.active .dock-studio-icon{box-shadow:0 0 0 3px #657965}
+:root[data-theme="dark"] .header-cart:hover,:root[data-theme="dark"] .header-theme-toggle:hover{background:#324034;color:#fff}
+:root[data-theme="dark"] .header-theme-toggle{border-color:#596b59}
+:root[data-theme="dark"] .header-cart{color:#e1ebdf}
+:root[data-theme="dark"] .nav-counter{background:#344536;color:#e1ebdf}
+:root[data-theme="dark"] .appearance-option{background:#28352a}
+:root[data-theme="dark"] .appearance-option.active{border-color:#eff5ed;box-shadow:inset 0 0 0 1px #eff5ed}
+:root[data-theme="dark"] :is(.profile-shortcut-arrow,.folder-chip-icon,.closet-folder-glyph){color:#c1d1bd}
+:root[data-theme="dark"] .savings-copy{background:#344335}
+:root[data-theme="dark"] .studio-entry-action{color:#f1f7ee}
+:root[data-theme="dark"] .store-card-cover img{background:#fff}
+
+/* Main header: cart then one-tap appearance at far right */
+.header-actions{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-left:auto}
+.header-cart{display:flex;align-items:center;gap:7px;min-height:40px;padding:7px 10px;border:0;
+ background:transparent;color:var(--ink);font-size:11px;font-weight:750;letter-spacing:.035em}
+.header-cart svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.55;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.header-cart:hover{background:var(--subtle)}
+.header-cart .nav-counter{font-size:10px;font-weight:750;padding:2px 6px;min-width:18px}
+.header-cart .nav-counter:empty{display:none}
+.header-theme-toggle{width:42px;height:42px;display:grid;place-items:center;background:transparent;color:var(--ink);
+ border:1px solid var(--line);border-radius:50%;padding:8px;flex:0 0 auto}
+.header-theme-toggle:hover{background:var(--subtle)}
+.header-theme-toggle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
+.header-theme-toggle .theme-sun{display:none}
+:root[data-theme="dark"] .header-theme-toggle .theme-moon{display:none}
+:root[data-theme="dark"] .header-theme-toggle .theme-sun{display:block}
+@media(max-width:500px){
+ .header-inner{flex-wrap:nowrap;gap:8px;padding:0}
+ .header-actions{gap:3px}
+ .header-cart{padding:7px;gap:4px;font-size:10px}
+ .header-cart svg{width:19px;height:19px}
+ .header-theme-toggle{height:37px;width:37px;padding:7px}
+ .header-theme-toggle svg{width:18px;height:18px}
+ .brand-lockup .brand-wordmark{font-size:16px}
+ .brand-lockup .brand-mark{width:48px;height:38px}
+}
+@media(max-width:355px){
+ .header-cart span:not(.nav-counter){display:none}
+ .brand-lockup .brand-wordmark{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+ .header-theme-toggle{transition:none}
+}

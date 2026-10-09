@@ -33,9 +33,7 @@ const pick=(v,fallback)=>{
  return s&&!/^(no preference|balance \/ let ai decide|any season)$/i.test(s)?s:fallback;
 };
 function openFolders(){
- showPage("styles");
- const first=$("styles-tabs")?.querySelector("button");
- if(first)first.click();
+ lib()?.openClosetTab?.("collections");
 }
 function photoTile(inspirationId,cls="destination-photo"){
  const wrap=el("div",cls);
@@ -322,32 +320,124 @@ function renderStore(){
 function renderProfileLinks(){
  const root=$("profile-shortcuts");if(!root)return;
  root.replaceChildren();
- const data=[
-  ["01","My collections","Organize folders, inspirations and saved looks.",openFolders],
-  ["02","Saved shopping","Your cart and retailer shortlist.",()=>showPage("cart")],
-  ["03","Style settings","Your fit, budget and personal preferences.",()=>{
-    showPage("studio");$("budget")?.scrollIntoView({behavior:"smooth",block:"center"});
-  }]
+ const sections=[
+  ["01","Appearance","Light, dark or your device theme.", "me-appearance"],
+  ["02","My style","Preferences, sizes and your look.", "me-preferences"],
+  ["03","My account","Guest access and secure sign-in.", "me-account-panel"],
+  ["04","Privacy & data","Device data and account controls.", "me-privacy-panel"]
  ];
- for(const [number,name,desc,click] of data){
-  const card=button(" ",click,"profile-shortcut");
-  const text=el("span","profile-shortcut-copy");
-  text.append(el("span","micro-title",number+" / MATCHLATCH"),el("strong",null,name),el("small",null,desc));
-  card.replaceChildren(text,el("span","profile-shortcut-arrow","↗"));
+ for(const [number,name,description,targetId] of sections){
+  const card=button("",()=>{
+   $(targetId)?.scrollIntoView({behavior:"smooth",block:"start"});
+  },"profile-shortcut");
+  const info=el("span","profile-shortcut-copy");
+  info.append(el("span","micro-title",number+" / ME"),el("strong",null,name),el("small",null,description));
+  card.append(info,el("span","profile-shortcut-arrow","↗"));
   root.append(card);
  }
+}
+function renderAppearance(){
+ const root=$("me-appearance");if(!root)return;
+ root.replaceChildren();
+ root.append(sectionTitle("01 / YOUR SPACE","Appearance.",
+  "A quieter look, day or night. Applies everywhere in MATCHLATCH."));
+ const row=el("div","appearance-control");
+ row.setAttribute("role","group");row.setAttribute("aria-label","App color theme");
+ const options=[
+  ["light","Light","☼"],["dark","Dark","◐"],["system","System","◑"]
+ ];
+ const appearance=window.MatchlatchAppearance;
+ for(const [id,label,symbol] of options){
+  const active=appearance?.get?.()===id;
+  const tile=button("",()=>{
+   appearance?.set?.(id);
+   renderAppearance();
+  },"appearance-option"+(active?" active":""));
+  tile.setAttribute("aria-pressed",String(active));
+  tile.append(el("span","appearance-icon",symbol),el("strong",null,label));
+  if(active)tile.append(el("span","appearance-check","✓"));
+  row.append(tile);
+ }
+ root.append(row);
+ const hint=el("p","appearance-help","System follows your device automatically. Your selection is remembered on this device.");
+ root.append(hint);
+}
+function renderMePreferences(){
+ const root=$("me-preferences");if(!root)return;
+ root.replaceChildren();
+ const heading=sectionTitle("02 / YOUR TASTE","Your style, your rules.",
+  "Edit the same preferences Studio uses to shape looks and MOOD uses to curate directions.");
+ root.append(heading);
+ const grid=el("div","me-settings-grid");
+ const fields=[
+  ["Style expression","look"],
+  ["Style direction","aesthetic"],
+  ["Fit preference","fit"],
+  ["Color palette","palette"],
+  ["Occasion","occasion"],
+  ["Season & weather","climate"],
+  ["Max outfit budget ($)","budget"],
+  ["Sizing preference","sizeAudience"],
+  ["Personal style notes","notes"]
+ ];
+ for(const [title,id] of fields){
+  const original=$(id);
+  if(!original)continue;
+  const field=el("label","me-setting"+(id==="notes"?" wide":""));
+  field.append(el("span","me-setting-label",title));
+  const clone=original.cloneNode(true);
+  clone.removeAttribute("id");
+  clone.removeAttribute("name");
+  clone.value=original.value;
+  clone.setAttribute("aria-label",title);
+  const save=()=>{
+   original.value=clone.value;
+   original.dispatchEvent(new Event(id==="notes"||id==="budget"?"input":"change",{bubbles:true}));
+   const status=$("me-preferences-status");
+   if(status)status.textContent="Preferences saved. Changes will guide your next look.";
+  };
+  clone.addEventListener(id==="notes"||id==="budget"?"input":"change",save);
+  field.append(clone);grid.append(field);
+ }
+ root.append(grid);
+ const footer=el("div","me-settings-bottom");
+ footer.append(el("p","me-preferences-status","Changes save to your device or signed-in private account."));
+ footer.lastChild.id="me-preferences-status";
+ footer.append(button("More sizes & measurements in Studio ↗",()=>{
+  showPage("studio");
+  $("topSize")?.scrollIntoView({behavior:"smooth",block:"center"});
+ },"destination-link"));
+ root.append(footer);
 }
 function renderDestination(page){
  if(page==="studio")renderWorkspace();
  if(page==="mood")renderMood();
  if(page==="store")renderStore();
- if(page==="account")renderProfileLinks();
+ if(page==="account"){renderProfileLinks();renderAppearance();renderMePreferences();}
 }
+function initThemeToggle(){
+ const control=$("header-theme-toggle"),appearance=window.MatchlatchAppearance;
+ if(!control||!appearance)return;
+ const update=()=>{
+  const dark=appearance.effective()==="dark";
+  const label=dark?"Switch to light mode":"Switch to dark mode";
+  control.setAttribute("aria-label",label);
+  control.setAttribute("title",label);
+  control.setAttribute("aria-pressed",String(dark));
+ };
+ control.addEventListener("click",()=>{
+  appearance.set(appearance.effective()==="dark"?"light":"dark");
+  update();
+ });
+ window.addEventListener("matchlatch:appearance",update);
+ update();
+}
+initThemeToggle();
 window.addEventListener("matchlatch:page",event=>renderDestination(event.detail?.page));
 window.addEventListener("matchlatch:library",()=>{
  const current=(location.hash||"#studio").slice(1);
  if(current==="studio"||current==="mood")renderDestination(current);
 });
 const hash=(location.hash||"#studio").slice(1).split("?")[0];
-renderDestination(["mood","studio","store","account"].includes(hash)?hash:"studio");
+renderDestination(hash==="me"?"account":(["mood","studio","store","account"].includes(hash)?hash:"studio"));
 })();

@@ -4,6 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f8f6">
+  <script>
+    (function(){
+      "use strict";
+      const key="matchlatch-appearance-v1";
+      const allowed=["system","light","dark"];
+      let preference="system";
+      try{const saved=localStorage.getItem(key);if(allowed.includes(saved))preference=saved;}catch{}
+      const device=()=>window.matchMedia?.("(prefers-color-scheme: dark)")?.matches?"dark":"light";
+      const update=()=>{
+        const theme=preference==="system"?device():preference;
+        document.documentElement.setAttribute("data-theme",theme);
+        document.documentElement.style.colorScheme=theme;
+        const meta=document.querySelector('meta[name="theme-color"]');
+        if(meta)meta.content=theme==="dark"?"#141714":"#f8f8f6";
+      };
+      window.MatchlatchAppearance={
+        get:()=>preference,
+        effective:()=>document.documentElement.getAttribute("data-theme"),
+        set:next=>{
+          if(!allowed.includes(next))return;
+          preference=next;
+          try{localStorage.setItem(key,next);}catch{}
+          update();
+          window.dispatchEvent(new CustomEvent("matchlatch:appearance",{detail:{preference,effective:window.MatchlatchAppearance.effective()}}));
+        }
+      };
+      update();
+      try{window.matchMedia?.("(prefers-color-scheme: dark)")?.addEventListener("change",()=>{
+        if(preference==="system")update();
+      });}catch{}
+    })();
+  </script>
   <meta name="description" content="MATCHLATCH. Your style, unlocked. Find what works with the pieces you love.">
   <title>MATCHLATCH — Your style, unlocked.</title>
   <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
@@ -168,6 +200,7 @@
       .footer .brand-lockup .brand-wordmark{font-size:16px}
     }
   </style>
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
   <header class="site-header">
@@ -176,10 +209,16 @@
         <img class="brand-mark" src="/logo-mark.svg" width="78" height="53" alt="" aria-hidden="true">
         <span class="brand-wordmark">MATCH<span>LATCH</span></span>
       </a>
-      <nav class="header-quick" aria-label="Your library and shopping list">
-        <button type="button" data-nav-page="styles">Collections <span id="styles-count" class="nav-counter"></span></button>
-        <button type="button" data-nav-page="cart">Cart <span id="cart-count" class="nav-counter"></span></button>
-      </nav>
+      <div class="header-actions">
+        <button type="button" class="header-cart" data-nav-page="cart" aria-label="Open your shopping shortlist">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5h2l2.2 10.8h10.7l2-7.8H7"/><circle cx="9.5" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+          <span>Cart</span><span id="cart-count" class="nav-counter"></span>
+        </button>
+        <button type="button" id="header-theme-toggle" class="header-theme-toggle" aria-label="Switch to dark mode" title="Switch to dark mode">
+          <svg class="theme-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.2A8.8 8.8 0 0 1 8.8 4 8.9 8.9 0 1 0 20 15.2Z"/></svg>
+          <svg class="theme-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+      </div>
       
     </div>
   </header>
@@ -497,12 +536,12 @@
       </div>
     </section>
     </div>
-    <section id="screen-styles" class="app-screen" hidden aria-label="Your Styles">
+    <section id="screen-styles" class="app-screen" hidden aria-label="My Closet">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">Your personal archive</span>
-          <h1>Your Styles.</h1>
-          <p>Organize your inspirations into named collections—trips, events, moments, or ideas. Your saved outfits, favorites, and purchases stay connected to the original photo.</p>
+          <span class="tiny-label">02 / YOUR WARDROBE</span>
+          <h1>My <span>closet.</span></h1>
+          <p>One home for the looks you've made, the things you love, the pieces you want, and your personal collections.</p>
         </div><button class="library-subtle" type="button" data-nav-page="studio">Create a new look ↗</button></div>
         <div id="styles-tabs" class="tabs"></div>
         <div id="styles-body"></div>
@@ -521,14 +560,16 @@
     <section id="screen-account" class="app-screen" hidden aria-label="Account and sign in">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">04 / YOUR SPACE</span>
-          <h1>My <span>profile.</span></h1>
-          <p>Your preferences, collections, account and saved shopping shortlist—all in one place.</p>
+          <span class="tiny-label">05 / YOUR SPACE</span>
+          <h1>Me<span>.</span></h1>
+          <p>Personalize your style, manage your account, and decide how your information is kept.</p>
         </div></div>
-        <div id="profile-shortcuts" class="profile-shortcuts" aria-label="Profile shortcuts"></div>
-        <div class="account-panel">
-          <h2>Your style, your space.</h2>
-          <p>Keep using MATCHLATCH as a guest. Secure email login will appear here when account syncing is ready.</p>
+        <div id="profile-shortcuts" class="profile-shortcuts" aria-label="Personal settings navigation"></div>
+        <section id="me-appearance" class="me-appearance" aria-label="Appearance settings"></section>
+        <section id="me-preferences" class="me-preferences" aria-label="Your style preferences"></section>
+        <div class="account-panel" id="me-account-panel">
+          <h2>Your account.</h2>
+          <p>Keep your looks private and choose whether to sign in for account syncing. Guest mode remains available.</p>
           <form id="login-form" hidden>
             <label for="login-email">Email address</label>
             <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
@@ -548,8 +589,8 @@
           <p class="status-text" role="status" id="account-status">Your library is available without an account.</p>
           <p class="small-footnote">Signed-in libraries sync privately across devices after setup. Guest styles stay on this browser until you choose to import them.</p>
         </div>
-        <div class="account-panel">
-          <h2>Your device data</h2>
+        <div class="account-panel" id="me-privacy-panel">
+          <h2>Privacy &amp; device data.</h2>
           <p>Guest photos and styles stay on this browser. Signed-in photos and styles use your private cloud account. Deleting guest data won't delete your account's cloud library.</p>
           <button id="clear-library" class="library-subtle" type="button">Delete local library</button>
         </div>
@@ -558,21 +599,25 @@
   </main>
   <nav class="bottom-nav" aria-label="Primary navigation">
     <div class="bottom-nav-inner">
-      <button class="dock-link" type="button" data-page="mood" aria-label="Mood, inspiration">
+      <button class="dock-link" type="button" data-page="mood" aria-label="Mood, personalized outfit inspiration">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 1.9 7.2L21 11l-7.1 2L12 20l-1.9-7L3 11l7.1-1.8L12 2Z"/><path d="m19 18 .65 1.35L21 20l-1.35.65L19 22l-.65-1.35L17 20l1.35-.65L19 18Z"/></svg>
         <span>MOOD</span>
       </button>
-      <button class="dock-link dock-studio" type="button" data-page="studio" aria-label="Studio, create or continue a project">
+      <button class="dock-link" type="button" data-page="closet" aria-label="My Closet, collections, favorites and saved pieces">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8v11.5h17V8H3.5Z"/><path d="M8 8V5.5h8V8"/><path d="M12 8v11.5"/><path d="M3.5 12h17"/></svg>
+        <span>MY CLOSET</span>
+      </button>
+      <button class="dock-link dock-studio" type="button" data-page="studio" aria-label="Studio, create or continue a project" aria-current="page">
         <span class="dock-studio-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8V5h3M16 5h3v3M19 16v3h-3M8 19H5v-3"/><path d="M12 8v8M8 12h8"/></svg></span>
         <span>STUDIO</span>
       </button>
-      <button class="dock-link" type="button" data-page="store" aria-label="Store, shop retailer catalogs">
+      <button class="dock-link" type="button" data-page="store" aria-label="Store, search participating retailer catalogs">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>
         <span>STORE</span>
       </button>
-      <button class="dock-link" type="button" data-page="account" aria-label="My profile">
+      <button class="dock-link" type="button" data-page="me" aria-label="Me, profile and personal settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.3 2.75-5.5 7-5.5s7 2.2 7 5.5"/></svg>
-        <span>PROFILE</span>
+        <span>ME</span>
       </button>
     </div>
   </nav>
