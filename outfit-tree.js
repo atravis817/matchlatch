@@ -314,7 +314,9 @@ function renderDrawer(){
   actions.append(shop);
   actions.append(button("♡ Save",()=>window.MatchlatchLibrary?.favoriteShopItem?.(id,item),"tree-shop-help"));
   actions.append(button("＋ Cart",()=>window.MatchlatchLibrary?.cartShopItem?.(id,item),"tree-shop-help"));
-  info.append(actions);card.append(info);results.append(card);
+  info.append(actions);
+  window.MatchlatchSavings?.attach?.(info,item);
+  card.append(info);results.append(card);
  }
  if(!state.loading&&!results.children.length)results.append(node("div","private-shop-empty","No confirmed in-stock alternatives in this size and price range. Try broader search terms or skip this piece."));
  panel.append(results);
