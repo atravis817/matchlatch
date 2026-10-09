@@ -9,7 +9,7 @@ const lib=()=>window.MatchlatchLibrary;
 const snapshot=()=>lib()?.discoverySnapshot?.()||{collections:[],inspirations:[],looks:[],favorites:[],cartCount:0};
 const profile=()=>window.MatchlatchStyleProfile?.get?.()||{};
 const SHIPPING_KEY="matchlatch-shipping-region-v12";
-const shippingZip=()=>{try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\\d{5}$/.test(z)?z:"";}catch{return "";}};
+const shippingZip=()=>{try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
 const shippingInfo=item=>{
  const zip=shippingZip(),label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
  const verified=item?.delivery?.tier==="retailer_confirmed"?item.delivery:null;
