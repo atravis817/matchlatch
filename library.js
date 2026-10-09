@@ -916,6 +916,86 @@
       persist();if(activePage==="styles")renderStyles();else if(activePage==="cart")renderCart();
     });
   }
+  // Proof of concept: resolve a fresh variant-specific checkout permalink.
+  // Checkout uses Shopify's catalog-verified checkout_url when supplied.
+  // Never construct merchant cart URLs or imply a MATCHLATCH payment.
+  async function verifyCheckoutItem(cartItem){
+    const id=String(cartItem?.shopRef?.productId||"");
+    const variant=String(cartItem?.shopRef?.variantId||"");
+    if(!/^gid:\/\/shopify\/p\/[A-Za-z0-9_-]+$/.test(id)
+      ||!/^gid:\/\/shopify\/ProductVariant\/[A-Za-z0-9_-]+$/.test(variant)){
+      throw new Error("This item needs a fresh Store selection.");
+    }
+    const qs=new URLSearchParams({mode:"verify",id,variant,max:"10000"});
+    if(cartItem.size)qs.set("size",String(cartItem.size).slice(0,36));
+    let response,body;
+    try{
+      response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
+      body=await response.json();
+    }catch{
+      throw new Error("We couldn't check this item right now. Please try again.");
+    }
+    if(!response.ok||!body?.item){
+      throw new Error(response.status===409
+        ?"This size or variant is no longer confirmed available. Please choose another."
+        :"We couldn't confirm this item right now. Please try again.");
+    }
+    const live=body.item;
+    const amount=moneyAmount(live.price);
+    if(live.available!==true||live.currency!=="USD"||amount===null
+      ||live.productId!==id||live.variantId!==variant){
+      throw new Error("The retailer listing has changed. Please choose the item again.");
+    }
+    const checkout=secureProductUrl(live.checkoutUrl);
+    const product=secureProductUrl(live.url);
+    if(!checkout&&!product)throw new Error("This retailer isn't accepting a handoff for this item right now.");
+    return {url:checkout||product,directCheckout:Boolean(checkout),price:amount,checkedAt:Date.now()};
+  }
+  function verifiedCheckoutAction(item){
+    const actions=node("div","commerce-checkout-actions");
+    const status=node("p","commerce-checkout-status");
+    status.setAttribute("role","status");
+    status.setAttribute("aria-live","polite");
+    const retailer=String(item.retailer||"retailer");
+    let confirmed=null;
+    const button=btn("Checkout at "+retailer+" ↗",async()=>{
+      // Explicitly confirmed changed price or product-page fallback; short TTL.
+      if(confirmed&&Date.now()-confirmed.checkedAt<45000){
+        window.location.assign(confirmed.url);
+        return;
+      }
+      confirmed=null;
+      button.disabled=true;button.textContent="Checking availability…";
+      status.textContent="Checking the latest price and availability.";
+      try{
+        const checked=await verifyCheckoutItem(item);
+        if(!button.isConnected)return;
+        if(!checked.directCheckout){
+          confirmed=checked;
+          button.textContent="View item at "+retailer+" ↗";
+          status.textContent=Math.abs(checked.price-Number(item.target))>.005
+            ?"Price is now "+money(checked.price)+". Direct checkout isn't offered; continue on the retailer's product page."
+            :"Direct checkout isn't offered for this listing. Continue on the retailer's product page.";
+        }else if(Math.abs(checked.price-Number(item.target))>.005){
+          confirmed=checked;
+          button.textContent="Continue at "+money(checked.price)+" ↗";
+          status.textContent="Price changed since you added this item. Confirm to continue.";
+        }else{
+          // The merchant's catalog returned a checkout permalink for this exact variant.
+          window.location.assign(checked.url);
+          return;
+        }
+      }catch(error){
+        if(!button.isConnected)return;
+        button.textContent="Try checkout again ↗";
+        status.textContent=error instanceof Error?error.message:"Unable to check availability.";
+      }finally{
+        button.disabled=false;
+      }
+    },"commerce-primary");
+    actions.append(button,status);
+    return actions;
+  }
   function renderCheckout(target){
     target.replaceChildren();
     const shell=node("section","commerce-checkout");
@@ -940,13 +1020,10 @@
       details.append(node("h4",null,item.description));
       if(item.size)details.append(node("small",null,"Size "+item.size));
       details.append(node("strong","commerce-checkout-price",money(item.target)));
-      const actions=node("div","commerce-checkout-actions");
-      const link=secureProductUrl(item.productUrl);
-      if(item.source==="retailer"&&link){
-        const a=node("a","commerce-primary","Continue to "+(item.retailer||"retailer")+" ↗");
-        a.href=link;a.target="_blank";a.rel="noopener noreferrer";
-        actions.append(a);
-      }else{
+      const actions=item.shopRef&&secureProductUrl(item.productUrl)
+        ? verifiedCheckoutAction(item)
+        : node("div","commerce-checkout-actions");
+      if(!item.shopRef||!secureProductUrl(item.productUrl)){
         actions.append(btn("Find your piece ↗",()=>showPage("store"),"commerce-primary"));
       }
       details.append(actions);
@@ -959,7 +1036,7 @@
     const estimate=node("div","commerce-checkout-total");
     estimate.append(node("span",null,"Estimated item total"),node("strong",null,money(total)));
     aside.append(estimate);
-    aside.append(node("p",null,"Final prices, taxes, delivery and payment are confirmed on the retailer's site."));
+    aside.append(node("p",null,"Each retailer handles payment and delivery. Final prices, taxes and shipping are shown there."));
     aside.append(node("p","commerce-checkout-trust",
       "MATCHLATCH does not collect payment or place orders yet."));
     aside.append(btn("← Back to cart",()=>openClosetTab("shortlist"),"commerce-secondary"));

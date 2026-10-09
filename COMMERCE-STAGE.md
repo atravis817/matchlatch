@@ -1,6 +1,6 @@
 # MATCHLATCH commerce shell stage
 
-Status: **structural UX only — not released**
+Status: **commerce shells live; POC-01 direct-link capability is staged, not deployed**
 
 Design principle: **Find → Add to cart → Checkout.** The app owns product discovery, selection, saved-cart persistence and review. No retailer setup leaks into the consumer flow.
 
@@ -9,7 +9,7 @@ Design principle: **Find → Add to cart → Checkout.** The app owns product di
 - **Product detail** route (#store/product) contains retailer, photo, title, reported price, reported size / variant, and Add to cart.
 - There is **one existing cart**, within the MATCHLATCH guest/signed-in library. Store products and Studio selections converge on this cart.
 - **Cart** route (#closet/shortlist) shows saved items, estimated totals, removal and Checkout without requiring registration.
-- **Checkout review** route (#closet/checkout) shows saved items and indicative totals. Each retailer product currently opens on its HTTPS product page for purchase; MATCHLATCH does not collect payments.
+- **Checkout review** route (#closet/checkout) shows saved items and indicative totals. POC-01 verifies inventory immediately before handoff and uses the retailer's own variant-specific checkout permalink when available; otherwise it explicitly opens the product page. MATCHLATCH does not collect payments.
 - Existing styling, favorites, look persistence, photo library and GreenGlass navigation remain in place.
 
 ## Verified vs. unavailable
@@ -19,12 +19,12 @@ Design principle: **Find → Add to cart → Checkout.** The app owns product di
 | Add real item to cart | Implemented | Requires available=true, USD price, Shopify IDs and HTTPS retailer link |
 | Save cart guest / authenticated | Existing persist/sync | One cart collection; no parallel bag |
 | Product detail | Implemented | Only shows provider-reported fields |
-| Estimated subtotal | Implemented | Informational; excludes shipping, tax and live revalidation |
-| Retailer handoff | Implemented | Opens retailer-owned HTTPS product page |
-| Direct retailer checkout session | **Not integrated** | Product link does not automatically create a retailer cart |
+| Estimated subtotal | Implemented | Informational; excludes shipping and tax |
+| Retailer handoff | POC-01 staged | Freshly verified, merchant-issued checkout permalink where offered; product-page fallback otherwise |
+| Native retailer checkout session | **Not integrated** | Variant-specific Shopify cart permalink is used without a native checkout API session |
 | Unified multi-retailer checkout | **Not integrated** | No combined charge or order |
 | Payment collection / order placement | **Not integrated** | No payment form, fictional order or card storage |
-| Revalidate cart at checkout | **Not integrated** | UI states prices and inventory can change |
+| Revalidate selected item before checkout | POC-01 staged | Calls existing server verify; blocks wrong variant/sold-out and flags price changes |
 
 ## Next capabilities (behind the scenes)
 1. Confirm retailer protocols, commercial permissions and merchant relationships.
@@ -36,4 +36,4 @@ Design principle: **Find → Add to cart → Checkout.** The app owns product di
 Do not create mock charges, invent retailer relationships, or store payment card data.
 
 ## Release discipline
-The UX work remains in an **unreleased commit object**. Do not advance main, development or staging refs, or trigger Vercel, until the user approves this commerce stage.
+The commerce shell is live on production. The POC-01 upgrade remains in an **unreleased commit object**. Do not advance main, development or staging refs, or trigger Vercel, until the next stage is approved.

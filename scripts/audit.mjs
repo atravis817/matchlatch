@@ -189,15 +189,30 @@ check(library.includes('renderCart(target=$("cart-body"))')
   &&!library.includes('matchlatch-commerce-cart-v1'),
   "Studio and Store share the original persisted shopping cart");
 check(library.includes('MATCHLATCH does not collect payment or place orders yet')
-  &&library.includes('Final prices, taxes, delivery and payment are confirmed'),
+  &&library.includes('Each retailer handles payment and delivery'),
   "Checkout never claims payment or order placement");
 check(file("commerce.css").includes('.commerce-checkout-grid')
   &&file("commerce.css").includes(':root[data-theme="dark"]')
   &&file("commerce.css").includes('@media(max-width:500px)'),
   "Commerce shell supports responsive layouts and dark mode");
-check(file("COMMERCE-STAGE.md").includes('not automatically create a retailer cart')
-  &&file("COMMERCE-STAGE.md").includes('not released'),
+check(file("COMMERCE-STAGE.md").includes('Variant-specific Shopify cart permalink is used')
+  &&file("COMMERCE-STAGE.md").includes('POC-01'),
   "Commerce handoff and future capability boundaries documented");
+
+/* POC-01: server-verified Shopify variant checkout link, no simulated payment. */
+check(library.includes('async function verifyCheckoutItem(cartItem)')
+  &&library.includes('mode:"verify"')
+  &&library.includes('live.variantId!==variant')
+  &&library.includes('secureProductUrl(live.checkoutUrl)'),
+  "POC checkout verifies exact Shopify variant and HTTPS merchant link");
+check(library.includes('function verifiedCheckoutAction(item)')
+  &&library.includes('Price changed since you added this item')
+  &&library.includes("Direct checkout isn't offered for this listing")
+  &&library.includes('window.location.assign(checked.url)'),
+  "POC handoff explicitly handles changed price, fallback and direct checkout");
+check(file("PROOF-OF-CONCEPT.md").includes('10 independent first-time users')
+  &&file("PROOF-OF-CONCEPT.md").includes('not yet measured results'),
+  "POC includes measurable, currently unverified validation goals");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");

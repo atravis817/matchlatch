@@ -115,3 +115,11 @@
 @media(prefers-reduced-motion:reduce){
  .store-add-to-cart,.commerce-primary{transition:none}
 }
+
+/* Fresh retailer availability confirmation — quiet and legible on all devices. */
+.commerce-checkout-actions{display:grid;justify-items:start;gap:9px}
+.commerce-checkout-actions .commerce-primary:disabled{opacity:.67;cursor:progress}
+.commerce-checkout-status{
+ margin:0;max-width:420px;color:var(--muted);font-size:11px;line-height:1.6
+}
+.commerce-checkout-status:empty{display:none}
