@@ -6,12 +6,23 @@ import {mapFeedRow} from "./sync-awin-feeds.mjs";
 import {mapProduct,searchAwin,verifyAwin,postgrestConfig} from "../lib/awin-public-catalog.mjs";
 
 const candidate=CANDIDATES.find(x=>x.id===6016);
-assert.equal(CANDIDATES.length,6);
-assert.equal(joinedCandidate({id:6016,status:"Active",linkStatus:"online",deeplinkEnabled:true},candidate),true);
-assert.equal(joinedCandidate({id:6016,status:"Active",linkStatus:"offline",deeplinkEnabled:true},candidate),false);
+assert.equal(CANDIDATES.length,8);
+assert.equal(joinedCandidate({id:6016,status:"Active",currencyCode:"USD",
+ primaryRegion:{countryCode:"US"}},candidate),true);
+// The Awin joined-programmes endpoint does NOT include deeplinkEnabled or linkStatus.
+assert.equal(joinedCandidate({id:6016,status:"Inactive",currencyCode:"USD",
+ primaryRegion:{countryCode:"US"}},candidate),false);
+assert.equal(joinedCandidate({id:6016,status:"Active",currencyCode:"USD",
+ primaryRegion:{countryCode:"GB"}},candidate),false);
+assert.equal(joinedCandidate({id:6016,status:"Active",currencyCode:"EUR",
+ primaryRegion:{countryCode:"US"}},candidate),false);
 assert.equal(merchantLinkAllowed(candidate,"https://wconcept.com/shirt/123"),true);
 assert.equal(merchantLinkAllowed(candidate,"https://wconcept.com.attacker.example/shirt"),false);
 
+const joinedNow=CANDIDATES.filter(c=>[117849,126793].includes(c.id));
+assert.equal(joinedNow.length,2);
+assert.ok(joinedNow.some(c=>c.domains.includes("zazzmode.com")));
+assert.ok(joinedNow.some(c=>c.domains.includes("caciopepebrand.com")));
 const importTime=new Date().toISOString();
 const feed={id:"SKU-M-OLIVE",title:"Olive Oxford Cotton Shirt",
  description:"Minimalist tailored cotton oxford shirt for work",
@@ -22,6 +33,28 @@ const feed={id:"SKU-M-OLIVE",title:"Olive Oxford Cotton Shirt",
  size:"M",color:"Olive",material:"Cotton",
  aw_deep_link:"https://www.awin1.com/awclick.php?mid=6016&id=3118944",
  shipping:[{country:"US",price:"6.00 USD"}]};
+// Enhanced Google-format JSONL may nest its price, category and
+// availability sections; importing must support those, including shipping objects.
+const enhanced={
+ meta:{advertiser_id:126793,advertiser_name:"Cacio Pepe (US)"},
+ product_basic:{id:"CAMISA-M-BLACK",title:"Organic Cotton Camisa Shirt",
+  description:"Slim organic cotton menswear shirt",
+  link:"https://www.caciopepebrand.com/products/organic-cotton-camisa-crew-black",
+  image_link:"https://img.example.com/tee.webp"},
+ product_category:{product_type:"Clothing > Shirts"},
+ product_attributes:{color:"Black",size:"M",material:"Cotton"},
+ price_and_availability:{price:"75.00 USD",availability:"in_stock"},
+ shipping:{country:"US",price:"0.00 USD"}
+};
+const cacio=CANDIDATES.find(c=>c.id===126793);
+const cacioRow=mapFeedRow(enhanced,cacio,importTime);
+assert.equal(cacioRow?.source_variant_id,"CAMISA-M-BLACK:M:Black");
+assert.equal(cacioRow?.price_usd,75);
+assert.equal(cacioRow?.slot,"shirt");
+assert.equal(cacioRow?.shipping_us_eligible,true);
+assert.equal(cacioRow?.shipping_cost_usd,0);
+assert.equal(mapFeedRow({...enhanced,shipping:{country:"US",region:"CA"}},cacio,importTime),null,
+ "Regional shipping alone is not evidence of nationwide eligibility");
 const normalized=mapFeedRow(feed,candidate,importTime);
 assert.ok(normalized,"eligible US feed item should normalize");
 assert.equal(normalized.advertiser_id,6016);

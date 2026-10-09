@@ -138,3 +138,28 @@
  font-size:11px;line-height:1.55;letter-spacing:.003em;
  color:var(--muted);margin:15px 0 0;max-width:570px
 }
+
+/* POC-06: intentionally understated opt-in web research under Store results.
+   Web sources are references, NEVER verified purchasable products. */
+.store-web-discovery{
+ border-top:1px solid var(--line,rgba(48,60,49,.16));
+ margin:22px 0 14px;padding:20px 0 0;max-width:780px
+}
+.store-web-launch{
+ font:inherit;font-size:12px;font-weight:600;letter-spacing:.012em;
+ padding:10px 14px;border-radius:999px;color:inherit;
+ background:transparent;border:1px solid #303c31;cursor:pointer
+}
+.store-web-launch:disabled{opacity:.6;cursor:wait}
+.store-web-discovery input{
+ display:block;width:min(100%,310px);margin:12px 0 6px;
+ border:1px solid #303c31;background:transparent;
+ color:inherit;border-radius:9px;padding:10px 12px;font:inherit
+}
+.store-web-discovery input[hidden]{display:none}
+.store-web-summary{font-size:13px;line-height:1.65;max-width:66ch;margin:12px 0}
+.store-web-sources{display:grid;gap:8px;margin:13px 0}
+.store-web-source{display:grid;gap:2px;font-size:12px;line-height:1.45}
+.store-web-source a{color:inherit;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.store-web-source small,.store-web-note{font-size:11px;color:var(--muted);line-height:1.6}
+.store-web-note{margin:12px 0 0}

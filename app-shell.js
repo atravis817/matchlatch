@@ -377,6 +377,51 @@ function renderStore(){
  retailerSummary.append(summary,shops);
  results.append(retailerSummary);
  const list=el("div","store-grid");results.append(list);
+ // Web references are opt-in styling research; never cart-ready products.
+ const webPanel=el("section","store-web-discovery");webPanel.hidden=true;
+ const webSummary=el("p","store-web-summary"),webSources=el("div","store-web-sources");
+ const webMessage=el("p","store-web-note","Web sources are not verified stock or checkout offers.");
+ const webCode=el("input");webCode.type="password";webCode.maxLength=256;
+ webCode.placeholder="Private beta code";webCode.autocomplete="off";
+ webCode.hidden=true;webCode.setAttribute("aria-label","Web research beta code");
+ const webButton=button("Explore wider web ↗",async()=>{
+  const c=storeState.criteria;
+  if(!c||webButton.disabled)return;
+  const code=($("beta-code")?.value||webCode.value||"").trim();
+  if(!code){webCode.hidden=false;webCode.focus();webMessage.textContent=
+   "Your private beta code is required for web research.";return;}
+  const run=searchId;
+  webButton.disabled=true;webSources.replaceChildren();webSummary.textContent="";
+  webMessage.textContent="Finding source-backed style references…";
+  try{
+   const res=await fetch("/api/discover",{
+    method:"POST",cache:"no-store",headers:{"content-type":"application/json"},
+    body:JSON.stringify({betaCode:code,slot:c.slot,q:c.q,max:c.max,
+     size:c.size,color:c.color,profile:profile()})
+   });
+   const found=await res.json();
+   if(run!==searchId)return;
+   if(!res.ok)throw Error(found?.error==="BETA_ACCESS_DENIED"?
+    "That private beta code wasn't accepted.":"Web research is unavailable.");
+   webSummary.textContent=found.summary||"";
+   const references=Array.isArray(found.sources)?found.sources:[];
+   for(const source of references){
+    if(!/^https:\/\//i.test(source?.url||""))continue;
+    const card=el("div","store-web-source");
+    const link=el("a",null,source.title||source.domain||"Open source");
+    link.href=source.url;link.target="_blank";link.rel="noopener noreferrer";
+    card.append(link,el("small",null,(source.domain||"Source")+
+      (source.kind==="product_page_reference"?" · Product-page reference":" · Style research")));
+    webSources.append(card);
+   }
+   webMessage.textContent=references.length
+    ?"Web research only · check current size, stock, price and delivery at the retailer."
+    :"No suitable source found. Refine your request without relaxing personal preferences.";
+  }catch(error){if(run===searchId)webMessage.textContent=error?.message||"Web search unavailable.";}
+  finally{webButton.disabled=false;}
+ },"store-web-launch");
+ webPanel.append(webButton,webCode,webSummary,webSources,webMessage);
+ results.append(webPanel);
  target.append(results);
  const product=el("section","store-product-shell");product.id="store-product";target.append(product);
  const view=(location.hash||"").slice(1).split("/")[1]||"search";
@@ -386,6 +431,7 @@ function renderStore(){
  }else if(storeState.searched){
   status.textContent="Prices and availability may change. Search again to refresh.";
   list.replaceChildren(...storeState.items.map(storeCard));
+  webPanel.hidden=false;
  }else status.textContent="Find your next piece.";
  if(view==="product"&&storeState.selected){renderProduct();showStoreView("product",false);}
  else if(view==="results"&&storeState.searched){showStoreView("results",false);}
@@ -415,6 +461,8 @@ function renderStore(){
   storeState.searched=true;storeState.items=[];
   showStoreView("results");
   list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
+  webPanel.hidden=true;webCode.hidden=true;webSummary.textContent="";
+  webSources.replaceChildren();
   status.textContent="Finding pieces that match your style…";
   submit.disabled=true;
   if(controller)controller.abort();
@@ -445,9 +493,13 @@ function renderStore(){
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
    shops.replaceChildren(...merchants.map(merchant=>el("span","store-retailer-name",merchant.name)));
    list.replaceChildren(...items.map(storeCard));
+   webPanel.hidden=false;
   }catch(error){
    if(run!==searchId)return;
-   if(error?.name!=="AbortError")status.textContent="We couldn't check the live catalog right now. Please try again.";
+   if(error?.name!=="AbortError"){
+    status.textContent="We couldn't check the live catalog. You can still explore research sources.";
+    webPanel.hidden=false;
+   }
   }finally{if(run===searchId)submit.disabled=false;}
  });
 }

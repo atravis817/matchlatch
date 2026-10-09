@@ -94,8 +94,8 @@ export async function GET(request){
     const destination={country:"US",...(region?{region}:{}),...(postal?{postal_code:postal}:{})};
     if(mode==="capabilities"){
       return reply({
-        catalog:"Shopify Global Catalog",
-        access:"Published catalog of eligible Shopify merchants; no website crawling",
+        catalog:"Shopify Global Catalog + approved Awin feeds",
+        access:"Shopify live catalog and approved, verified Awin merchant-feed snapshots; no website crawling",
         retailerDirectoryAvailable:false,
         retailerNames:[],
         criteria:{
@@ -107,7 +107,8 @@ export async function GET(request){
           shipping:"Catalog filter for US destination; costs and delivery dates unknown",
           checkout:"Retailer-issued checkout URL when published; not universal"
         },
-        merchantDirectoryNote:"Merchant names can be learned from live search results only, not inferred globally."
+        merchantDirectoryNote:"Shopify merchant names come from live searches. Awin retailers appear only after verified membership, accessible feed and database publication.",
+        webDiscovery:"Separate opt-in source-backed research; web results do not enter cart without a verified product listing."
       });
     }
     if(mode==="search"){
@@ -149,7 +150,7 @@ export async function GET(request){
           domain:item.merchantDomain||null,listingCount:0});
         merchants.get(id).listingCount++;
       }
-      return reply({items,source:"Shopify Global Catalog",checkedAt:new Date().toISOString(),
+      return reply({items,source:awin.length?"Shopify Global Catalog + Awin feed":"Shopify Global Catalog",checkedAt:new Date().toISOString(),
         criteria:{slot,size:size||null,color:color||null,max,currency:"USD",shipsTo:destination},
         retailerCoverage:{scope:"this search only",merchants:[...merchants.values()],count:merchants.size},
         verification:{price:"Shopify live price or Awin recent merchant feed snapshot",

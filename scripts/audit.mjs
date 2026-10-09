@@ -17,6 +17,7 @@ const awinFeed=file("lib/awin-feed-normalize.mjs");
 const awinPublic=file("lib/awin-public-catalog.mjs");
 const awinImporter=file("scripts/sync-awin-feeds.mjs");
 const awinRegistry=file("lib/awin-retailers.mjs");
+const webDiscovery=file("api/discover.mjs");
 const camera=file("camera.js");
 const cloud=file("cloud-sync.js");
 const shop=file("api/shop.mjs");
@@ -361,6 +362,43 @@ check(file("AWIN-PARTNER-ONBOARDING.md").includes("NOT SUBMITTED")
   &&file("AWIN-PARTNER-ONBOARDING.md").includes("Not joined")
   &&file("scripts/test-awin-integration.mjs").includes("never use service-role auth to browse"),
   "Awin application handoff and integration regression tests are documented");
+
+/* POC-06: first two joined Awin merchants and explicitly sourced web discovery. */
+try{
+ new vm.Script(webDiscovery.replace(/^import .*$/gm,"").replace(/^export\s+/gm,""),{filename:"api/discover.mjs"});
+ check(true,"Web discovery endpoint parses");
+}catch(error){console.error(error.message);check(false,"Web discovery endpoint parses");}
+check(awinRegistry.includes("id:117849")&&awinRegistry.includes("id:126793")
+  &&awinRegistry.includes("programme.primaryRegion?.countryCode")
+  &&awinRegistry.includes("programme.currencyCode")
+  &&!awinRegistry.includes('programme.deeplinkEnabled===true'),
+  "Joined programmes are checked against the fields Awin actually returns");
+check(awinFeed.includes("row.price_and_availability")
+  &&awinFeed.includes("row.product_category")
+  &&awinFeed.includes("row.product_attributes")
+  &&awinFeed.includes("Array.isArray(shipment)")
+  &&awinFeed.includes("!s.postal_code"),
+  "Enhanced Awin Google feeds support nested pricing, category, size/color and region-safe shipping");
+check(webDiscovery.includes('tools:[{type:"web_search",search_context_size:"low"}]')
+  &&webDiscovery.includes('include:["web_search_call.action.sources"]')
+  &&webDiscovery.includes("store:false")
+  &&webDiscovery.includes("acceptsCode(body?.betaCode,code)"),
+  "OpenAI web research requires beta code and returns real indexed citations without storing user search");
+check(webDiscovery.includes("cartEligible:false")
+  &&webDiscovery.includes("verifiedStock:false")
+  &&webDiscovery.includes("verifiedPrice:false")
+  &&webDiscovery.includes("PERSONAL CURATION outranks"),
+  "Web research does not manufacture purchasable products and puts personal styling first");
+check(appShell.includes('button("Explore wider web ↗"')
+  &&appShell.includes('fetch("/api/discover"')
+  &&appShell.includes("Web references are opt-in styling research; never cart-ready products."),
+  "Store's optional web discovery is kept separate from actual cart-eligible retailer listings");
+check(file("supabase/awin_joined_candidates.sql").includes("on conflict (advertiser_id) do nothing")
+  &&file("JOINED-RETAILERS-WEB-DISCOVERY.md").includes("UNKNOWN (no live feed download)"),
+  "Two joined merchants are documented without inventing available feeds or checkout");
+check(file("scripts/test-web-discovery.mjs").includes("Bad code cannot incur web-search cost")
+  &&file("scripts/test-awin-integration.mjs").includes("Awin joined-programmes endpoint does NOT include"),
+  "Web source and Awin joined-product regression suites are present");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");

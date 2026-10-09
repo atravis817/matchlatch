@@ -47,7 +47,9 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 **[Personal curation first, savings second: POC-04](AWIN-CURATION-PRIORITIES.md)**
 
-**[POC-05 Awin partner applications and feed activation](AWIN-PARTNER-ONBOARDING.md)** documents the six not-yet-joined fashion programmes, the guarded Supabase product index, and exact steps required before any Awin listing can appear in Store. documents the new mandatory search order and official Awin product feed research. The next staged build also includes a dormant, non-networking Awin product-feed normalizer; no Awin feed products are live in Store yet.
+**[POC-05 Awin partner applications and feed activation](AWIN-PARTNER-ONBOARDING.md)**
+
+**[POC-06 Joined retailers and AI-powered open-web discovery](JOINED-RETAILERS-WEB-DISCOVERY.md)** documents verified ZazzMode/Cacio Pepe membership, Enhanced Feed fixes and an opt-in, source-linked web research layer that never masquerades as purchasable stock. documents the six not-yet-joined fashion programmes, the guarded Supabase product index, and exact steps required before any Awin listing can appear in Store. documents the new mandatory search order and official Awin product feed research. The next staged build also includes a dormant, non-networking Awin product-feed normalizer; no Awin feed products are live in Store yet.
 
 **[Awin integration and activation guide](SAVINGS-CHECK.md)**. Savings Check uses `/api/savings` to look up merchant-matched Awin voucher listings when private `AWIN_API_TOKEN` and `AWIN_PUBLISHER_ID` credentials are present in Vercel. Account and variable configuration alone do **not** prove live promotions can be retrieved: joined advertisers, API responses, and real merchant coverage still require validation. Provider-listed codes are **not checkout-verified** and never lower displayed prices until an eligible checkout confirms a discount.
 

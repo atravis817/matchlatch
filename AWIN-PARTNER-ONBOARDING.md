@@ -1,6 +1,8 @@
 # MATCHLATCH Awin advertiser onboarding — POC-05
 
 **Date:** October 9, 2026. **Awin publisher:** MATCHLATCH (publisher account 3118944).
+
+**Latest update:** Two *different* US programmes, ZazzMode (117849) and Cacio Pepe (126793), are now **Joined**, with independently generated affiliate tracking links. Their product feeds remain unverified and product publication disabled. The six programme statuses below reflect the initial POC-05 inspection. See [POC-06 joined partners and web discovery](JOINED-RETAILERS-WEB-DISCOVERY.md).
 **Live account status:** Zero joined programmes, zero pending applications. These six targets were all confirmed **Not joined** by the connected Awin MCP, with active US programmes and deep linking allowed at the programme level.
 
 **Application submission status:** NOT SUBMITTED. The connected Awin tools can read programmes and create links after joining, but do not include any operation to apply or accept advertiser terms. Awin requires the publisher to select the promotional method and accept each advertiser's terms directly in its UI. Do not claim membership, approval, accessible product feed, or commission until the live programme status proves it.
