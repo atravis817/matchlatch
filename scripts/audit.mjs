@@ -440,26 +440,24 @@ check(appShell.includes('button("View product details ↗"') &&
   file("app-shell.css").includes(".v12-product-card"),
   "V1.2 Store cards consistently present details and shortlist actions");
 
-/* V1.2 delivery forecast: destination alone never fabricates shipping times. */
+/* POC-03 Store sends ZIP/deadline to trusted catalog server; source claims aren't client verified. */
 check(appShell.includes('const SHIPPING_KEY="matchlatch-shipping-region-v12"')
-  &&appShell.includes('estimate?.destinationZip===zip')
-  &&appShell.includes('estimate?.source==="retailer"')
+  &&appShell.includes('item?.delivery?.tier==="retailer_confirmed"')
   &&appShell.includes('Delivery estimate unavailable until retailer confirms transit times'),
-  "Shipping forecast requires a retailer-sourced destination-specific date range");
+  "Store only displays server-classified retailer delivery evidence");
 check(appShell.includes('input.pattern="[0-9]{5}"')
   &&appShell.includes('localStorage.removeItem(SHIPPING_KEY)')
-  &&appShell.includes("never sent to product search, analytics or OpenAI"),
-  "Shipping destination is optional, editable and kept locally");
-
-/* V1.2 delivery deadline blocks unsupported arrival claims and stays optional. */
+  &&appShell.includes('never to OpenAI research.'),
+  "Destination ZIP stays locally stored and is shared only with retailer catalog search");
 check(appShell.includes('deadline.type="date"')
   &&appShell.includes('storeState.needBy=deadline.value')
-  &&appShell.includes('deliveryByDate(item,storeState.needBy,shippingZip())'),
-  "Store native calendar deadline participates in result filtering");
-check(appShell.includes('e.latest<=deadline')
-  &&appShell.includes('e?.source==="retailer"')
-  &&appShell.includes('Save your destination ZIP in Me before using Need it by.'),
-  "Need-by results require matching destination and retailer-estimated latest arrival");
+  &&appShell.includes('params.set("postal",shippingZip())')
+  &&appShell.includes('params.set("needBy",storeState.needBy)')
+  &&file("api/shop.mjs").includes('evaluateDelivery(item,{zip:postal,needBy,today})')
+  &&file("api/shop.mjs").includes('item.delivery.tier==="retailer_confirmed"&&item.delivery.eligible'),
+  "Server enforces Need It By using provider-returned evidence");
+check(file("api/delivery-intelligence.mjs").includes("DELIVERY_EVIDENCE_NOT_ACCEPTED"),
+  "Forged client-side retailer evidence is rejected");
 check(file("app-shell.css").includes('.v12-date-field input[type="date"]'),
   "Delivery deadline calendar uses mobile-accessible styling");
 
@@ -480,9 +478,9 @@ check(file("lib/delivery-intelligence.mjs").includes('tier:"policy_forecast",eli
   &&file("lib/delivery-intelligence.mjs").includes('estimate?.source==="retailer"')
   &&file("scripts/test-delivery-intelligence.mjs").includes("PASS POC-02 delivery intelligence scenarios"),
   "POC-02 keeps policy projections distinct from deadline-eligible retailer evidence");
-check(file("api/delivery-intelligence.mjs").includes('mode:"evidence_evaluation_only"')
-  &&file("api/delivery-intelligence.mjs").includes("verifiedProductInventory:false"),
-  "POC-02 endpoint cannot imply inventory verification");
+check(file("api/delivery-intelligence.mjs").includes('mode:"server_authoritative"')
+  &&file("api/delivery-intelligence.mjs").includes("publicEvidenceSubmission:false"),
+  "POC-03 exposes no public elevation of submitted shipping evidence");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
