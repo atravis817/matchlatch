@@ -51,7 +51,7 @@ const missing=[...referenced].filter(id=>!declared.has(id));
 check(!missing.length,"All direct DOM references resolved"+(missing.length?": "+missing.join(", "):""));
 for(const asset of ["logo-mark.svg","library.css","library.js","outfit-tree.css","outfit-tree.js",
   "savings.css","savings.js","app-shell.css","app-shell.js","theme.css",
-  "flow-pages.css","flow-pages.js"]){
+  "flow-pages.css","flow-pages.js","greenglass.css","typography.css","commerce.css"]){
   check(fs.existsSync(path.join(root,asset)),asset+" exists");
   check(html.includes("/"+asset),asset+" linked in HTML");
 }
@@ -136,10 +136,10 @@ check(html.split('src="/logo-mark-dark.svg"').length===3
 check(file("app-shell.css").includes("repeat(5,minmax(0,1fr))")
   &&file("app-shell.css").includes("safe-area-inset-bottom"),
   "Five destinations remain usable above iPhone home indicator");
-check(appShell.includes('Style a similar piece ↗')
-  &&appShell.includes('const suggestions={')
-  &&appShell.includes('selected.value=choice'),
-  "Store style action preselects a real Studio starting point");
+check(appShell.includes('function openProduct(item)')
+  &&appShell.includes('lib()?.addRetailProduct?.({...item,slot:storeState.slot})')
+  &&library.includes("function addRetailProduct(item)"),
+  "Store real product selections feed the existing MATCHLATCH cart");
 check(!/vision engine|Vercel Production environment variables|incognito browser/i.test(html),
   "Customer-facing copy omits internal jargon");
 check(html.includes('role="button" tabindex="0" aria-label="Choose a photo to style"')
@@ -158,16 +158,46 @@ check(library.includes('"/"+selectedTab')&&library.includes('path[1]')&&library.
 check(flowPages.includes("MatchlatchMeFlow")&&flowPages.includes('privacy:"Privacy & data"')
   &&appShell.includes("MatchlatchMeFlow?.open("),
   "Me account, privacy, appearance and preferences open as separate pages");
-check(appShell.includes('target.dataset.view="results"')
-  &&appShell.includes('target.dataset.view="search"')
-  &&file("flow-pages.css").includes('#store-body[data-view="results"] .store-search'),
-  "Store results are shown on a dedicated view");
+check(appShell.includes('showStoreView("results")')
+  &&appShell.includes('showStoreView("product")')
+  &&file("commerce.css").includes('#store-body[data-view="product"]'),
+  "Store product details and results use dedicated views");
 check(html.includes('src="/flow-pages.js"')&&html.includes('href="/flow-pages.css"')
   &&html.includes('MatchlatchStudioFlow?.open("look")'),
   "Studio flow navigation is loaded and successful styling opens the result page");
 check(flowPages.includes("closet-new-look")&&library.includes('window.MatchlatchStudioFlow?.open("look")'),
   "New looks and reopened outfits use dedicated Studio views");
 
+
+
+/* Commerce-stage release gate: real selection, one cart, honest checkout. */
+check(html.includes('href="/commerce.css"')
+  &&html.indexOf('href="/commerce.css"')>html.indexOf('href="/greenglass.css"'),
+  "Commerce shell loads after existing GreenGlass and typography");
+check(shop.includes('collect(data,size)')&&shop.includes('checkoutUrl:safeUrl(v.checkout_url)'),
+  "Real retailer listings preserve exact variant and merchant-owned checkout references");
+check(library.includes('function addRetailProduct(item)')
+  &&library.includes('item.available!==true||item.currency!=="USD"')
+  &&library.includes('secureProductUrl(item?.url)'),
+  "Add-to-cart requires a verified USD variant and safe retailer link");
+check(library.includes('function renderCheckout(target)')
+  &&library.includes('if(selectedTab==="checkout")renderCheckout(content)')
+  &&library.includes('checkout:"Checkout"'),
+  "Checkout review is a real Closet subpage with shareable navigation");
+check(library.includes('renderCart(target=$("cart-body"))')
+  &&library.includes('addRetailProduct,')
+  &&!library.includes('matchlatch-commerce-cart-v1'),
+  "Studio and Store share the original persisted shopping cart");
+check(library.includes('MATCHLATCH does not collect payment or place orders yet')
+  &&library.includes('Final prices, taxes, delivery and payment are confirmed'),
+  "Checkout never claims payment or order placement");
+check(file("commerce.css").includes('.commerce-checkout-grid')
+  &&file("commerce.css").includes(':root[data-theme="dark"]')
+  &&file("commerce.css").includes('@media(max-width:500px)'),
+  "Commerce shell supports responsive layouts and dark mode");
+check(file("COMMERCE-STAGE.md").includes('not automatically create a retailer cart')
+  &&file("COMMERCE-STAGE.md").includes('not released'),
+  "Commerce handoff and future capability boundaries documented");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");

@@ -319,7 +319,7 @@
   function showPage(page,updateHash=true) {
     // Keep old links valid while allowing focused, shareable Closet subpages.
     const path=(location.hash||"").slice(1).split("/");
-    const closetPages=["overview","collections","wants","favorites","shortlist","outfits","purchases","inspirations"];
+    const closetPages=["overview","collections","wants","favorites","shortlist","checkout","outfits","purchases","inspirations"];
     if(!updateHash&&["closet","styles"].includes(page)&&path.length>1&&closetPages.includes(path[1]))
       selectedTab=path[1];
     if(page==="cart"){selectedTab="shortlist";page="styles";}
@@ -416,7 +416,9 @@
     if(!piece)return;
     const existing=cartExists(lookId,index);
     if(!existing) {
-      dbState.cart.unshift({id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,createdAt:new Date().toISOString()});
+      dbState.cart.unshift({id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,
+        source:piece.shopRef&&secureProductUrl(piece.productUrl)?"retailer":"look",
+        createdAt:new Date().toISOString()});
       persist();
     }
     if(activePage==="studio")decorateResult(currentLook());
@@ -558,14 +560,16 @@
   }
 
   function openClosetTab(tab){
-    const allowed=["overview","collections","wants","favorites","shortlist","outfits","purchases","inspirations"];
+    const allowed=["overview","collections","wants","favorites","shortlist","checkout","outfits","purchases","inspirations"];
     selectedTab=allowed.includes(tab)?tab:"overview";
     selectedLookDetail=null;
     if(selectedTab!=="collections")selectedCollectionId=null;
     showPage("closet");
   }
   function renderClosetOverview(target){
-    const wants=new Set([...dbState.favorites,...dbState.cart].map(x=>x.lookId+":"+x.pieceIndex)).size;
+    const wants=new Set([...dbState.favorites,...dbState.cart].map(x=>x.source==="retailer"
+      ? "retailer:"+(x.shopRef?.variantId||x.id)
+      : x.lookId+":"+x.pieceIndex)).size;
     const sections=[
       ["Collections",dbState.collections.length,"collections","Your folders and saved ideas","folder","folders"],
       ["Saved looks",dbState.looks.filter(x=>x.saved).length,"outfits","Outfits you've kept","saved look","saved looks"],
@@ -613,7 +617,7 @@
     content.replaceChildren();
     const sections={
       overview:"My Closet",collections:"Collections",wants:"Wants",favorites:"Favorites",
-      shortlist:"Shopping shortlist",outfits:"Saved looks",purchases:"Owned",inspirations:"Inspiration photos"
+      shortlist:"Your cart",checkout:"Checkout",outfits:"Saved looks",purchases:"Owned",inspirations:"Inspiration photos"
     };
     nav.removeAttribute("role");nav.removeAttribute("aria-label");
     content.removeAttribute("aria-labelledby");
@@ -628,7 +632,9 @@
       : selectedTab==="purchases"
         ? "Owned items are purchases you entered yourself, not retailer-verified orders."
         : selectedTab==="shortlist"
-          ? "Products you saved to shop. Checkout takes place at the retailer."
+          ? "Your saved pieces, ready when you are."
+          : selectedTab==="checkout"
+            ? "Review your pieces before continuing to the retailer."
           : selectedTab==="wants"
             ? "Wants combines your favorite pieces and shopping shortlist."
             : activeUser?"Private closet · Synced when connected.":"Guest closet · Saved on this device.";
@@ -638,6 +644,7 @@
     if(selectedTab==="collections")renderCollections(content);
     if(selectedTab==="wants")renderWants(content);
     if(selectedTab==="shortlist")renderCart(content);
+    if(selectedTab==="checkout")renderCheckout(content);
     if(selectedTab==="inspirations")renderInspirations(content);
     if(selectedTab==="outfits")renderOutfits(content);
     if(selectedTab==="favorites")renderFavorites(content);
@@ -852,42 +859,153 @@
     }
   }
 
+
+  // Real catalog products use the existing Closet cart and persistence.
+  // No parallel shopping bag and no inferred retailer checkout sessions.
+  const secureProductUrl=value=>{
+    try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:"";}catch{return "";}
+  };
+  const moneyAmount=x=>Number.isFinite(Number(x))&&Number(x)>=0?Number(x):null;
+  function addRetailProduct(item){
+    const price=moneyAmount(item?.price),url=secureProductUrl(item?.url);
+    const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
+    if(!item||item.available!==true||item.currency!=="USD"||!price||!url||
+       !/^gid:\/\/shopify\//.test(productId)||!/^gid:\/\/shopify\//.test(variantId)){
+      feedback("This item is not available to add right now.");
+      return false;
+    }
+    if(dbState.cart.some(x=>x.shopRef?.variantId===variantId)){
+      feedback("Already in your cart.","View cart",()=>openClosetTab("shortlist"));
+      return true;
+    }
+    const title=String(item.title||"Retailer item").trim().slice(0,155);
+    const retailer=String(item.merchant||new URL(url).hostname).trim().slice(0,90);
+    dbState.cart.unshift({
+      id:uid(),source:"retailer",lookId:null,inspirationId:null,
+      type:String(item.slot||"Clothing").slice(0,36),description:title,target:price,
+      currency:"USD",retailer,productUrl:url,
+      productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||title).slice(0,150),
+      size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
+      checkedAt:String(item.checkedAt||""),
+      shopRef:{productId,variantId,slot:String(item.slot||"shirt")},
+      createdAt:new Date().toISOString()
+    });
+    persist();
+    if(activePage==="styles")renderStyles();
+    feedback("Added to cart.","View cart",()=>openClosetTab("shortlist"));
+    return true;
+  }
+  function cartImage(item){
+    if(item.source!=="retailer")return imageFrame(item.inspirationId,"cart-thumb");
+    const frame=node("div","cart-thumb commerce-cart-photo");
+    const url=secureProductUrl(item.productImage);
+    if(url){
+      const img=node("img");img.src=url;img.alt=String(item.imageAlt||item.description);
+      img.loading="lazy";
+      img.addEventListener("error",()=>{img.remove();frame.append(node("span","placeholder","Image unavailable"));},{once:true});
+      frame.append(img);
+    }else frame.append(node("span","placeholder","Image unavailable"));
+    return frame;
+  }
+  function removeCartItem(item){
+    dbState.cart=dbState.cart.filter(x=>x.id!==item.id);
+    persist();
+    if(activePage==="styles")renderStyles();else renderCart();
+    feedback("Removed from cart.","Undo",()=>{
+      if(!dbState.cart.some(x=>x.id===item.id))dbState.cart.unshift(item);
+      persist();if(activePage==="styles")renderStyles();else if(activePage==="cart")renderCart();
+    });
+  }
+  function renderCheckout(target){
+    target.replaceChildren();
+    const shell=node("section","commerce-checkout");
+    if(!dbState.cart.length){
+      const emptyTitle=node("h3",null,"Your cart is empty");
+      shell.append(emptyTitle,node("p",null,"Find something you love, add it to your cart, then check out."));
+      shell.append(btn("Explore the store ↗",()=>showPage("store"),"commerce-primary"));
+      target.append(shell);
+      return;
+    }
+    const introduction=node("div","commerce-checkout-intro");
+    introduction.append(node("h3",null,"Ready when you are"),
+      node("p",null,"Review your pieces, then complete purchase at each retailer."));
+    shell.append(introduction);
+    const grid=node("div","commerce-checkout-grid");
+    const items=node("div","commerce-checkout-items");
+    for(const item of dbState.cart){
+      const row=node("article","commerce-checkout-item");
+      row.append(cartImage(item));
+      const details=node("div","commerce-checkout-details");
+      details.append(node("span","micro-title",item.source==="retailer"?item.retailer||"Retailer":"Outfit inspiration"));
+      details.append(node("h4",null,item.description));
+      if(item.size)details.append(node("small",null,"Size "+item.size));
+      details.append(node("strong","commerce-checkout-price",money(item.target)));
+      const actions=node("div","commerce-checkout-actions");
+      const link=secureProductUrl(item.productUrl);
+      if(item.source==="retailer"&&link){
+        const a=node("a","commerce-primary","Continue to "+(item.retailer||"retailer")+" ↗");
+        a.href=link;a.target="_blank";a.rel="noopener noreferrer";
+        actions.append(a);
+      }else{
+        actions.append(btn("Find your piece ↗",()=>showPage("store"),"commerce-primary"));
+      }
+      details.append(actions);
+      row.append(details);items.append(row);
+    }
+    const aside=node("aside","commerce-checkout-summary");
+    aside.append(node("span","micro-title","Order summary"));
+    aside.append(node("h3",null,dbState.cart.length+" "+(dbState.cart.length===1?"piece":"pieces")));
+    const total=dbState.cart.reduce((sum,item)=>sum+(Number(item.target)||0),0);
+    const estimate=node("div","commerce-checkout-total");
+    estimate.append(node("span",null,"Estimated item total"),node("strong",null,money(total)));
+    aside.append(estimate);
+    aside.append(node("p",null,"Final prices, taxes, delivery and payment are confirmed on the retailer's site."));
+    aside.append(node("p","commerce-checkout-trust",
+      "MATCHLATCH does not collect payment or place orders yet."));
+    aside.append(btn("← Back to cart",()=>openClosetTab("shortlist"),"commerce-secondary"));
+    grid.append(items,aside);shell.append(grid);target.append(shell);
+  }
+
   function renderCart(target=$("cart-body")) {
     target.replaceChildren();
     const old=$("purchase-editor");
     if(old)old.remove();
-    target.append(node("p","library-caption","Your shopping shortlist. Saved prices are estimates. Checkout happens at the retailer."));
+    target.append(node("p","library-caption","Your favorite finds, all in one place."));
     if(!dbState.cart.length) {
-      showEmpty(target,"Your shortlist is empty.","Save pieces from Studio to find them here when you're ready to shop.");
+      showEmpty(target,"Your cart is empty.","Add something from Store or Studio, then return here to check out.");
+      target.append(btn("Explore the store ↗",()=>showPage("store"),"commerce-primary"));
       return;
     }
     const list=node("div","cart-list");
     for(const item of dbState.cart) {
       const row=node("article","cart-entry");
-      row.append(imageFrame(item.inspirationId,"cart-thumb"));
+      row.append(cartImage(item));
       const info=node("div","cart-info");
-      info.append(node("div","library-meta",item.type+" · "+(item.shopRef?"Price when selected ":"Budget target ")+money(item.target)));
+      info.append(node("div","library-meta",item.source==="retailer"
+        ? (item.retailer||"Retailer")+" · Price when selected"
+        : item.type+" · "+(item.shopRef?"Price when selected":"Budget target")));
       info.append(node("h3",null,item.description));
-      info.append(node("small",null,"Inspired by: "+(inspirationFor(item.inspirationId)?.label||"original photo")));
+      if(item.source==="retailer"){
+        if(item.size)info.append(node("small",null,"Size "+item.size));
+      }else{
+        info.append(node("small",null,"Inspired by: "+(inspirationFor(item.inspirationId)?.label||"original photo")));
+      }
       const controls=node("div","cart-controls");
-      void appendLiveShopLink(controls,item);
-      controls.append(btn("Record purchase",()=>openPurchaseForm(item.id)));
-      controls.append(btn("Remove",()=>{
-        dbState.cart=dbState.cart.filter(x=>x.id!==item.id);
-        persist();
-        if(activePage==="styles")renderStyles();else renderCart();
-        feedback("Removed from cart.","Undo",()=>{
-          if(!dbState.cart.some(x=>x.id===item.id))dbState.cart.unshift(item);
-          persist();if(activePage==="styles")renderStyles();else if(activePage==="cart")renderCart();
-        });
-      },"quiet-button"));
+      if(item.source!=="retailer")void appendLiveShopLink(controls,item);
+      if(item.inspirationId&&item.lookId)
+        controls.append(btn("Record purchase",()=>openPurchaseForm(item.id)));
+      controls.append(btn("Remove",()=>removeCartItem(item),"quiet-button"));
       info.append(controls);row.append(info);list.append(row);
     }
     target.append(list);
     const total=dbState.cart.reduce((sum,x)=>sum+(Number(x.target)||0),0);
     const totals=node("div","cart-total");
-    totals.append(node("span",null,"Saved-price estimate · retailer prices can change"),node("strong",null,money(total)));
+    totals.append(node("span",null,"Estimated total · excludes tax and shipping"),node("strong",null,money(total)));
     target.append(totals);
+    const checkout=node("div","commerce-cart-footer");
+    checkout.append(btn("Checkout →",()=>openClosetTab("checkout"),"commerce-primary"));
+    checkout.append(btn("Keep shopping",()=>showPage("store"),"commerce-secondary"));
+    target.append(checkout);
   }
 
   function openPurchaseForm(cartId) {
@@ -1089,7 +1207,12 @@
       searchQuery:String(item.title||slot).slice(0,165),
       target:Number(item.price)||0,
       priceAtSelection:Number(item.price)||0,
-      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot}
+      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot},
+      retailer:String(item.merchant||"Retailer").slice(0,90),
+      productUrl:secureProductUrl(item.url),
+      productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||item.title||slot).slice(0,150),
+      size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
+      currency:"USD",checkedAt:String(item.checkedAt||"")
     });
     persist();
     return index;
@@ -1138,7 +1261,7 @@
     window.MatchlatchStudioFlow?.open("piece");
     $("drop")?.focus();
   }
-  window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,
+  window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,renderCheckout,addRetailProduct,
     chooseShopItem,favoriteShopItem,cartShopItem,
     discoverySnapshot,attachInspirationPhoto:attachPhoto,
     openLook:lookId=>void reopenTree(lookId),

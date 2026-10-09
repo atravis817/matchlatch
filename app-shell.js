@@ -188,7 +188,7 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0};
+const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0,selected:null};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
@@ -210,20 +210,74 @@ function storeCard(item){
  if(!cover.children.length)cover.append(el("span","store-no-photo","No image"));
  card.append(cover);
  const info=el("div","store-card-info");
- info.append(el("span","micro-title",item.merchant||"RETAILER"));
+ info.append(el("span","micro-title",item.merchant||"Retailer"));
  info.append(el("h3",null,item.title||"Retailer product"));
  info.append(el("strong","store-price",USD(item.price)));
  if(item.size)info.append(el("span","store-size","Size "+item.size));
- const actions=el("div","store-card-actions");
+ const actions=el("div","store-card-actions store-card-shopping");
+ actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
+ actions.append(button("Details ↗",()=>openProduct(item),"store-view-details"));
+ info.append(actions);
+ card.append(info);return card;
+}
+function showStoreView(view,push=true){
+ const target=$("store-body");
+ const page=$("screen-store");
+ if(!target||!page)return;
+ const valid=["search","results","product"].includes(view)?view:"search";
+ target.dataset.view=valid;
+ page.dataset.storeView=valid;
+ if(push){
+  const hash=valid==="search"?"#store":"#store/"+valid;
+  if(location.hash!==hash)history.pushState(null,"",hash);
+  window.scrollTo({top:0,behavior:"auto"});
+ }
+}
+function renderProduct(){
+ const target=$("store-product");
+ if(!target)return;
+ target.replaceChildren();
+ const item=storeState.selected;
+ const back=button("← Back to products",()=>showStoreView(storeState.items.length?"results":"search"),"flow-back");
+ target.append(back);
+ if(!item){
+  target.append(el("h2",null,"Find your next piece"));
+  target.append(el("p",null,"Search Store to choose a product."));
+  target.append(button("Browse products ↗",()=>showStoreView("search"),"store-add-to-cart"));
+  return;
+ }
+ const layout=el("div","store-product-layout");
+ const visual=el("div","store-product-visual");
  try{
-  const url=new URL(item.url);
-  if(url.protocol==="https:"){
-   const link=el("a","store-retailer-link","View at retailer ↗");
-   link.href=url.href;link.target="_blank";link.rel="noopener noreferrer";
-   actions.append(link);
-  }
- }catch{}
- actions.append(button("Style a similar piece ↗",()=>{
+  const url=new URL(item.image);
+  if(url.protocol!=="https:")throw Error("Invalid image");
+  const img=el("img");img.src=url.href;img.alt=item.imageAlt||item.title||"Product image";
+  img.addEventListener("error",()=>{visual.replaceChildren(el("span",null,"Image unavailable"));},{once:true});
+  visual.append(img);
+ }catch{visual.append(el("span",null,"Image unavailable"));}
+ const details=el("div","store-product-info");
+ details.append(el("span","micro-title",item.merchant||"Retailer"));
+ details.append(el("h2",null,item.title||"Retailer product"));
+ details.append(el("strong","store-product-price",USD(item.price)));
+ const specifics=el("div","store-product-specifics");
+ if(item.size)specifics.append(el("span",null,"Size "+item.size));
+ if(item.variant&&item.variant!==item.size)specifics.append(el("span",null,item.variant));
+ if(!specifics.children.length)specifics.append(el("span",null,"Selected retailer listing"));
+ details.append(specifics);
+ details.append(el("p","store-product-disclaimer","Price and availability are checked when listed and may change before checkout."));
+ const actions=el("div","store-product-actions");
+ actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
+ actions.append(button("View cart ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
+ const retailerLink=(()=>{try{const url=new URL(item.url);return url.protocol==="https:"?url.href:"";}catch{return "";}})();
+ if(retailerLink){
+  const link=el("a","store-product-retailer","View at retailer ↗");
+  link.href=retailerLink;link.target="_blank";link.rel="noopener noreferrer";
+  actions.append(link);
+ }
+ details.append(actions);
+ const more=el("details","store-product-more");
+ more.append(el("summary",null,"More options"));
+ more.append(button("Style a similar piece ↗",()=>{
   showPage("studio");
   window.MatchlatchStudioFlow?.open("piece");
   const selected=$("itemtype");
@@ -237,21 +291,25 @@ function storeCard(item){
   const panel=document.querySelector(".manual-details");
   if(panel)panel.open=true;
   const status=$("status");
-  if(status)status.textContent="Choose the item type and color, then select Guided Styling. This won't add the retailer product to your closet.";
+  if(status)status.textContent="Choose the item type and color, then select Guided Styling.";
   $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
   $("itemcolor")?.focus();
- }, "destination-link quiet"));
- info.append(actions);
- window.MatchlatchSavings?.attach?.(info,item);
- card.append(info);return card;
+ },"store-product-style-link"));
+ details.append(more);
+ window.MatchlatchSavings?.attach?.(details,item);
+ layout.append(visual,details);target.append(layout);
+}
+function openProduct(item){
+ if(!item||item.available!==true)return;
+ storeState.selected=item;
+ renderProduct();
+ showStoreView("product");
 }
 function renderStore(){
  const target=$("store-body");if(!target)return;
  target.replaceChildren();
  target.dataset.view="search";
  $("screen-store").dataset.storeView="search";
- // A fresh tab cannot restore transient catalog results; start with a real search.
- if(location.hash==="#store/results")history.replaceState(null,"","#store");
  const p=profile();
  const box=el("section","store-search");
  box.append(sectionTitle("Find your next piece","Find something new",
@@ -287,12 +345,7 @@ function renderStore(){
  target.append(box);
  const results=el("div","store-results");
  const head=el("div","store-results-top");
- head.append(button("← Change search",()=>{
-  target.dataset.view="search";
-  $("screen-store").dataset.storeView="search";
-  if(location.hash!=="#store")history.pushState(null,"","#store");
-  window.scrollTo({top:0,behavior:"auto"});
- },"flow-back"));
+ head.append(button("← Change search",()=>showStoreView("search"),"flow-back"));
  const heading=el("h2",null,"Your results");
  head.append(heading);
  results.append(head);
@@ -301,10 +354,21 @@ function renderStore(){
  results.append(status);
  const list=el("div","store-grid");results.append(list);
  target.append(results);
- if(initialStoreQuery){status.textContent="Your mood is ready to shop. Choose a category and search.";initialStoreQuery="";}
- else if(storeState.searched){
-  status.textContent="Search again for updated prices and availability.";
- }else status.textContent="Search available products. You'll check out on the retailer's website.";
+ const product=el("section","store-product-shell");product.id="store-product";target.append(product);
+ const view=(location.hash||"").slice(1).split("/")[1]||"search";
+ if(initialStoreQuery){
+  status.textContent="Your mood is ready to shop. Choose a category and search.";
+  initialStoreQuery="";
+ }else if(storeState.searched){
+  status.textContent="Prices and availability may change. Search again to refresh.";
+  list.replaceChildren(...storeState.items.map(storeCard));
+ }else status.textContent="Find your next piece.";
+ if(view==="product"&&storeState.selected){renderProduct();showStoreView("product",false);}
+ else if(view==="results"&&storeState.searched){showStoreView("results",false);}
+ else {
+  if(view!=="search"&&location.hash.startsWith("#store/"))history.replaceState(null,"","#store");
+  showStoreView("search",false);
+ }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   const q=query.value.trim(),max=Number(budget.value);
@@ -314,10 +378,7 @@ function renderStore(){
   }
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
   storeState.searched=true;storeState.items=[];
-  target.dataset.view="results";
-  $("screen-store").dataset.storeView="results";
-  if(location.hash!=="#store/results")history.pushState(null,"","#store/results");
-  window.scrollTo({top:0,behavior:"auto"});
+  showStoreView("results");
   list.replaceChildren();status.textContent="Searching available retailer products…";
   submit.disabled=true;
   if(controller)controller.abort();
@@ -468,6 +529,6 @@ window.addEventListener("matchlatch:library",()=>{
  const current=(location.hash||"#studio").slice(1);
  if(current==="studio"||current==="mood")renderDestination(current);
 });
-const hash=(location.hash||"#studio").slice(1).split("?")[0];
+const hash=(location.hash||"#studio").slice(1).split("?")[0].split("/")[0];
 renderDestination(hash==="me"?"account":(["mood","studio","store","account"].includes(hash)?hash:"studio"));
 })();
