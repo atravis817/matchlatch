@@ -726,6 +726,7 @@
         const a=node("a",null,money(payload.item.price)+" · Open retailer ↗");
         a.href=payload.item.url;a.target="_blank";a.rel="noopener noreferrer";
         actions.append(a);
+        window.MatchlatchSavings?.attach?.(actions,payload.item);
       } else {
         actions.append(link(item.searchQuery,"Look for alternatives ↗"));
         actions.append(node("span","library-meta","Saved offer no longer verified"));
