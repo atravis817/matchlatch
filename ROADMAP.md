@@ -42,7 +42,7 @@
 
 **Guardrail:** Reuse existing architecture. Avoid unnecessary frameworks, shadow implementations, duplicate panels and storing retailer search results permanently.
 
-**Navigation refinement · built / verify on device:** Mood (concept inspiration), My Closet (collections, wants, favorites, shortlist and user-recorded Owned), Studio (projects and outfit building), Store (participating retailer catalog), Me (account and style settings). Studio is centered in the five-tab dock; the global appearance toggle sits beside Cart. Dark mode is persisted per browser and follows System when selected. The Vercel deployment gate and real mobile/browser checks must still be confirmed. See [README](README.md#five-destinations-purpose-and-testing).
+**Focused navigation · built / verify on device:** Mood opens curated inspiration; My Closet has a simple landing page and independent category routes; Studio separates the project home, starting piece, preferences and result into three steps; Store separates searching from product results; Me separates appearance, personal style, account and privacy settings. Studio remains centered in the five-tab dock and Cart/theme controls stay in the header. Dark mode follows System when selected. Live iPhone/desktop route, Back/Forward and screen-reader tests remain open. See [README](README.md#five-destinations-purpose-and-testing).
 
 ## 🥚 V1 — The Magic Trick · BUILT / VALIDATING
 

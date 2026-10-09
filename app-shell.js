@@ -70,7 +70,7 @@ function renderWorkspace(){
   const row=el("div","destination-folders");
   row.append(el("div","destination-inline-title","YOUR COLLECTIONS"));
   const rail=el("div","folder-rail");
-  for(const folder of state.collections.slice(0,5)){
+  for(const folder of state.collections.slice(0,3)){
    const count=state.inspirations.filter(x=>x.collectionId===folder.id).length;
    const chip=button("",()=>lib()?.openCollection?.(folder.id),"folder-chip");
    chip.append(el("span","folder-chip-icon","▱"));
@@ -84,7 +84,7 @@ function renderWorkspace(){
   const wrap=el("div","destination-recent");
   wrap.append(sectionTitle("PICK UP WHERE YOU LEFT OFF","Recent looks","Open a saved look to keep styling or shopping."));
   const grid=el("div","destination-recent-grid");
-  for(const look of state.looks.slice(0,3)){
+  for(const look of state.looks.slice(0,2)){
    const card=el("article","destination-recent-card");
    card.append(photoTile(look.inspirationId));
    const info=el("div","destination-recent-info");
@@ -133,6 +133,7 @@ function curatedDirections(state,p){
 }
 function useMood(direction){
  showPage("studio");
+ window.MatchlatchStudioFlow?.open("piece");
  const select=$("itemtype"),color=$("itemcolor");
  if(select&&[...select.options].some(o=>o.value===direction.anchorType))select.value=direction.anchorType;
  if(color)color.value=direction.anchorColor;
@@ -182,18 +183,11 @@ function renderMood(){
   detail.append(actions);card.append(detail);grid.append(card);
  }
  target.append(grid);
- const related=state.looks.slice(0,4);
- if(related.length){
-  const sec=el("section","mood-archive");
-  sec.append(sectionTitle("SAVED LOOKS","From your closet.","Continue styling an outfit you've made."));
-  const rail=el("div","mood-archive-rail");
-  for(const look of related){
-   const card=button("",()=>lib()?.openLook?.(look.id),"mood-archive-card");
-   card.append(photoTile(look.inspirationId,"mood-archive-photo"));
-   const info=el("span","mood-archive-copy");info.append(el("strong",null,look.label),el("small",null,"Continue this look ↗"));
-   card.append(info);rail.append(card);
-  }
-  sec.append(rail);target.append(sec);
+ if(state.looks.length){
+  const saved=el("div","mood-archive-shortcut");
+  saved.append(el("p",null,"Looking for a look you saved? Find it in My Closet."));
+  saved.append(button("Open My Closet ↗",()=>showPage("closet"),"destination-link"));
+  target.append(saved);
  }
 }
 const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0};
@@ -233,6 +227,7 @@ function storeCard(item){
  }catch{}
  actions.append(button("Style a similar piece ↗",()=>{
   showPage("studio");
+  window.MatchlatchStudioFlow?.open("piece");
   const selected=$("itemtype");
   const suggestions={
    shirt:"top:t-shirt",pants:"bottom:jeans",jacket:"outerwear:blazer",
@@ -255,6 +250,10 @@ function storeCard(item){
 function renderStore(){
  const target=$("store-body");if(!target)return;
  target.replaceChildren();
+ target.dataset.view="search";
+ $("screen-store").dataset.storeView="search";
+ // A fresh tab cannot restore transient catalog results; start with a real search.
+ if(location.hash==="#store/results")history.replaceState(null,"","#store");
  const p=profile();
  const box=el("section","store-search");
  box.append(sectionTitle("FIND YOUR NEXT PIECE","Find something new.",
@@ -289,6 +288,16 @@ function renderStore(){
  box.append(quick);
  target.append(box);
  const results=el("div","store-results");
+ const head=el("div","store-results-top");
+ head.append(button("← Change search",()=>{
+  target.dataset.view="search";
+  $("screen-store").dataset.storeView="search";
+  if(location.hash!=="#store")history.pushState(null,"","#store");
+  window.scrollTo({top:0,behavior:"auto"});
+ },"flow-back"));
+ const heading=el("h2",null,"Your results");
+ head.append(heading);
+ results.append(head);
  const status=el("p","store-search-status");
  status.setAttribute("role","status");status.setAttribute("aria-live","polite");
  results.append(status);
@@ -307,6 +316,10 @@ function renderStore(){
   }
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
   storeState.searched=true;storeState.items=[];
+  target.dataset.view="results";
+  $("screen-store").dataset.storeView="results";
+  if(location.hash!=="#store/results")history.pushState(null,"","#store/results");
+  window.scrollTo({top:0,behavior:"auto"});
   list.replaceChildren();status.textContent="Searching available retailer products…";
   submit.disabled=true;
   if(controller)controller.abort();
@@ -341,7 +354,9 @@ function renderProfileLinks(){
  ];
  for(const [number,name,description,targetId] of sections){
   const card=button("",()=>{
-   $(targetId)?.scrollIntoView({behavior:"smooth",block:"start"});
+   const view={"me-appearance":"appearance","me-preferences":"preferences",
+     "me-account-panel":"account","me-privacy-panel":"privacy"}[targetId];
+   window.MatchlatchMeFlow?.open(view||"home");
   },"profile-shortcut");
   const info=el("span","profile-shortcut-copy");
   info.append(el("span","micro-title",number+" / ME"),el("strong",null,name),el("small",null,description));
@@ -418,6 +433,7 @@ function renderMePreferences(){
  footer.lastChild.id="me-preferences-status";
  footer.append(button("Edit more size details in Studio ↗",()=>{
   showPage("studio");
+  window.MatchlatchStudioFlow?.open("style");
   const field=$("topSize");
   const details=field?.closest("details");
   if(details)details.open=true;

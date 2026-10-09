@@ -317,7 +317,11 @@
   }
 
   function showPage(page,updateHash=true) {
-    // Legacy #styles/#cart/#account URLs remain navigable.
+    // Keep old links valid while allowing focused, shareable Closet subpages.
+    const path=(location.hash||"").slice(1).split("/");
+    const closetPages=["overview","collections","wants","favorites","shortlist","outfits","purchases","inspirations"];
+    if(!updateHash&&["closet","styles"].includes(page)&&path.length>1&&closetPages.includes(path[1]))
+      selectedTab=path[1];
     if(page==="cart"){selectedTab="shortlist";page="styles";}
     if(page==="closet")page="styles";
     if(page==="me")page="account";
@@ -329,7 +333,9 @@
       button.classList.toggle("active",active);
       if(active)button.setAttribute("aria-current","page");else button.removeAttribute("aria-current");
     });
-    const destination=page==="styles"?"closet":page==="account"?"me":page;
+    const destination=page==="styles"
+      ? "closet"+(selectedTab==="overview"?"":"/"+selectedTab)
+      : page==="account"?"me":page;
     if(updateHash && location.hash!=="#"+destination)history.pushState(null,"","#"+destination);
     if(page==="styles")renderStyles();
     if(page==="account")renderAccount();
@@ -337,11 +343,14 @@
     window.scrollTo({top:0,behavior:"auto"});
   }
   function readLocation() {
-    const hash=(location.hash||"").replace("#","").split("?")[0].toLowerCase();
+    const hash=(location.hash||"").replace("#","").split("?")[0].split("/")[0].toLowerCase();
     if(["mood","closet","studio","store","me","styles","cart","account"].includes(hash))return hash;
     return "studio";
   }
-  document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+  document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>{
+    if(b.dataset.page==="closet"){selectedTab="overview";selectedLookDetail=null;selectedCollectionId=null;}
+    showPage(b.dataset.page);
+  }));
   document.querySelectorAll("[data-nav-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.navPage)));
   window.addEventListener("hashchange",()=>showPage(readLocation(),false));
   window.addEventListener("popstate",()=>showPage(readLocation(),false));
@@ -557,56 +566,25 @@
   }
   function renderClosetOverview(target){
     const wants=new Set([...dbState.favorites,...dbState.cart].map(x=>x.lookId+":"+x.pieceIndex)).size;
-    const summary=node("div","closet-overview");
-    for(const [label,count,tab,note] of [
-      ["Collections",dbState.collections.length,"collections","Your named folders"],
-      ["Wants",wants,"wants","Pieces on your radar"],
-      ["Shortlist",dbState.cart.length,"shortlist","Ready to shop"],
-      ["Owned",dbState.purchases.length,"purchases","Self-recorded purchases"]
-    ]){
-      const tile=btn("",()=>openClosetTab(tab),"closet-summary-tile");
-      tile.append(node("span","closet-summary-count",String(count)),
-        node("strong",null,label),node("small",null,note),
-        node("span","closet-summary-arrow","Explore ↗"));
-      summary.append(tile);
+    const sections=[
+      ["Collections",dbState.collections.length,"collections","Your folders and saved ideas"],
+      ["Saved looks",dbState.looks.filter(x=>x.saved).length,"outfits","Outfits you've kept"],
+      ["Favorites",dbState.favorites.length,"favorites","Pieces you love"],
+      ["Wants",wants,"wants","Pieces you want to explore"],
+      ["Shopping shortlist",dbState.cart.length,"shortlist","Pieces to shop later"],
+      ["Owned",dbState.purchases.length,"purchases","Purchases you've recorded"],
+      ["Inspiration photos",dbState.inspirations.length,"inspirations","Your starting images"]
+    ];
+    const grid=node("div","closet-overview");
+    for(const [title,count,tab,description] of sections){
+      const entry=btn("",()=>openClosetTab(tab),"closet-summary-tile");
+      entry.append(node("span","closet-summary-count",String(count)),
+        node("strong",null,title),
+        node("small",null,description),
+        node("span","closet-summary-arrow","Open ↗"));
+      grid.append(entry);
     }
-    target.append(summary);
-    const row=node("div","closet-feature-heading");
-    row.append(node("h2",null,"Your collections"),
-      btn("All folders ↗",()=>openClosetTab("collections"),"quiet-button"));
-    target.append(row);
-    const rail=node("div","closet-folder-preview");
-    const folders=dbState.collections.slice(0,4);
-    for(const folder of folders){
-      const linked=dbState.inspirations.filter(x=>x.collectionId===folder.id).length;
-      const entry=btn("",()=>{selectedCollectionId=folder.id;selectedTab="collections";renderStyles();},"closet-folder-tile");
-      entry.append(node("span","closet-folder-glyph","▱"),node("strong",null,folder.name),
-        node("small",null,linked+" inspiration"+(linked===1?"":"s")));
-      rail.append(entry);
-    }
-    if(!folders.length){
-      const empty=node("div","closet-empty-feature");
-      empty.append(node("strong",null,"A place for everything."),
-        node("p",null,"Create folders for trips, occasions, and ideas. Your saved looks stay connected."),
-        btn("Create a collection ↗",()=>openClosetTab("collections"),"library-primary"));
-      rail.append(empty);
-    }
-    target.append(rail);
-    const saved=dbState.looks.filter(x=>x.saved).slice(0,3);
-    if(saved.length){
-      const heading=node("div","closet-feature-heading");
-      heading.append(node("h2",null,"Saved looks"),
-        btn("View all looks ↗",()=>openClosetTab("outfits"),"quiet-button"));
-      target.append(heading);
-      const grid=node("div","library-grid");
-      for(const look of saved){
-        const {card,body}=makeCard(look.inspirationId,look.label,
-          (look.mode==="ai"?"AI-styled":"Guided")+" · "+dateLabel(look.createdAt),"");
-        body.append(btn("Continue in Studio ↗",()=>void reopenTree(look.id),"link-button"));
-        grid.append(card);
-      }
-      target.append(grid);
-    }
+    target.append(grid);
   }
   function renderWants(target){
     target.append(node("p","library-caption","Favorites and your shopping shortlist, all in one place. Nothing here is a confirmed purchase."));
@@ -629,31 +607,21 @@
   function renderStyles() {
     const nav=$("styles-tabs");
     const content=$("styles-body");
+    $("screen-styles").dataset.closetView=selectedTab==="overview"?"home":"detail";
     nav.replaceChildren();
     content.replaceChildren();
-    const wants=new Set([...dbState.favorites,...dbState.cart].map(x=>x.lookId+":"+x.pieceIndex)).size;
-    const tabs=[
-      ["overview","All",0],
-      ["collections","Collections",dbState.collections.length],
-      ["wants","Wants",wants],
-      ["favorites","Favorites",dbState.favorites.length],
-      ["shortlist","Shortlist",dbState.cart.length],
-      ["outfits","Saved looks",dbState.looks.filter(x=>x.saved).length],
-      ["purchases","Owned",dbState.purchases.length],
-      ["inspirations","Inspirations",dbState.inspirations.length]
-    ];
-    for(const [key,label,count] of tabs){
-      const b=btn(label+(count?" · "+count:""),()=>{selectedTab=key;selectedLookDetail=null;if(key!=="collections")selectedCollectionId=null;renderStyles();},"");
-      b.className=selectedTab===key?"active":"";
-      b.id="closet-tab-"+key;
-      b.setAttribute("role","tab");
-      b.setAttribute("aria-controls","styles-body");
-      b.setAttribute("aria-selected",String(selectedTab===key));
-      nav.append(b);
+    const sections={
+      overview:"My Closet",collections:"Collections",wants:"Wants",favorites:"Favorites",
+      shortlist:"Shopping shortlist",outfits:"Saved looks",purchases:"Owned",inspirations:"Inspiration photos"
+    };
+    nav.removeAttribute("role");nav.removeAttribute("aria-label");
+    content.removeAttribute("aria-labelledby");
+    content.setAttribute("aria-label",sections[selectedTab]||"My Closet");
+    if(selectedTab!=="overview"){
+      const back=btn("← My Closet",()=>openClosetTab("overview"),"flow-back");
+      const heading=node("h2","closet-page-title",sections[selectedTab]||"My Closet");
+      nav.append(back,heading);
     }
-    nav.setAttribute("role","tablist");
-    nav.setAttribute("aria-label","My Closet sections");
-    content.setAttribute("aria-labelledby","closet-tab-"+selectedTab);
     const caption=selectedTab==="collections"
       ? "Named folders keep your inspiration photos, looks and shopping items together."
       : selectedTab==="purchases"
@@ -663,8 +631,8 @@
           : selectedTab==="wants"
             ? "Wants combines your favorite pieces and shopping shortlist."
             : activeUser?"Private closet · Synced when connected.":"Guest closet · Saved on this device.";
-    content.append(node("p","library-caption",caption));
-    if(selectedLookDetail)renderLookDetails(content,selectedLookDetail);
+    if(selectedTab!=="overview")content.append(node("p","library-caption",caption));
+    if(selectedLookDetail){renderLookDetails(content,selectedLookDetail);return;}
     if(selectedTab==="overview")renderClosetOverview(content);
     if(selectedTab==="collections")renderCollections(content);
     if(selectedTab==="wants")renderWants(content);
@@ -675,8 +643,9 @@
     if(selectedTab==="purchases")renderPurchases(content);
   }
   function openLookDetails(lookId) {
+    selectedTab="outfits";
     selectedLookDetail=lookId;
-    showPage("styles");
+    showPage("closet");
     const el=$("look-detail");
     if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
   }
@@ -704,6 +673,7 @@
     decorateResult(look);
     window.MatchlatchShop?.init({mode:look.mode,item:look.item,pieces:look.pieces},
       window.MatchlatchStyleProfile?.get?.()||{},look.shopSelections||{});
+    window.MatchlatchStudioFlow?.open("look");
     $("results").scrollIntoView({behavior:"smooth",block:"start"});
   }
   function renderLookDetails(target,lookId) {
@@ -1164,7 +1134,7 @@
     window.MatchlatchResetStudio?.();
     currentLookId=null;
     showPage("studio");
-    $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
+    window.MatchlatchStudioFlow?.open("piece");
     $("drop")?.focus();
   }
   window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,

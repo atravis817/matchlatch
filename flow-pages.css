@@ -1,0 +1,131 @@
+/* MATCHLATCH focused destinations: dedicated screens without duplicate application state. */
+#screen-studio:not([data-studio-view]) > :not(#studio-workspace),
+#screen-studio[data-studio-view="home"] > :not(#studio-workspace){display:none!important}
+#screen-studio[data-studio-view] > .intro,
+#screen-studio[data-studio-view] > .sequence{display:none!important}
+#screen-studio[data-studio-view="home"] #studio-workspace{display:block}
+#screen-studio[data-studio-view="piece"] #studio-workspace,
+#screen-studio[data-studio-view="style"] #studio-workspace,
+#screen-studio[data-studio-view="look"] #studio-workspace{display:none!important}
+#screen-studio[data-studio-view="piece"] #results,
+#screen-studio[data-studio-view="style"] #results,
+#screen-studio[data-studio-view="home"] #results{display:none!important}
+#screen-studio[data-studio-view="look"] #studio,
+#screen-studio[data-studio-view="look"] #studio-next{display:none!important}
+#screen-studio[data-studio-view="look"] #results{display:block!important;margin-top:6px;padding-top:12px}
+#screen-studio[data-studio-view="piece"] #studio,
+#screen-studio[data-studio-view="style"] #studio{display:block;max-width:760px;margin:0 auto 12px}
+#screen-studio[data-studio-view="piece"] #studio .panel:first-child,
+#screen-studio[data-studio-view="style"] #studio .panel:nth-child(2){display:block;border:0}
+#screen-studio[data-studio-view="piece"] #studio .panel:nth-child(2),
+#screen-studio[data-studio-view="style"] #studio .panel:first-child{display:none!important}
+#screen-studio[data-studio-view="piece"] #studio .panel,
+#screen-studio[data-studio-view="style"] #studio .panel{padding:30px 36px 35px}
+#screen-studio[data-studio-view="piece"] #studio-next,
+#screen-studio[data-studio-view="style"] #studio-next{display:flex;max-width:760px;margin:12px auto 90px;align-items:center;gap:14px;flex-wrap:wrap}
+#screen-studio[data-studio-view="look"] .results-layout{margin-top:24px}
+.flow-header{max-width:760px;padding-top:42px;padding-bottom:24px}
+.flow-header-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:23px}
+.flow-header .flow-heading h1{font-size:clamp(35px,5vw,50px);margin:0 0 9px;letter-spacing:-.07em;line-height:1.08;font-weight:560}
+.flow-heading p{max-width:500px;line-height:1.65;color:var(--muted);font-size:13px;margin:0}
+.flow-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--ink);
+  background:transparent;border:0;padding:9px 0;font-size:12px;font-weight:720;cursor:pointer}
+.flow-back:hover{text-decoration:underline;text-underline-offset:4px}
+.flow-progress{font-size:10px;font-weight:780;letter-spacing:.16em;color:var(--muted)}
+.flow-primary{border:1px solid var(--ink);background:var(--ink);color:var(--bg);
+  min-height:49px;padding:13px 22px;font-size:12px;font-weight:760;cursor:pointer}
+.flow-primary:hover{opacity:.83}
+.studio-flow-message{flex-basis:100%;font-size:12px;color:var(--muted);margin:0;line-height:1.5;min-height:0}
+.studio-flow-message:empty{display:none}
+.flow-guidance{flex:1 1 270px;line-height:1.5;color:var(--muted);font-size:11px;margin:0}
+.flow-header-actions{display:flex;align-items:center;gap:14px}
+#screen-studio[data-studio-view="look"] .flow-header{max-width:1060px}
+#screen-studio[data-studio-view="look"] #results .results-head{display:none}
+/* Separate Library pages: hub first, one collection/category per view. */
+.closet-page-nav{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 20px}
+.closet-page-nav:empty{display:none}
+.closet-page-title{font-size:clamp(29px,4.5vw,38px);letter-spacing:-.06em;font-weight:590;margin:0}
+#screen-styles[data-closet-view="detail"] .library-top{display:none}
+#screen-styles[data-closet-view="detail"] .library-section{padding-top:42px}
+#screen-styles[data-closet-view="detail"] #styles-body{min-height:45vh}
+#screen-styles[data-closet-view="home"] .library-top{margin-bottom:26px}
+/* ME is a settings directory; show exactly the selected panel. */
+#screen-account:not([data-me-view]) .me-appearance,
+#screen-account:not([data-me-view]) .me-preferences,
+#screen-account:not([data-me-view]) #me-account-panel,
+#screen-account:not([data-me-view]) #me-privacy-panel,
+#screen-account[data-me-view="home"] .me-appearance,
+#screen-account[data-me-view="home"] .me-preferences,
+#screen-account[data-me-view="home"] #me-account-panel,
+#screen-account[data-me-view="home"] #me-privacy-panel{display:none!important}
+#screen-account[data-me-view]:not([data-me-view="home"]) .library-top,
+#screen-account[data-me-view]:not([data-me-view="home"]) #profile-shortcuts{display:none!important}
+#screen-account[data-me-view="appearance"] #me-preferences,
+#screen-account[data-me-view="appearance"] #me-account-panel,
+#screen-account[data-me-view="appearance"] #me-privacy-panel,
+#screen-account[data-me-view="preferences"] #me-appearance,
+#screen-account[data-me-view="preferences"] #me-account-panel,
+#screen-account[data-me-view="preferences"] #me-privacy-panel,
+#screen-account[data-me-view="account"] #me-appearance,
+#screen-account[data-me-view="account"] #me-preferences,
+#screen-account[data-me-view="account"] #me-privacy-panel,
+#screen-account[data-me-view="privacy"] #me-appearance,
+#screen-account[data-me-view="privacy"] #me-preferences,
+#screen-account[data-me-view="privacy"] #me-account-panel{display:none!important}
+.me-page-bar:empty{display:none}
+.me-page-heading{display:grid;gap:9px;margin:0 0 20px}
+.me-page-heading h1{font-size:clamp(35px,5vw,49px);letter-spacing:-.07em;font-weight:560;margin:0}
+#screen-account[data-me-view]:not([data-me-view="home"]) .library-section{padding-top:40px}
+#screen-account[data-me-view]:not([data-me-view="home"]) .me-appearance,
+#screen-account[data-me-view]:not([data-me-view="home"]) .me-preferences,
+#screen-account[data-me-view]:not([data-me-view="home"]) .account-panel{margin:14px 0 30px}
+#screen-account[data-me-view="home"] .profile-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));max-width:860px;margin:28px 0}
+#screen-account[data-me-view="home"] .profile-shortcut{min-height:154px;padding:26px}
+#screen-account[data-me-view="home"] .profile-shortcut-copy strong{font-size:19px}
+#screen-account[data-me-view="home"] .profile-shortcut-copy small{font-size:12px}
+/* Store starts at the search page; results get a separate screen. */
+#store-body:not([data-view="results"]) .store-results{display:none!important}
+#store-body[data-view="results"] .store-search{display:none!important}
+.store-results-top{display:grid;gap:10px;padding-bottom:17px;border-bottom:1px solid var(--line);margin-bottom:21px}
+.store-results-top h2{font-size:clamp(28px,4vw,38px);margin:0;letter-spacing:-.06em}
+#store-body[data-view="results"] .store-results{margin:0;padding-bottom:50px;min-height:58vh}
+.mood-archive-shortcut{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:17px 0 3px;border-top:1px solid var(--line);margin-top:30px;flex-wrap:wrap}
+.mood-archive-shortcut p{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+@media(max-width:700px){
+ .flow-header{padding-top:24px;padding-bottom:17px}
+ #screen-studio[data-studio-view="piece"] #studio .panel,
+ #screen-studio[data-studio-view="style"] #studio .panel{padding:22px 19px 25px}
+ #screen-studio[data-studio-view="piece"] #studio-next,
+ #screen-studio[data-studio-view="style"] #studio-next{width:min(100% - 52px,760px);margin:12px auto 55px}
+ #screen-account[data-me-view="home"] .profile-shortcuts{grid-template-columns:1fr}
+ #screen-account[data-me-view="home"] .profile-shortcut{min-height:106px;padding:18px}
+ #screen-account[data-me-view="home"] .profile-shortcut-copy strong{font-size:16px}
+}
+@media(max-width:500px){
+ .flow-header{width:calc(100% - 38px)}
+ #screen-studio[data-studio-view="piece"] #studio,
+ #screen-studio[data-studio-view="style"] #studio{width:calc(100% - 38px)}
+ #screen-studio[data-studio-view="piece"] #studio-next,
+ #screen-studio[data-studio-view="style"] #studio-next{width:calc(100% - 38px)}
+ .flow-primary{width:100%}
+ #screen-studio[data-studio-view="look"] .flow-header{width:calc(100% - 38px)}
+ .closet-page-title{font-size:28px}
+ .closet-page-nav{gap:7px}
+ .me-page-heading h1{font-size:38px}
+ .mood-archive-shortcut{align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){.flow-back,.flow-primary{transition:none}}
+
+/* Keep the chosen step focused: its route heading replaces duplicate panel headings. */
+#screen-studio[data-studio-view="piece"] #studio .panel-top,
+#screen-studio[data-studio-view="piece"] #studio .panel > h2,
+#screen-studio[data-studio-view="piece"] #studio .panel > .sub,
+#screen-studio[data-studio-view="style"] #studio .panel-top,
+#screen-studio[data-studio-view="style"] #studio .panel > h2,
+#screen-studio[data-studio-view="style"] #studio .panel > .sub{display:none!important}
+#screen-store[data-store-view="results"] .destination-heading{display:none}
+#screen-store[data-store-view="results"] .destination-space{padding-top:35px}
+#screen-account[data-me-view="appearance"] #me-appearance .destination-section-title h2,
+#screen-account[data-me-view="account"] #me-account-panel > h2,
+#screen-account[data-me-view="privacy"] #me-privacy-panel > h2{display:none}

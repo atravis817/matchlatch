@@ -2,7 +2,7 @@
 
 **Your style, unlocked.** Personal styling and retailer discovery.
 
-**App navigation:** **MOOD → MY CLOSET → STUDIO → STORE → ME**. Studio is the center destination. The header contains the shopping shortlist (Cart) and the app-wide light/dark toggle. All five destinations are implemented in the repository; the deployed site may temporarily show an older build during Vercel Hobby deployment restrictions.
+**App navigation:** **MOOD → MY CLOSET → STUDIO → STORE → ME**. Studio stays centered in the bottom navigation; the header includes Cart and the light/dark toggle. Each destination opens a focused page, with browser-friendly subpages for creating looks, browsing closet categories and managing settings.
 
 **Canonical product work map:** [ROADMAP.md](ROADMAP.md) — our V0 foundation and original **V1 → V1.5 → V2 → V3 → V4 MONSTER** roadmap, including stage gates, what we've built, unverified work, next priorities and dated development history.
 
@@ -66,16 +66,16 @@ After Guided Styling or AI analysis, MATCHLATCH builds a top-to-bottom tree of n
 ## Five destinations, purpose and testing
 
 - **MOOD — Find inspiration:** Styling concepts based on the preferences, collections and past looks the user has saved. These are ideas to style or search, **not** AI-rendered outfit photos or guaranteed retailer products.
-- **MY CLOSET — Keep your wardrobe organized:** **All, Collections, Wants, Favorites, Shortlist, Saved Looks, Owned and Inspirations**. Wants combines favorites and shortlist items. Owned contains **self-recorded** purchases only; it is not an order confirmation. Folder names and existing linked outfits remain intact.
-- **STUDIO — Make and continue looks:** Start with a photo or guided item description, reopen a saved look, or browse a named collection. The nine-part outfit tree and Private Shop remain available after styling.
-- **STORE — Find products:** Search supported Shopify Global Catalog retailers by keyword, clothing category and budget; access available seller links and Savings Check. Coverage is limited to participating retailers—not every store or the entire internet. The “Style a similar piece” action preselects a starting item type in Studio rather than claiming the retailer product was imported.
-- **ME — Set up your experience:** Appearance (Light, Dark, System), style preferences, account sign-in and privacy/device controls. A sun/moon button immediately right of Cart in the header changes themes on every screen.
+- **MY CLOSET — Keep your wardrobe organized:** The closet home opens separate **Collections, Wants, Favorites, Shortlist, Saved Looks, Owned and Inspirations** pages. Wants combines favorites and shortlist items. Owned contains **self-recorded** purchases only; it is not an order confirmation. Folder names and existing linked outfits remain intact.
+- **STUDIO — Make and continue looks:** The project home opens **Choose a piece → Preferences → Your look** as separate, focused steps. Users can start with a photo or item description, return to earlier steps without losing entered preferences, and open saved looks directly on the results page. Private Shop and the nine-part outfit tree live on the results page.
+- **STORE — Find products:** Search first, then view results on their own page. Search supported Shopify Global Catalog retailers by keyword, clothing category and budget; access available seller links and Savings Check. Coverage is limited to participating retailers—not every store or the entire internet. The “Style a similar piece” action preselects a starting item type in Studio rather than claiming the retailer product was imported.
+- **ME — Set up your experience:** A settings home opens separate Appearance (Light, Dark, System), style preferences, account sign-in and privacy/device pages. A sun/moon button immediately right of Cart in the header changes themes on every screen.
 
 **Appearance:** On first visit, MATCHLATCH follows the device's light/dark preference. A choice is saved on this browser; the System option responds to supported device changes. Changing the theme does not delete or reset a user's closet.
 
 **Purchase records:** After buying at a retailer, use **Record purchase** in your Shortlist to enter the retailer, date and amount. This is a user-entered wardrobe note, **not** an integrated payment or verified order.
 
-**Compatibility and quality:** Run `node scripts/audit.mjs` with Node 20+ before shipping. Test navigation and active states at small iPhone widths, on Safari, Chrome and desktop; test with an empty guest closet and with saved collections/favorites/purchases; verify keyboard focus, screen-reader labels and reduced-motion behavior. Automated static checks are not a substitute for browser testing.
+**Compatibility and quality:** Run `node scripts/audit.mjs` with Node 20+ before shipping. Check direct URLs such as `#studio/piece`, `#studio/style`, `#closet/favorites` and `#me/privacy`, plus Back/Forward navigation. Test navigation and active states at small iPhone widths, on Safari, Chrome and desktop; test with an empty guest closet and with saved collections/favorites/purchases; verify keyboard focus, screen-reader labels and reduced-motion behavior. Automated static checks are not a substitute for browser testing.
 
 **Data safety:** Guest records stay on the current browser. When signed in, your own data can sync privately through the configured Supabase project. Existing guest content is imported only after explicit consent. Browser storage is not a guaranteed backup. Account-data deletion/export UI and live cross-device tests are still outstanding.
 

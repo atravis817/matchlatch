@@ -23,7 +23,8 @@ check(inline.length===2,"Early appearance boot and Studio logic are separate");
 for(const [name,source] of [
   ["Appearance initializer",inline[0]],["Studio initializer",inline[1]],
   ["library.js",library],["outfit-tree.js",tree],
-  ["app-shell.js",file("app-shell.js")],["savings.js",file("savings.js")]
+  ["app-shell.js",file("app-shell.js")],["flow-pages.js",file("flow-pages.js")],
+  ["savings.js",file("savings.js")]
 ]){
   try{new vm.Script(source,{filename:name});check(true,name+" parses");}
   catch(e){console.error(e.message);check(false,name+" parses");}
@@ -36,17 +37,21 @@ for(const name of ["cloud-sync.js","api/analyze.mjs","api/auth-config.mjs","api/
 const htmlIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 check(new Set(htmlIds).size===htmlIds.length,"No duplicate static element IDs");
 const appShell=file("app-shell.js");
+const flowPages=file("flow-pages.js");
 const declared=new Set([...htmlIds,...[...library.matchAll(/\.id\s*=\s*"([^"]+)"/g),
   ...tree.matchAll(/\.id\s*=\s*"([^"]+)"/g),
-  ...appShell.matchAll(/\.id\s*=\s*"([^"]+)"/g)].map(x=>x[1])]);
+  ...appShell.matchAll(/\.id\s*=\s*"([^"]+)"/g),
+  ...flowPages.matchAll(/\.id\s*=\s*"([^"]+)"/g)].map(x=>x[1])]);
 const referenced=new Set([...inline.flatMap(x=>[...x.matchAll(/\$\("([^"]+)"\)/g)]),
   ...library.matchAll(/\$\("([^"]+)"\)/g),
   ...tree.matchAll(/\$\("([^"]+)"\)/g),
-  ...appShell.matchAll(/\$\("([^"]+)"\)/g)].map(x=>x[1]));
+  ...appShell.matchAll(/\$\("([^"]+)"\)/g),
+  ...flowPages.matchAll(/\$\("([^"]+)"\)/g)].map(x=>x[1]));
 const missing=[...referenced].filter(id=>!declared.has(id));
 check(!missing.length,"All direct DOM references resolved"+(missing.length?": "+missing.join(", "):""));
 for(const asset of ["logo-mark.svg","library.css","library.js","outfit-tree.css","outfit-tree.js",
-  "savings.css","savings.js","app-shell.css","app-shell.js","theme.css"]){
+  "savings.css","savings.js","app-shell.css","app-shell.js","theme.css",
+  "flow-pages.css","flow-pages.js"]){
   check(fs.existsSync(path.join(root,asset)),asset+" exists");
   check(html.includes("/"+asset),asset+" linked in HTML");
 }
@@ -89,8 +94,8 @@ check(library.includes('inspiration.collectionId=collectionId')&&library.include
 check(cloud.includes('"collections"')&&sql.includes("'collections'")
   &&file("supabase/collections.sql").includes("matchlatch_records_kind_check"),
   "Collections supported by private cloud records and upgrade script");
-check(html.includes('id="styles-tabs"')&&library.includes('["collections","Collections"'),
-  "Named collections remain accessible in My Closet");
+check(html.includes('id="styles-tabs"')&&library.includes('function renderCollections('),
+  "Named collections remain accessible in My Closet subpages");
 check(library.includes('dbState.collections=dbState.collections.filter')
   &&library.includes('delete insp.collectionId'),"Deleting a folder retains linked data");
 check(!html.includes(".header-side{")&&!file("library.css").includes(".library-note{"),"Orphaned visual styles removed");
@@ -103,12 +108,14 @@ check(html.indexOf('class="header-cart"')<html.indexOf('id="header-theme-toggle"
 check(library.includes('page==="styles"?"closet":page==="account"?"me":page')
   &&library.includes('if(page==="cart"){selectedTab="shortlist";page="styles";}'),
   "Legacy Cart and account links route to My Closet and Me");
-check(library.includes('["wants","Wants"')&&library.includes('["purchases","Owned"')
+check(library.includes('["Wants",wants,"wants"')
+  &&library.includes('["Owned",dbState.purchases.length,"purchases"')
   &&library.includes('not retailer-verified orders'),
-  "Wants and self-reported Owned items are clearly differentiated");
-check(html.includes('id="styles-body" role="tabpanel"')
-  &&library.includes("aria-selected"),
-  "Closet tab panel and tab selection expose accessible semantics");
+  "Wants and self-reported Owned items have dedicated, clearly labeled pages");
+check(html.includes('id="styles-body" role="region"')
+  &&library.includes('closet-page-title')
+  &&library.includes('function openClosetTab('),
+  "Closet uses labeled pages instead of crowded tab bars");
 check(html.includes("matchlatch-appearance-v1")&&html.includes('href="/theme.css"')
   &&file("theme.css").includes(':root[data-theme="dark"]'),
   "Persistent app-wide light/dark theme loads before the first app screen");
@@ -143,6 +150,24 @@ check(![appShell,library,tree,savings].some(code=>code.includes(".innerHTML")),
   "Product text and library names are never rendered as raw HTML");
 check(file("README.md").includes("MOOD → MY CLOSET → STUDIO → STORE → ME"),
   "README describes the five user destinations");
+check(flowPages.includes('view==="piece"')&&flowPages.includes('view==="style"')
+  &&flowPages.includes('view==="look"')&&flowPages.includes("history.pushState"),
+  "Studio uses focused piece, style and result routes with navigation history");
+check(library.includes('"/"+selectedTab')&&library.includes('path[1]')&&library.includes("readLocation()"),
+  "Closet subpages support refresh and browser Back/Forward");
+check(flowPages.includes("MatchlatchMeFlow")&&flowPages.includes('privacy:"Privacy & data"')
+  &&appShell.includes("MatchlatchMeFlow?.open("),
+  "Me account, privacy, appearance and preferences open as separate pages");
+check(appShell.includes('target.dataset.view="results"')
+  &&appShell.includes('target.dataset.view="search"')
+  &&file("flow-pages.css").includes('#store-body[data-view="results"] .store-search'),
+  "Store results are shown on a dedicated view");
+check(html.includes('src="/flow-pages.js"')&&html.includes('href="/flow-pages.css"')
+  &&html.includes('MatchlatchStudioFlow?.open("look")'),
+  "Studio flow navigation is loaded and successful styling opens the result page");
+check(flowPages.includes("closet-new-look")&&library.includes('window.MatchlatchStudioFlow?.open("look")'),
+  "New looks and reopened outfits use dedicated Studio views");
+
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");

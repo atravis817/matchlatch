@@ -210,6 +210,7 @@
     }
   </style>
   <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/flow-pages.css">
 </head>
 <body>
   <header class="site-header">
@@ -554,9 +555,9 @@
           <span class="tiny-label">02 / YOUR WARDROBE</span>
           <h1>My <span>Closet.</span></h1>
           <p>Find your collections, saved looks, favorites, want list, and shopping shortlist.</p>
-        </div><button class="library-subtle" type="button" data-nav-page="studio">Create a new look ↗</button></div>
-        <div id="styles-tabs" class="tabs"></div>
-        <div id="styles-body" role="tabpanel"></div>
+        </div><button class="library-subtle" type="button" id="closet-new-look">Create a new look ↗</button></div>
+        <div id="styles-tabs" class="closet-page-nav" aria-label="My Closet navigation"></div>
+        <div id="styles-body" role="region" aria-label="My Closet content"></div>
       </div>
     </section>
     <section id="screen-cart" class="app-screen" hidden aria-label="Cart">
@@ -654,7 +655,12 @@
       let imageUrl = null;
       const defaults = {look:"Unisex",fit:"Relaxed",occasion:"Everyday",budget:"200",notes:"",aesthetic:"No preference",palette:"No preference",coordination:"Balance / let AI decide",climate:"Any season",sizeAudience:"Unisex",topSystem:"Unisex alpha",topSize:"",bottomSystem:"Unisex alpha",bottomSize:"",waist:"",inseam:"",dressSystem:"Unisex alpha",dressSize:"",suitJacketSystem:"Men's US chest (in)",suitJacketSize:"",suitChest:"",suitJacketLength:"",suitSleeve:"",suitPantSystem:"Men's waist (in)",suitPantSize:"",suitPantWaist:"",suitPantInseam:"",shoeSystem:"US men's",shoeSize:"",shoeWidth:"",hatSystem:"Unisex / adjustable",hatSize:"",beltSystem:"Unisex alpha",beltSize:"",gloveSize:"",ringSystem:"US",ringSize:""};
 
-      function setStatus(message) { $("status").textContent = message; }
+      function setStatus(message) {
+        $("status").textContent = message;
+        // Upload feedback must be visible on the first step, not hidden in Preferences.
+        const page=$("screen-studio"),step=$("studio-flow-message");
+        if(page?.dataset.studioView==="piece"&&step)step.textContent=message;
+      }
       function money(value) { return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(value); }
       function profile() {
         return {look:$("look").value,fit:$("fit").value,occasion:$("occasion").value,budget:Math.max(25,Math.min(10000,Number($("budget").value)||200)),notes:$("notes").value.trim(),aesthetic:$("aesthetic").value,palette:$("palette").value,coordination:$("coordination").value,climate:$("climate").value,sizeAudience:$("sizeAudience").value,topSystem:$("topSystem").value,topSize:$("topSize").value,bottomSystem:$("bottomSystem").value,bottomSize:$("bottomSize").value,waist:$("waist").value,inseam:$("inseam").value,dressSystem:$("dressSystem").value,dressSize:$("dressSize").value,suitJacketSystem:$("suitJacketSystem").value,suitJacketSize:$("suitJacketSize").value,suitChest:$("suitChest").value,suitJacketLength:$("suitJacketLength").value,suitSleeve:$("suitSleeve").value,suitPantSystem:$("suitPantSystem").value,suitPantSize:$("suitPantSize").value,suitPantWaist:$("suitPantWaist").value,suitPantInseam:$("suitPantInseam").value,shoeSystem:$("shoeSystem").value,shoeSize:$("shoeSize").value,shoeWidth:$("shoeWidth").value,hatSystem:$("hatSystem").value,hatSize:$("hatSize").value,beltSystem:$("beltSystem").value,beltSize:$("beltSize").value,gloveSize:$("gloveSize").value,ringSystem:$("ringSystem").value,ringSize:$("ringSize").value};
@@ -831,9 +837,11 @@
         const itemName = $("itemtype").selectedOptions[0]?.textContent || "Item";
         const color = $("itemcolor").value.trim();
         if (!category || !color) {
+          window.MatchlatchStudioFlow?.open("piece");
           document.querySelector(".manual-details").open=true;
+          document.getElementById("studio-flow-message").textContent="Choose an item type and main color to use Guided Styling.";
           if(!category)$("itemtype").focus();else $("itemcolor").focus();
-          setStatus("Guided Styling needs an item type and main color first.");
+          setStatus("Choose an item type and main color first.");
           return;
         }
         const choices = {
@@ -935,12 +943,18 @@
         $("results").style.display="block";
         window.MatchlatchLibrary?.captureLook(data,imageData,p);
         window.MatchlatchShop?.init(data,p);
-        $("results").scrollIntoView({behavior:"smooth",block:"start"});
+        window.MatchlatchStudioFlow?.open("look");
+        window.scrollTo({top:0,behavior:"auto"});
       }
 
       $("guided").addEventListener("click",guided);
       $("analyze").addEventListener("click",async () => {
-        if (!imageData) { setStatus("Upload a photo first to use AI analysis."); return; }
+        if (!imageData) {
+          window.MatchlatchStudioFlow?.open("piece");
+          document.getElementById("studio-flow-message").textContent="Upload a photo to use AI styling.";
+          $("drop").focus();
+          return;
+        }
         if (!$("beta-code").value) { document.querySelector(".beta-details").open=true; $("beta-code").focus(); setStatus("Enter your private beta access code for AI analysis."); return; }
         const button=$("analyze");
         button.disabled=true;button.textContent="CURATING YOUR LOOK…";
@@ -968,5 +982,6 @@
   <script src="/outfit-tree.js" defer></script>
   <script src="/savings.js" defer></script>
   <script src="/app-shell.js" defer></script>
+  <script src="/flow-pages.js" defer></script>
 </body>
 </html>
