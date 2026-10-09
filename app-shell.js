@@ -11,18 +11,11 @@ const profile=()=>window.MatchlatchStyleProfile?.get?.()||{};
 const SHIPPING_KEY="matchlatch-shipping-region-v12";
 const shippingZip=()=>{try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\\d{5}$/.test(z)?z:"";}catch{return "";}};
 const shippingInfo=item=>{
- const zip=shippingZip();
- const label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
- // Forecast dates may be shown only from a provider's explicitly supplied
- // destination-specific estimate, not from nationwide shipping eligibility.
+ const zip=shippingZip(),label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
  const verified=item?.delivery?.tier==="retailer_confirmed"?item.delivery:null;
- const estimate=verified;
- const eligible=zip&&estimate?.earliest&&estimate?.latest
-  &&/^\\d{4}-\\d{2}-\\d{2}$/.test(estimate?.earliest||"")
-  &&/^\\d{4}-\\d{2}-\\d{2}$/.test(estimate?.latest||"")
-  &&estimate.earliest<=estimate.latest;
- return eligible?label+" · Retailer estimated "+estimate.earliest+" to "+estimate.latest:
-  label+" · Delivery estimate unavailable until retailer confirms transit times";
+ return verified?.earliest&&verified?.latest
+  ?label+" · Retailer estimated "+verified.earliest+" to "+verified.latest+" (subject to logistics)"
+  :label+" · Delivery estimate unavailable until retailer confirms transit times";
 };
 const el=(tag,cls,text)=>{
  const node=document.createElement(tag);
