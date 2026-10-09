@@ -91,16 +91,19 @@
   const pending=queued;queued=new Map();
   const domains=[...pending.keys()];
   if(!domains.length)return;
-  try{
-   const search=new URLSearchParams({domains:domains.join(",")});
-   const response=await fetch("/api/savings?"+search,{cache:"no-store"});
-   const payload=await response.json();
-   if(!response.ok||!payload||!payload.status)throw Error("FEED_REQUEST_FAILED");
-   for(const d of domains){
-    fanOut(d,{status:payload.status,offers:payload.offers?.[d]||[]});
+  // /api/savings limits one request to 15 merchant domains. A full outfit
+  // can include more unique retailers, so split instead of failing every item.
+  for(let offset=0;offset<domains.length;offset+=15){
+   const batch=domains.slice(offset,offset+15);
+   try{
+    const search=new URLSearchParams({domains:batch.join(",")});
+    const response=await fetch("/api/savings?"+search,{cache:"no-store"});
+    const payload=await response.json();
+    if(!response.ok||!payload||!payload.status)throw Error("FEED_REQUEST_FAILED");
+    for(const d of batch)fanOut(d,{status:payload.status,offers:payload.offers?.[d]||[]});
+   }catch{
+    for(const d of batch)fanOut(d,{status:"provider_unavailable",offers:[]});
    }
-  }catch{
-   for(const d of domains)fanOut(d,{status:"provider_unavailable",offers:[]});
   }
  }
  function attach(parent,item){
