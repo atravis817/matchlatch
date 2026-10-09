@@ -1,12 +1,14 @@
 # MATCHLATCH — Savings Check
 
-**Stage:** V3 Shopping Infrastructure — UI implemented; **Awin publisher integration code implemented, but credential setup and live verification pending**.
+**Stage:** V3 Shopping Infrastructure — UI implemented; Awin publisher credentials are configured in Vercel production, **but account feed eligibility, real promotions and checkout use have not been live-verified**.
 
-**User-facing name:** **Savings Check.** It runs automatically when Private Shop or the saved-items shopping interface displays a retailer offer. A shopper can see active publisher-listed discount codes and copy one to try at the merchant's checkout. All user-facing surfaces remain MATCHLATCH branded.
+**User-facing name:** **Savings Check.** In the next staged curation release, it runs only for a selected, personally suitable product, or within its saved product detail. A shopper can see active publisher-listed discount codes and copy one to try at the merchant's checkout. All user-facing surfaces remain MATCHLATCH branded.
 
 ## Current provider: Awin
 
-Awin publisher approval obtained October 8, 2026. The user has generated an API credential, but no private credential or Publisher ID is yet configured in MATCHLATCH's Vercel environment.
+**Core principle:** Personal curation is the hard gate. Awin promotions appear only after a suitable product has been chosen; affiliate revenue, coupons and advertiser payments never influence garment selection. See [POC-04 Awin Curation Priorities](AWIN-CURATION-PRIORITIES.md).
+
+Awin publisher approval was recorded October 8, 2026. As of October 9, Vercel lists AWIN_API_TOKEN and AWIN_PUBLISHER_ID for production; their secret values were not viewed. This proves configuration presence only, not API success, eligible joined retailers, or working codes. A legacy product-feed download key is a different credential and is not currently configured.
 
 - Source: [Awin Publisher Offers API](https://help.awin.com/apidocs/promotions), **POST** \`https://api.awin.com/publisher/{publisherId}/promotions\`.
 - Auth: [Awin Bearer token](https://help.awin.com/apidocs/api-authentication), using the \`Authorization\` header on the **server only**. The user's "API key" needs to be the Awin Publisher API access token, not an Advertiser Create Transactions API key.
@@ -16,11 +18,11 @@ Awin publisher approval obtained October 8, 2026. The user has generated an API 
 - Awin API rate limit: **20 calls/minute/user**. The beta endpoint uses in-instance 30-minute caching, a short failure cooldown and a bounded offer scan (maximum 3 pages of 200 offers). **Serverless instances do not share this cache.** Production-scale use needs a shared snapshot, global rate limit and scheduled refresh.
 - Product prices and outfit budget totals are **never reduced** by a code until a partner's cart API can verify applicability.
 
-## Activate Awin on Vercel (production)
+## Validate current Awin configuration on Vercel (production)
 
 1. Obtain your numeric Awin Publisher ID from the Publisher Dashboard. The ID is not the API credential.
 2. Open [Vercel MATCHLATCH project settings](https://vercel.com/dashboard) → matchlatch → Settings → Environment Variables.
-3. Add exactly these variables for the **Production** environment:
+3. Confirm these two existing variables are configured for the **Production** environment; do not duplicate or expose their values:
 
    | Variable | Type | Value |
    | --- | --- | --- |
@@ -28,7 +30,7 @@ Awin publisher approval obtained October 8, 2026. The user has generated an API 
    | \`AWIN_PUBLISHER_ID\` | Plain (non-secret ID) | Your numeric publisher account ID |
 
 4. **Never paste the access token into ChatGPT, client JavaScript, GitHub, or a URL query string.** Awin credentials are personal and grant API access to all associated publisher accounts.
-5. Redeploy the production branch **after** saving the environment variables (environment changes are not retroactive to completed deployments).
+5. If any environment variable is changed, redeploy when the next approved build is ready (environment changes are not retroactive to existing deployments).
 6. Visit \`https://matchlatch.vercel.app/api/savings?domain=retailer-domain.com\` with a retailer you have joined on Awin. This is a public, read-only merchant lookup; never put the token in the URL.
 7. Check \`status\`: \`not_configured\` (credentials missing), \`provider_unavailable\` (API or mapping failed), or \`listed_not_checkout_verified\` (Awin request succeeded). A valid response with zero offers can mean **no joined advertiser match**, no currently active voucher code, or the beta's bounded page scan.
 8. In Private Shop test the listed code against a retailer test basket without purchasing. Confirm the retailer's restrictions and that the displayed MATCHLATCH price has not silently changed.
@@ -59,7 +61,7 @@ For additional providers later, retain the normalized response shape, merchant m
 - [x] Product UI, price-preserving offer display, copy-code flow and merchant-domain validation implemented.
 - [x] Awin backend adapter and normalized provider fields implemented.
 - [x] Mocked Awin filtering/security test: matched joined advertisers, excluded unrelated/expired/region-mismatched vouchers, cache, missing credentials, cross-origin protection.
-- [ ] Configure Awin Publisher ID and private token in production Vercel.
+- [x] Production Vercel lists Awin Publisher ID and private token variable names (secret values were not inspected).
 - [ ] Confirm real Awin API calls and retailer assortment; adjust any live response differences.
 - [ ] Test on iPhone and desktop with real selected Private Shop products.
 - [ ] Before inviting broad users, add centralized caching/rate limiting and handle full-pagination feed coverage.

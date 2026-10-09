@@ -13,6 +13,7 @@ const html=file("index.html");
 const library=file("library.js");
 const tree=file("outfit-tree.js");
 const retailerMatch=file("retailer-match.js");
+const awinFeed=file("lib/awin-feed-normalize.mjs");
 const camera=file("camera.js");
 const cloud=file("cloud-sync.js");
 const shop=file("api/shop.mjs");
@@ -247,6 +248,42 @@ check(file("camera.css").includes("safe-area-inset-bottom")
 check(file("CAMERA-STAGE.md").includes("Permission behavior")
   &&file("CAMERA-STAGE.md").includes("not deployed"),
   "Camera stage privacy and deployment boundaries documented");
+
+/* POC-04: curation-first and Awin feeds as strictly secondary opportunities. */
+try{
+ new vm.Script(awinFeed.replace(/^export\s+\{[^}]+\};?\s*$/gm,""),{filename:"lib/awin-feed-normalize.mjs"});
+ check(true,"Dormant Awin feed normalizer parses");
+}catch(error){console.error(error.message);check(false,"Dormant Awin feed normalizer parses");}
+check(retailerMatch.includes('if(tokens.length&&!matched)continue')
+  &&retailerMatch.includes('CATEGORY_HINTS[c.slot].test(visible)')
+  &&retailerMatch.includes('explicitConflict(item,c)'),
+  "Curation requires category, user intent evidence, and explicit restrictions");
+check(retailerMatch.includes('candidates.sort((a,b)=>b.score-a.score||b.saving-a.saving')
+  &&retailerMatch.includes('discountEvidence!=="retailer_published_sale"')
+  &&!retailerMatch.includes('item.commission'),
+  "Verified sale benefits can only break equal style-relevance ties; commissions never rank");
+check(appShell.includes("function storeSizeFor(slot,p)")
+  &&appShell.includes("items=matcher.rank(")
+  &&appShell.includes('params.set("size",criteria.size)')
+  &&appShell.includes('params.set("color",criteria.color)'),
+  "All manual Store searches apply saved sizing and curation constraints");
+check(tree.includes('if(state.selected?.variantId===item.variantId)')
+  &&tree.includes('window.MatchlatchSavings?.attach?.(info,item)'),
+  "Awin Savings Check runs only on the selected, qualifying Private Shop item");
+check(analyze.includes("PERSONAL CURATION IS ALWAYS THE FIRST OBJECTIVE")
+  &&analyze.includes("Do NOT reason about or prioritize discounts"),
+  "OpenAI styling instructions put user's criteria before deals or advertising");
+check(awinFeed.includes('sellerApproved(advertiserId,joinedIds)')
+  &&awinFeed.includes('requiresMerchantVerification:true')
+  &&awinFeed.includes('source:"awin_feed_snapshot"')
+  &&!awinFeed.includes('fetch('),
+  "Awin importer requires joined advertiser and live merchant verification; no crawling");
+check(file("AWIN-CURATION-PRIORITIES.md").includes("Shopper-set criteria are the source of truth")
+  &&file("AWIN-CURATION-PRIORITIES.md").includes("Secondary savings"),
+  "Awin publisher feeds, privacy, permissions, and curation hierarchy documented");
+check(file("scripts/test-curation.mjs").includes('Stronger personal match always outranks')
+  &&file("scripts/test-curation.mjs").includes('Awin cached stock is never labeled live verified'),
+  "Deterministic style-before-savings and Awin-feed regression suite included");
 
 /* POC-03: AI-generated shopping criteria and honest retailer coverage. */
 check(analyze.includes('slot: { type: "string", enum:')

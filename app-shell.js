@@ -188,11 +188,24 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[]};
+const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
 ];
+// Respect saved category-specific sizes in every Store search.
+function storeSizeFor(slot,p){
+ switch(slot){
+  case "hat":return p.hatSize||"";
+  case "jacket":return p.suitJacketSize&&/formal|work|business|wedding|black tie|gala/i.test(p.occasion||"")
+   ?p.suitJacketSize:p.topSize||"";
+  case "shirt":return p.topSize||"";
+  case "pants":return p.waist||String(p.bottomSize||"").replace(/^(US|UK|EU)\s+/,"");
+  case "belt":return p.beltSize||"";
+  case "shoes":return p.shoeSize||"";
+  default:return "";
+ }
+}
 const USD=value=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
 let searchId=0,controller=null;
 function storeCard(item){
@@ -342,6 +355,8 @@ function renderStore(){
   query.value=hint.query;select.value=hint.slot;query.focus();
  },"store-chip"));
  box.append(quick);
+ box.append(el("p","store-curation-note",
+  "Chosen for your style and saved sizes. Savings are considered only after a good match."));
  target.append(box);
  const results=el("div","store-results");
  const head=el("div","store-results-top");
@@ -382,21 +397,37 @@ function renderStore(){
    status.textContent="Enter a search of at least 2 characters and a budget between $1 and $10,000.";
    return;
   }
+  const matcher=window.MatchlatchRetailerMatch;
+  if(!matcher?.criteria||!matcher?.rank){
+   status.textContent="Personalized search needs a refresh. Reload MATCHLATCH and try again.";
+   return;
+  }
+  const p=profile(),preferredSize=storeSizeFor(select.value,p);
+  const criteria=matcher.criteria({
+   slot:select.value,profile:p,size:preferredSize,max,manualQuery:q
+  });
+  if(!criteria){status.textContent="Choose a supported clothing category.";return;}
+  storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
   storeState.searched=true;storeState.items=[];
   showStoreView("results");
-  list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();status.textContent="Checking live retailer catalogs…";
+  list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
+  status.textContent="Finding pieces that match your style…";
   submit.disabled=true;
   if(controller)controller.abort();
   controller=new AbortController();
   const run=++searchId;
   try{
-   const params=new URLSearchParams({mode:"search",slot:select.value,q,max:String(max)});
+   const params=new URLSearchParams({mode:"search",slot:criteria.slot,q:criteria.q,max:String(criteria.max)});
+   if(criteria.size)params.set("size",criteria.size);
+   if(criteria.color)params.set("color",criteria.color);
    const response=await fetch("/api/shop?"+params,{signal:controller.signal,cache:"no-store"});
    const data=await response.json();
    if(run!==searchId)return;
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
-   const items=Array.isArray(data.items)?data.items.filter(item=>item?.available&&Number(item.price)<=max):[];
+   // Hard preference/variant and suitability gates are mandatory for Store
+   // just as they are for AI-originated Outfit Tree recommendations.
+   const items=matcher.rank(Array.isArray(data.items)?data.items:[],criteria);
    storeState.items=items;storeState.checkedAt=Date.now();
    const matches=window.MatchlatchRetailerMatch;
    const merchants=matches?.merchants?.(items)||[];
@@ -405,7 +436,7 @@ function renderStore(){
     items.length+" available listing"+(items.length===1?"":"s")+
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
-    "No eligible products found. Try another search, size or budget.";
+    "No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";
    retailerSummary.hidden=merchants.length===0;
    retailerSummary.open=false;
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";

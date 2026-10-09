@@ -45,6 +45,8 @@ Optional: `OPENAI_MODEL` can override the default `gpt-5.4-mini`.
 
 ## Savings Check — merchant discount discovery
 
+**[Personal curation first, savings second: POC-04](AWIN-CURATION-PRIORITIES.md)** documents the new mandatory search order and official Awin product feed research. The next staged build also includes a dormant, non-networking Awin product-feed normalizer; no Awin feed products are live in Store yet.
+
 **[Awin integration and activation guide](SAVINGS-CHECK.md)**. Savings Check uses `/api/savings` to look up merchant-matched Awin voucher listings when private `AWIN_API_TOKEN` and `AWIN_PUBLISHER_ID` credentials are present in Vercel. Account and variable configuration alone do **not** prove live promotions can be retrieved: joined advertisers, API responses, and real merchant coverage still require validation. Provider-listed codes are **not checkout-verified** and never lower displayed prices until an eligible checkout confirms a discount.
 
 ## Named Collections

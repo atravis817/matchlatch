@@ -132,3 +132,9 @@
 .store-retailer-names{display:flex;flex-wrap:wrap;gap:8px;padding:6px 3px 12px}
 .store-retailer-name{padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:11px;color:var(--ink)}
 .private-shop-provenance{font-size:10.5px;line-height:1.55;color:var(--muted);margin:0 0 17px}
+
+/* Secondary reassurance only: curatorial criteria are applied automatically. */
+.store-curation-note{
+ font-size:11px;line-height:1.55;letter-spacing:.003em;
+ color:var(--muted);margin:15px 0 0;max-width:570px
+}

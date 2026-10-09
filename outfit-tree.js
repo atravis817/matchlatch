@@ -358,7 +358,9 @@ function renderDrawer(){
   actions.append(button("♡ Save",()=>window.MatchlatchLibrary?.favoriteShopItem?.(id,item),"tree-shop-help"));
   actions.append(button("＋ Cart",()=>window.MatchlatchLibrary?.cartShopItem?.(id,item),"tree-shop-help"));
   info.append(actions);
-  window.MatchlatchSavings?.attach?.(info,item);
+  // Savings is a quiet benefit of a chosen match, never a discovery hook.
+  if(state.selected?.variantId===item.variantId)
+    window.MatchlatchSavings?.attach?.(info,item);
   card.append(info);results.append(card);
  }
  if(!state.loading&&!results.children.length)results.append(node("div","private-shop-empty","No available pieces matched your size and budget. Try a different search or skip this item."));
