@@ -24,7 +24,7 @@ for(const [name,source] of [
   ["Appearance initializer",inline[0]],["Studio initializer",inline[1]],
   ["library.js",library],["outfit-tree.js",tree],
   ["app-shell.js",file("app-shell.js")],["flow-pages.js",file("flow-pages.js")],
-  ["savings.js",file("savings.js")]
+  ["savings.js",file("savings.js")],["camera.js",camera]
 ]){
   try{new vm.Script(source,{filename:name});check(true,name+" parses");}
   catch(e){console.error(e.message);check(false,name+" parses");}
@@ -37,6 +37,7 @@ for(const name of ["cloud-sync.js","api/analyze.mjs","api/auth-config.mjs","api/
 const htmlIds=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 check(new Set(htmlIds).size===htmlIds.length,"No duplicate static element IDs");
 const appShell=file("app-shell.js");
+const camera=file("camera.js");
 const flowPages=file("flow-pages.js");
 const declared=new Set([...htmlIds,...[...library.matchAll(/\.id\s*=\s*"([^"]+)"/g),
   ...tree.matchAll(/\.id\s*=\s*"([^"]+)"/g),
@@ -46,12 +47,14 @@ const referenced=new Set([...inline.flatMap(x=>[...x.matchAll(/\$\("([^"]+)"\)/g
   ...library.matchAll(/\$\("([^"]+)"\)/g),
   ...tree.matchAll(/\$\("([^"]+)"\)/g),
   ...appShell.matchAll(/\$\("([^"]+)"\)/g),
-  ...flowPages.matchAll(/\$\("([^"]+)"\)/g)].map(x=>x[1]));
+  ...flowPages.matchAll(/\$\("([^"]+)"\)/g),
+  ...camera.matchAll(/\$\("([^"]+)"\)/g)].map(x=>x[1]));
 const missing=[...referenced].filter(id=>!declared.has(id));
 check(!missing.length,"All direct DOM references resolved"+(missing.length?": "+missing.join(", "):""));
 for(const asset of ["logo-mark.svg","library.css","library.js","outfit-tree.css","outfit-tree.js",
   "savings.css","savings.js","app-shell.css","app-shell.js","theme.css",
-  "flow-pages.css","flow-pages.js","greenglass.css","typography.css","commerce.css"]){
+  "flow-pages.css","flow-pages.js","greenglass.css","typography.css","commerce.css",
+  "camera.css","camera.js"]){
   check(fs.existsSync(path.join(root,asset)),asset+" exists");
   check(html.includes("/"+asset),asset+" linked in HTML");
 }
@@ -213,6 +216,36 @@ check(library.includes('function verifiedCheckoutAction(item)')
 check(file("PROOF-OF-CONCEPT.md").includes('10 independent first-time users')
   &&file("PROOF-OF-CONCEPT.md").includes('not yet measured results'),
   "POC includes measurable, currently unverified validation goals");
+
+/* Native-permission in-app camera: no simulated prompts or background recording. */
+check(html.includes('id="open-camera"')
+  &&html.includes('id="studio-camera-dialog"')
+  &&html.includes('id="camera-shutter"')
+  &&html.includes('id="camera-review"')
+  &&html.includes('playsinline muted')
+  &&html.includes('capture="environment"'),
+  "Studio exposes native-permission viewfinder and device-camera fallback");
+check(camera.includes('navigator.mediaDevices.getUserMedia({')
+  &&camera.includes('audio:false')
+  &&camera.includes('openButton.addEventListener("click",()=>void openCamera())'),
+  "Camera permission is requested only from the user-invoked camera action");
+check(camera.includes('sequence++')
+  &&camera.includes('track.stop()')
+  &&camera.includes('visibilitychange')
+  &&camera.includes('pagehide')
+  &&camera.includes('matchlatch:page'),
+  "Camera tracks are released after closing, page exit and in-flight permission cancellation");
+check(camera.includes('canvas.toBlob(resolve,"image/jpeg",.84)')
+  &&camera.includes('window.MatchlatchStudioPhoto?.loadFile?.(photo)')
+  &&html.includes('MatchlatchStudioPhoto=Object.freeze({loadFile:file=>loadImage(file,true)})'),
+  "Captured frames reuse Studio's existing photo processing and privacy pipeline");
+check(file("camera.css").includes("safe-area-inset-bottom")
+  &&file("camera.css").includes("prefers-reduced-motion")
+  &&file("camera.css").includes('data-theme="dark"'),
+  "Camera UI supports iPhone safe area, dark mode and reduced motion");
+check(file("CAMERA-STAGE.md").includes("Permission behavior")
+  &&file("CAMERA-STAGE.md").includes("not deployed"),
+  "Camera stage privacy and deployment boundaries documented");
 
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");

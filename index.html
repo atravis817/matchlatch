@@ -213,6 +213,7 @@
   <link rel="stylesheet" href="/splash.css">
   <link rel="stylesheet" href="/typography.css">
   <link rel="stylesheet" href="/commerce.css">
+  <link rel="stylesheet" href="/camera.css">
 </head>
 <body>
   <div id="matchlatch-splash" class="ml-splash is-playing" aria-hidden="true">
@@ -299,16 +300,30 @@
         <div class="panel-top"><span class="panel-tag">Start with a piece</span></div>
         <h2>Choose a starting piece</h2>
         <p class="sub">A shirt, sneaker, jacket, or anything that inspires your next look.</p>
-        <label class="drop" id="drop" for="photo" role="button" tabindex="0" aria-label="Choose a photo to style">
-          <span class="upload-glyph" aria-hidden="true">+</span>
-          <strong>Upload a photo</strong>
-          <small>Choose an image from your device, or drag and drop it here.</small>
-          <span class="upload-button">Choose image &nbsp;↗</span>
-        </label>
+        <div class="studio-photo-sources" id="studio-photo-sources" aria-label="Add an inspiration photo">
+          <button type="button" class="studio-camera-launch" id="open-camera" aria-haspopup="dialog" aria-controls="studio-camera-dialog">
+            <span class="studio-photo-source-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5h4l1.7-2h5.6l1.7 2h4v11h-17z"/><circle cx="12" cy="13" r="3.1"/></svg>
+            </span>
+            <strong>Take a photo</strong>
+            <small>Use your camera</small>
+          </button>
+          <label class="drop" id="drop" for="photo" role="button" tabindex="0" aria-label="Choose a photo to style">
+            <span class="studio-photo-source-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><circle cx="9" cy="9.5" r="1.25"/><path d="m4 17 5.4-5.3 3.6 3.3 2.3-2.5 4.7 4.5"/></svg>
+            </span>
+            <strong>Choose a photo</strong>
+            <small>From your photos or files</small>
+          </label>
+        </div>
         <input id="photo" type="file" accept="image/*" aria-label="Upload a clothing or accessory photo">
+        <input id="camera-fallback" type="file" accept="image/*" capture="environment" aria-label="Take a photo using your device camera">
         <div class="preview-box" id="preview-box"><img id="preview" alt="Selected inspiration image"></div>
-        <button class="change" id="change" type="button" hidden>Change image ↗</button>
-        <div class="privacy"><span aria-hidden="true">ⓘ</span><span>Guest photos stay on this device. Signed-in photos can sync privately to your account. Your photo is sent for AI styling only when you choose it.</span></div>
+        <div class="studio-photo-edit">
+          <button class="change" id="retake-camera" type="button" hidden>Retake photo</button>
+          <button class="change" id="change" type="button" hidden>Choose another photo</button>
+        </div>
+        <div class="privacy"><span aria-hidden="true">ⓘ</span><span>Camera access is requested only when you tap Take a photo. The camera turns off when you close it or capture. Guest photos stay on this device; signed-in photos can sync privately. Photos are sent for AI styling only when you choose it.</span></div>
         <details class="extra-details manual-details">
           <summary><span>Describe a piece instead</span><small>No photo needed</small></summary>
           <div class="field-grid extra-grid">
@@ -636,6 +651,28 @@
       </div>
     </section>
   </main>
+  <dialog id="studio-camera-dialog" class="studio-camera-dialog" aria-labelledby="studio-camera-title" aria-describedby="studio-camera-description">
+    <div class="studio-camera-panel">
+      <div class="studio-camera-top">
+        <div><span class="micro-title">Studio camera</span><h2 id="studio-camera-title">Take a photo</h2></div>
+        <button class="studio-camera-close" id="camera-close" type="button" aria-label="Close camera">✕</button>
+      </div>
+      <p id="studio-camera-description" class="studio-camera-description">Frame the clothing or look you want to style.</p>
+      <div class="studio-camera-viewfinder">
+        <video id="camera-video" autoplay playsinline muted aria-label="Live camera viewfinder"></video>
+        <img id="camera-review" alt="Captured photo, ready to use" hidden>
+        <span class="studio-camera-corners" aria-hidden="true"></span>
+      </div>
+      <p id="camera-status" class="studio-camera-status" role="status" aria-live="polite"></p>
+      <div class="studio-camera-controls">
+        <button id="camera-flip" class="studio-camera-secondary" type="button" aria-label="Switch between front and back cameras">Flip camera</button>
+        <button id="camera-shutter" class="studio-camera-shutter" type="button" disabled aria-label="Take photo"><span aria-hidden="true"></span></button>
+        <button id="camera-retake" class="studio-camera-secondary" type="button" hidden>Retake</button>
+        <button id="camera-use" class="studio-camera-use" type="button" hidden>Use photo →</button>
+      </div>
+      <button id="camera-choose-photo" class="studio-camera-gallery" type="button">Choose photo instead</button>
+    </div>
+  </dialog>
   <nav class="bottom-nav" aria-label="Primary navigation">
     <div class="bottom-nav-inner">
       <button class="dock-link" type="button" data-page="mood" aria-label="Mood, personalized outfit inspiration">
@@ -789,14 +826,17 @@
 
       window.MatchlatchResetStudio=()=>{
         window.MatchlatchShop?.reset?.();
+        window.MatchlatchCamera?.close?.();
         imageData=null;
         if(imageUrl)URL.revokeObjectURL(imageUrl);
         imageUrl=null;
         $("photo").value="";
         $("preview").removeAttribute("src");
         $("preview-box").style.display="none";
+        $("studio-photo-sources").hidden=false;
         $("drop").style.display="flex";
         $("change").hidden=true;
+        $("retake-camera").hidden=true;
         $("result-photo").removeAttribute("src");
         $("result-photo").hidden=true;
         $("results").style.display="none";
@@ -805,9 +845,9 @@
         setStatus("");
       };
 
-      async function loadImage(file) {
-        if (!file || !file.type.startsWith("image/")) { setStatus("Please choose an image file."); return; }
-        if (file.size > 18 * 1024 * 1024) { setStatus("That image is too large. Choose one under 18 MB."); return; }
+      async function loadImage(file,fromCamera=false) {
+        if (!file || !file.type.startsWith("image/")) { setStatus("Please choose an image file."); return false; }
+        if (file.size > 18 * 1024 * 1024) { setStatus("That image is too large. Choose one under 18 MB."); return false; }
         const candidate = URL.createObjectURL(file);
         const img = new Image();
         try {
@@ -825,18 +865,29 @@
           imageUrl = candidate;
           $("preview").src = candidate;
           $("preview-box").style.display = "block";
+          $("studio-photo-sources").hidden=true;
           $("drop").style.display = "none";
           $("change").hidden = false;
+          $("retake-camera").hidden=false;
+          $("retake-camera").textContent=fromCamera?"Retake photo":"Take a photo";
           $("results").style.display = "none";
           setStatus("Photo ready. Build your look with AI or choose Guided Styling.");
+          return true;
         } catch {
           URL.revokeObjectURL(candidate);
           setStatus("This image format could not be opened. Try a JPG or PNG.");
+          return false;
         }
       }
 
-      $("photo").addEventListener("change",event => loadImage(event.target.files && event.target.files[0]));
-      $("change").addEventListener("click",() => $("photo").click());
+      window.MatchlatchStudioPhoto=Object.freeze({loadFile:file=>loadImage(file,true)});
+      $("photo").addEventListener("change",event => {void loadImage(event.target.files && event.target.files[0]);});
+      $("camera-fallback").addEventListener("change",event => {
+        if(event.target.files?.[0])void loadImage(event.target.files[0],true);
+        event.target.value="";
+      });
+      $("retake-camera").addEventListener("click",()=> $("open-camera").click());
+      $("change").addEventListener("click",() => { $("photo").value="";$("photo").click(); });
       const drop = $("drop");
       drop.addEventListener("keydown",event=>{
         if(event.key!=="Enter"&&event.key!==" ")return;
@@ -1009,5 +1060,6 @@
   <script src="/app-shell.js" defer></script>
   <script src="/flow-pages.js" defer></script>
   <script defer src="/splash.js"></script>
+  <script defer src="/camera.js"></script>
 </body>
 </html>
