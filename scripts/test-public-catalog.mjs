@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import {RETAILERS,classifyPublicReference as classify} from "../lib/public-retailer-research.mjs";
+assert.equal(RETAILERS.length,3);
+assert.equal(classify("https://www.uniqlo.com/us/en/products/E123"),null);
+assert.equal(classify("https://www.gap.com/browse/product.do?pid=123")?.classification,"public_research_reference");
+assert.equal(classify("https://www.gap.com/browse/search.do?q=pants"),null);
+assert.equal(classify("https://www.gap.com/productData.do"),null);
+assert.equal(classify("https://www.nordstrom.com/s/example-item/123")?.cartEligible,false);
+assert.equal(classify("https://www.nordstrom.com/api/product/123"),null);
+assert.equal(classify("http://www.gap.com/browse/product.do"),null);
+assert.equal(classify("https://www.gap.com.evil.example/browse/product.do"),null);
+assert.equal(classify("https://shop.other.example/p/1"),null);
+assert.equal(classify("https://www.gap.com/checkout/step"),null);
+console.log("PASS POC-01 policy guardrails");
