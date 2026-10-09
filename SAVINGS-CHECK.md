@@ -1,55 +1,66 @@
 # MATCHLATCH — Savings Check
 
-**Stage:** V3 Shopping Infrastructure (early feature); optional beta integration built, **not connected to a live coupon account and not checkout-verified**.
+**Stage:** V3 Shopping Infrastructure — UI implemented; **Awin publisher integration code implemented, but credential setup and live verification pending**.
 
-**User-facing name:** **Savings Check**. It automatically checks publicly listed merchant coupons alongside individual retailer products in **Private Shop**, **Your Styles favorites**, and the **Cart**. The user can expand the result, copy a code and apply it at the **retailer's own checkout**.
+**User-facing name:** **Savings Check.** It runs automatically when Private Shop or the saved-items shopping interface displays a retailer offer. A shopper can see active publisher-listed discount codes and copy one to try at the merchant's checkout. All user-facing surfaces remain MATCHLATCH branded.
 
-## What exists
+## Current provider: Awin
 
-- \`api/savings.mjs\`: server-only adapter for the LinkMyDeals Coupon API.
-- \`savings.js\` + \`savings.css\`: opt-in-to-open details (automatic lookup on product display), batched domain queries, short-lived browser cache and copy action.
-- Domain-based matching using the retailer URL: a code for an unrelated store is **never** shown against the wrong item. We do not guess a match from a merchant display name.
-- Expired, not-yet-active, suspended, invalid-format or code-less deal entries are filtered out. Existing valid-looking offers show original title and conditions when provided.
-- Product and cart prices remain **unchanged**. We do **not** deduct an estimated discount until an eligible checkout/cart actually accepts that code.
-- **No coupon feed records, API secrets or codes are persisted in account collections or cloud wardrobe data.**
+Awin publisher approval obtained October 8, 2026. The user has generated an API credential, but no private credential or Publisher ID is yet configured in MATCHLATCH's Vercel environment.
 
-## Provider & real-world limitations
+- Source: [Awin Publisher Offers API](https://help.awin.com/apidocs/promotions), **POST** \`https://api.awin.com/publisher/{publisherId}/promotions\`.
+- Auth: [Awin Bearer token](https://help.awin.com/apidocs/api-authentication), using the \`Authorization\` header on the **server only**. The user's "API key" needs to be the Awin Publisher API access token, not an Advertiser Create Transactions API key.
+- Advertiser mapping: [GET joined programmes](https://help.awin.com/apidocs/get-program-information), using merchant \`displayUrl\` and \`validDomains\` rather than fuzzy store-name matching.
+- Only joined advertisers with visible voucher codes; requested \`US\` region, active status and voucher type. Exclude unknown advertisers, missing codes, invalid dates and regional mismatches.
+- Response status \`listed_not_checkout_verified\` means that Awin currently lists the code, **not** that a particular user's basket qualifies or that checkout has accepted it.
+- Awin API rate limit: **20 calls/minute/user**. The beta endpoint uses in-instance 30-minute caching, a short failure cooldown and a bounded offer scan (maximum 3 pages of 200 offers). **Serverless instances do not share this cache.** Production-scale use needs a shared snapshot, global rate limit and scheduled refresh.
+- Product prices and outfit budget totals are **never reduced** by a code until a partner's cart API can verify applicability.
 
-**Source:** LinkMyDeals public coupon/deal feeds: https://linkmydeals.com/api-documentation/
+## Activate Awin on Vercel (production)
 
-As checked in October 2026, the service advertises a **limited $0 plan with 25 downloads/API requests per day**, although its API documentation also describes API-key access for an advanced pack. Actual API key eligibility, available stores, data license and current limits must be confirmed in the user's LinkMyDeals account. Pricing: https://linkmydeals.com/plans-pricing/
+1. Obtain your numeric Awin Publisher ID from the Publisher Dashboard. The ID is not the API credential.
+2. Open [Vercel MATCHLATCH project settings](https://vercel.com/dashboard) → matchlatch → Settings → Environment Variables.
+3. Add exactly these variables for the **Production** environment:
 
-**Critical accuracy contract:**
+   | Variable | Type | Value |
+   | --- | --- | --- |
+   | \`AWIN_API_TOKEN\` | **Sensitive / encrypted** | Your private Awin Publisher API access token |
+   | \`AWIN_PUBLISHER_ID\` | Plain (non-secret ID) | Your numeric publisher account ID |
 
-| State | What we may say | What we cannot say |
-| --- | --- | --- |
-| Feed not connected | "Savings feed not connected" | "No deals exist" |
-| Provider unavailable | "Codes could not be checked" | "There are no codes" |
-| Feed returned no matching codes | "No current codes found in this feed for this merchant" | "No coupons exist anywhere" |
-| Valid, nonexpired code **listed by provider** | "Public coupon listed; try at retailer checkout" | "Verified working", "guaranteed savings", or a reduced item price |
-| **Merchant cart API confirms code applicable to current items** (future) | "Applied to this cart when checked" with timestamp, merchant and actual adjusted amount | "Guaranteed at checkout forever" |
+4. **Never paste the access token into ChatGPT, client JavaScript, GitHub, or a URL query string.** Awin credentials are personal and grant API access to all associated publisher accounts.
+5. Redeploy the production branch **after** saving the environment variables (environment changes are not retroactive to completed deployments).
+6. Visit \`https://matchlatch.vercel.app/api/savings?domain=retailer-domain.com\` with a retailer you have joined on Awin. This is a public, read-only merchant lookup; never put the token in the URL.
+7. Check \`status\`: \`not_configured\` (credentials missing), \`provider_unavailable\` (API or mapping failed), or \`listed_not_checkout_verified\` (Awin request succeeded). A valid response with zero offers can mean **no joined advertiser match**, no currently active voucher code, or the beta's bounded page scan.
+8. In Private Shop test the listed code against a retailer test basket without purchasing. Confirm the retailer's restrictions and that the displayed MATCHLATCH price has not silently changed.
 
-Publishing/activation does **not** prove an individual shopper meets minimum spend, new-user, product/category, geography, customer or stacking rules. **Only merchant-cart / checkout confirmation can reasonably demonstrate applicability.** Shopify's Storefront \`cartDiscountCodesUpdate\` returns per-code \`applicable\`, but MATCHLATCH Global Catalog discovery does not grant access to each merchant's authenticated cart API. See https://shopify.dev/docs/api/storefront/latest/mutations/cartDiscountCodesUpdate.
+## Key data and trust boundaries
 
-## Activation steps (not yet performed)
+| What we know | Safe label |
+| --- | --- |
+| No Awin config | "Savings Check · Feed not connected" |
+| Awin error/limit | "Savings Check · Unavailable" |
+| No codes in consulted joined advertiser feed | "No listed codes" |
+| Awin currently lists a voucher | "Public code listed · Checkout eligibility unconfirmed" |
+| Merchant cart confirms this product/basket qualifies (**future**) | "Applied when tested at [retailer]" with timestamp and actual price |
 
-1. Create an account with LinkMyDeals and confirm current coupon-feed access for the merchants and countries relevant to MATCHLATCH. No paid plan has been purchased or approved.
-2. Obtain an **API key** from the provider's publisher dashboard if your chosen plan grants one. **Never send the API key in chat, put it in JavaScript, or commit it to GitHub**.
-3. Add **\`LINKMYDEALS_API_KEY\`** as a **sensitive Production environment variable** in Vercel → MATCHLATCH → Settings → Environment Variables.
-4. Deploy a new production build. Vercel environment changes require a new deployment.
-5. Open \`https://matchlatch.vercel.app/api/savings?domain=your-supported-retailer.com\` to inspect status. \`enabled:false\` means not configured. \`status:"listed_not_checkout_verified"\` means feed data loaded, not that the code applies. Then use Private Shop and confirm real domain, expiry, terms and copy-to-clipboard. Check checkout manually on supported retailer test items **without purchasing**.
-6. Monitor provider requests and test any rate/quota restrictions. The adapter currently has a **12-hour in-process cache** and a 10-minute browser cache. **Serverless instances do not share this memory.** For real traffic, introduce a shared durable feed snapshot and a single scheduled, quota-limited refresh job before broadly enabling the provider. The free limit is *not* protected by the current cache alone.
+Don't scrape restricted retailer checkout systems, attempt fake account signup, bypass anti-bot measures, guess codes or promise that listing means guaranteed savings. We must comply with Awin/advertiser terms, including any attribution and compensation disclosure requirements.
 
-**Endpoint:** \`GET /api/savings?domains=store-a.com,store-b.com\` (max 15 valid domains) or \`?domain=store-a.com\`. The API key is used **only server-side**, against a fixed HTTPS upstream host. MATCHLATCH sends **merchant hostnames only**—never account identifiers, user photos or style profiles—to its own server function. The server rejects bad domains and never uses client domains as fetch URLs, avoiding arbitrary URL fetches. If the provider's HTTPS feed is not available, the endpoint fails closed rather than transferring secrets over HTTP.
+## How the code is organized
 
-## Next release gate
+- \`api/savings.mjs\`: reads only \`AWIN_API_TOKEN\` / \`AWIN_PUBLISHER_ID\` from private server environment; queries joined advertiser programmes and active US vouchers; maps a voucher to a known merchant hostname. Its outbound hostname is fixed at \`api.awin.com\`. It neither accepts arbitrary upstream URLs nor exposes private tokens.
+- \`savings.js\`: user-facing, provider-neutral automatic lookups; batches up to 15 hostnames per request, short-lived local cache, expandable details and copy-code action.
+- \`savings.css\`: accessible, understated details display.
+- \`scripts/audit.mjs\`: static checks for credential isolation and link wiring.
 
-- [x] Build source integration, merchant-domain matching, offer-date filtering, honest user labels, copy button and connection-off fallback.
-- [x] Add Private Shop / favorites / cart hooks without disrupting existing shopping and account features.
-- [ ] Obtain a valid provider API key and confirm **actual real feed data and applicable stores**.
-- [ ] Confirm live Vercel endpoint, provider response format, daily allowance and browser-device UX.
-- [ ] Add globally shared rate limiting and durable cache before opening to broad traffic.
-- [ ] For a **"verified working"** badge: partner with merchant cart API, create an eligible test cart and check \`applicable:true\` / actual discount before showing confirmed savings.
-- [ ] Optional after V3: automatic restock/price/discount alerts for signed-in users with explicit opt-in and approved provider terms.
+For additional providers later, retain the normalized response shape, merchant match and "unverified until retailer acceptance" policy. The former unconfigured LinkMyDeals prototype has been replaced rather than left as unused production integration code.
 
-**Privacy, compliance & user trust:** Do not scrape private checkout systems, automate fake account signups, bypass anti-bot systems, or invent/guess codes. Respect each provider's API rights, store terms, affiliate rules and rate limits.
+## Beta test gates
+
+- [x] Product UI, price-preserving offer display, copy-code flow and merchant-domain validation implemented.
+- [x] Awin backend adapter and normalized provider fields implemented.
+- [x] Mocked Awin filtering/security test: matched joined advertisers, excluded unrelated/expired/region-mismatched vouchers, cache, missing credentials, cross-origin protection.
+- [ ] Configure Awin Publisher ID and private token in production Vercel.
+- [ ] Confirm real Awin API calls and retailer assortment; adjust any live response differences.
+- [ ] Test on iPhone and desktop with real selected Private Shop products.
+- [ ] Before inviting broad users, add centralized caching/rate limiting and handle full-pagination feed coverage.
+- [ ] Before advertising "verified working" codes, integrate actual merchant-cart validation for supported retailers.
