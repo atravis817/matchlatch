@@ -1,135 +1,192 @@
-// MATCHLATCH Savings Check: optional LinkMyDeals provider feed.
-// IMPORTANT: "listed/active" is NOT "accepted at checkout". Do not change
-// display prices or promise a code will work without merchant-cart proof.
-const FEED="https://feed.linkmydeals.com/getOffers/";
-const TTL=12*60*60*1000; // in-memory beta cache; not global across serverless instances
-const SIZE_LIMIT=8*1024*1024;
+// MATCHLATCH Savings Check · Awin publisher integration (server only).
+// An Awin-listed voucher is not proof that it works for a particular item.
+// Do not change merchandise prices or promise checkout savings.
+const BASE="https://api.awin.com";
+const CACHE_MS=30*60*1000;
+const ERROR_COOLDOWN_MS=60*1000;
 const MAX_DOMAINS=15;
-const clip=(v,n)=>String(v??"").replace(/[\u0000-\u001f]/g," ").trim().slice(0,n);
-const out=(body,status=200)=>new Response(JSON.stringify(body),{
+const PAGE_SIZE=200;
+const MAX_PAGES=3; // bounded beta retrieval; a large network may have more offers
+const MAX_BYTES=2*1024*1024;
+const short=(v,n)=>String(v??"").replace(/[\u0000-\u001f]/g," ").trim().slice(0,n);
+const output=(body,status=200)=>new Response(JSON.stringify(body),{
  status,headers:{"content-type":"application/json; charset=utf-8","cache-control":"no-store"}
 });
-const domain=(value)=>{
+const domain=value=>{
+ const raw=short(value,240).toLowerCase().replace(/^www\./,"");
+ return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/.test(raw)?raw:"";
+};
+const websiteDomain=value=>{
  try{
-  const raw=String(value||"").trim().toLowerCase();
-  if(!/^[a-z0-9.-]{4,235}$/.test(raw))return "";
-  const d=raw.replace(/^www\./,"");
-  if(!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/.test(d))return "";
-  return d;
+  let s=String(value||"").trim();
+  if(/^(?!https?:\/\/)[a-z0-9.-]+\.[a-z]{2,}(?:\/|$)/i.test(s))s="https://"+s;
+  const url=new URL(s);
+  return ["https:","http:"].includes(url.protocol)?domain(url.hostname):"";
  }catch{return ""}
 };
-const websiteDomain=(link)=>{
- try{
-  const u=new URL(String(link||""));
-  return ["https:","http:"].includes(u.protocol)?domain(u.hostname):"";
- }catch{return ""}
+const matches=(host,target)=>host===target||host.endsWith("."+target)||target.endsWith("."+host);
+const isUs=row=>{
+ const regions=row?.regions;
+ if(!regions||regions.all===true)return true;
+ if(!Array.isArray(regions.list))return false;
+ return regions.list.some(r=>(r?.countryCode||r)?.toString?.().toUpperCase()==="US");
 };
-const matchesDomain=(merchant,requested)=>merchant===requested
-  ||merchant.endsWith("."+requested)||requested.endsWith("."+merchant);
-const field=(row,...names)=>{
- for(const name of names){const v=row?.[name];if(v!==undefined&&v!==null&&String(v).trim())return v;}
- return "";
-};
-const dateMs=(value,end=false)=>{
+const parseDate=(value,isEnd)=>{
  if(!value)return null;
- const raw=clip(value,50);
- // A calendar-day expiry includes its entire last date (UTC).
- const ymd=/^\d{4}-\d{2}-\d{2}$/.test(raw);
- const time=Date.parse(ymd?raw+(end?"T23:59:59.999Z":"T00:00:00Z"):raw);
- return Number.isFinite(time)?time:NaN;
+ const s=short(value,45);
+ const isoDate=/^\d{4}-\d{2}-\d{2}$/.test(s);
+ const n=Date.parse(isoDate?s+(isEnd?"T23:59:59.999Z":"T00:00:00Z"):s);
+ return Number.isFinite(n)?n:NaN;
 };
-function extract(feed){
- const rows=Array.isArray(feed?.offers)?feed.offers:Array.isArray(feed?.Offers)?feed.Offers:[];
- const now=Date.now(),clean=[];
- for(const row of rows){
-  if(!row||typeof row!=="object")continue;
-  const type=clip(field(row,"Type","type"),65);
-  const code=clip(field(row,"Coupon Code","coupon_code","couponCode","code"),42).toUpperCase();
-  if(!code||!/^[A-Z0-9][A-Z0-9_-]{2,39}$/.test(code))continue;
-  if(type && !/coupon|code/i.test(type))continue;
-  const state=clip(field(row,"Status","status"),35).toLowerCase();
-  if(/suspend|expir|delet|inactiv|cancel|invalid/.test(state))continue;
-  const start=dateMs(field(row,"Start Date","start_date","startDate"));
-  const end=dateMs(field(row,"End Date","end_date","endDate"),true);
+const arrayFrom=(data,fields)=>{
+ if(Array.isArray(data))return data;
+ if(!data||typeof data!=="object")return null;
+ for(const key of fields)if(Array.isArray(data[key]))return data[key];
+ return null;
+};
+const credentials=()=>{
+ const token=String(process.env.AWIN_API_TOKEN||"").trim();
+ const publisher=String(process.env.AWIN_PUBLISHER_ID||"").trim();
+ return token&&/^[1-9][0-9]{0,17}$/.test(publisher)?{token,publisher}:null;
+};
+async function awinFetch(path,{method="GET",body,token}){
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),11000);
+ try{
+  const res=await fetch(BASE+path,{
+   method,signal:controller.signal,redirect:"error",cache:"no-store",
+   headers:{"authorization":"Bearer "+token,"accept":"application/json",
+    ...(body?{"content-type":"application/json"}:{})},
+   ...(body?{body:JSON.stringify(body)}:{})
+  });
+  if(!res.ok)throw Error("AWIN_HTTP_"+res.status);
+  if(Number(res.headers?.get?.("content-length")||0)>MAX_BYTES)throw Error("AWIN_RESPONSE_TOO_BIG");
+  const raw=await res.text();
+  if(raw.length>MAX_BYTES)throw Error("AWIN_RESPONSE_TOO_BIG");
+  return JSON.parse(raw);
+ }finally{clearTimeout(timeout)}
+}
+const blockedDomain=host=>!host||host==="awin.com"||host.endsWith(".awin.com")
+ ||host==="awin1.com"||host.endsWith(".awin1.com")
+ ||host==="awin2.com"||host.endsWith(".awin2.com");
+function domainsForProgramme(programme){
+ const urls=[programme?.displayUrl];
+ for(const value of programme?.validDomains||[])urls.push(typeof value==="string"?value:value?.domain);
+ const result=new Set();
+ for(const value of urls){
+  const candidate=websiteDomain(value)||domain(value);
+  if(candidate&&!blockedDomain(candidate))result.add(candidate);
+ }
+ return [...result];
+}
+function normalizeOffers(rows,programmes){
+ const now=Date.now(),all=[];
+ for(const offer of rows){
+  if(!offer||offer.type!=="voucher"||!offer.advertiser?.joined)continue;
+  const merchant=programmes.get(String(offer.advertiser.id));
+  if(!merchant)continue; // Only publishers with an active advertiser membership.
+  if(!isUs(offer))continue;
+  const code=short(offer.voucher?.code,60);
+  if(!/^[A-Za-z0-9][A-Za-z0-9_-]{2,49}$/.test(code))continue;
+  const start=parseDate(offer.startDate,false);
+  const end=parseDate(offer.endDate,true);
   if(Number.isNaN(start)||Number.isNaN(end))continue;
   if((start!==null&&start>now)||(end!==null&&end<now))continue;
-  const host=websiteDomain(field(row,"Merchant Homepage","merchant_homepage","merchantHomepage"));
-  if(!host)continue; // Never guess a merchant match from a brand name.
-  const title=clip(field(row,"Offer Text","Title","title","offer_text"),160);
-  const terms=clip(field(row,"Terms and Conditions","Description","description","terms"),320);
-  clean.push({domain:host,code,title:title||"Public code listed by coupon provider",
-   terms,expiresAt:end!==null?new Date(end).toISOString():null,
-   source:"LinkMyDeals",verification:"provider_listed"});
-  if(clean.length>=5000)break;
+  const landing=websiteDomain(offer.url);
+  // Retain programme domains even if the offer uses Awin's tracking URL.
+  const hosts=domainsForProgramme(merchant);
+  if(landing&&!blockedDomain(landing)&&hosts.some(d=>matches(d,landing)))
+   hosts.unshift(landing);
+  if(!hosts.length)continue;
+  const normalized={
+   code,title:short(offer.title||offer.description||"Awin retailer promotion",160),
+   terms:short(offer.terms||offer.description,320),
+   expiresAt:end!==null?new Date(end).toISOString():null,
+   source:"Awin",verification:"provider_listed",
+   advertiserId:String(offer.advertiser.id)
+  };
+  all.push({...normalized,domains:[...new Set(hosts)]});
+  if(all.length>=600)break;
  }
- return clean;
+ return all;
 }
-let cache=null,expires=0,inFlight=null;
-async function refresh(){
- const key=String(process.env.LINKMYDEALS_API_KEY||"").trim();
- if(!key)return null;
- if(cache&&Date.now()<expires)return cache;
+let cache=null,cacheExpires=0,inFlight=null,holdUntil=0;
+async function loadAwin(){
+ const creds=credentials();
+ if(!creds)return null;
+ if(cache&&Date.now()<cacheExpires)return cache;
  if(inFlight)return inFlight;
+ if(Date.now()<holdUntil)throw Error("AWIN_COOLDOWN");
  inFlight=(async()=>{
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),11500);
   try{
-   const feedUrl=new URL(FEED);
-   feedUrl.searchParams.set("API_KEY",key);
-   feedUrl.searchParams.set("format","json");
-   feedUrl.searchParams.set("off_record","1");
-   const response=await fetch(feedUrl,{
-    signal:controller.signal,headers:{"accept":"application/json"},redirect:"error",cache:"no-store"
-   });
-   if(!response.ok)throw Error("COUPON_PROVIDER_HTTP_"+response.status);
-   if(Number(response.headers.get("content-length")||0)>SIZE_LIMIT)throw Error("COUPON_FEED_TOO_LARGE");
-   const raw=await response.text();
-   if(raw.length>SIZE_LIMIT)throw Error("COUPON_FEED_TOO_LARGE");
-   const body=JSON.parse(raw);
-   if(!body||typeof body!=="object"||
-      !Array.isArray(body.offers)&&!Array.isArray(body.Offers)||
-      body.result===false||body.result===0||body.result==="0")
-      throw Error("COUPON_FEED_INVALID");
-   cache=extract(body);expires=Date.now()+TTL;
+   // Awin's joined programmes supply stable merchant domains/advertiser IDs.
+   const joined=await awinFetch("/publishers/"+creds.publisher+"/programmes?relationship=joined",
+    {token:creds.token});
+   const programmes=new Map();
+   for(const p of arrayFrom(joined,["programmes","data","results"])||[]){
+    if(!p?.id||!domainsForProgramme(p).length||String(p.linkStatus||"").toLowerCase()==="offline")continue;
+    programmes.set(String(p.id),p);
+   }
+   const offers=[];
+   for(let page=1;page<=MAX_PAGES;page++){
+    const result=await awinFetch("/publisher/"+creds.publisher+"/promotions",{
+     method:"POST",token:creds.token,
+     body:{filters:{membership:"joined",regionCodes:["US"],status:"active",type:"voucher"},
+      pagination:{page,pageSize:PAGE_SIZE}}
+    });
+    const current=arrayFrom(result,["promotions","offers","data","results","items"]);
+    if(!current)throw Error("AWIN_UNKNOWN_RESPONSE");
+    offers.push(...current);
+    // Pages are bounded to protect Awin's 20 calls/minute/user throttle.
+    if(current.length<PAGE_SIZE)break;
+   }
+   cache=normalizeOffers(offers,programmes);
+   cacheExpires=Date.now()+CACHE_MS;
+   holdUntil=0;
    return cache;
-  }finally{clearTimeout(timeout);inFlight=null;}
+  }catch(err){
+   holdUntil=Date.now()+ERROR_COOLDOWN_MS;
+   throw err;
+  }finally{inFlight=null}
  })();
  return inFlight;
 }
 export async function GET(request){
- const origin=request.headers?.get?.("origin");
- if(origin&&origin!==new URL(request.url).origin)
-   return out({error:"Cross-origin request rejected."},403);
  const u=new URL(request.url);
- const values=(u.searchParams.get("domains")||u.searchParams.get("domain")||"").split(",");
- if(values.length>MAX_DOMAINS||values.some(v=>v.length>235))
-   return out({error:"Too many merchant domains."},400);
- const domains=[...new Set(values.map(domain).filter(Boolean))];
- if(!domains.length||domains.length!==new Set(values.map(v=>v.toLowerCase().trim().replace(/^www\./,""))).size)
-   return out({error:"Please supply valid merchant domains."},400);
- if(!process.env.LINKMYDEALS_API_KEY){
-  return out({enabled:false,offers:{},status:"not_configured",
-   message:"Savings feed is not connected. No coupon codes have been verified."});
+ const origin=request.headers?.get?.("origin");
+ if(origin&&origin!==u.origin)return output({error:"Cross-origin request rejected."},403);
+ const raw=(u.searchParams.get("domains")||u.searchParams.get("domain")||"").split(",");
+ if(raw.length>MAX_DOMAINS||raw.some(d=>d.length>235))
+   return output({error:"Too many merchant domains."},400);
+ const domains=[...new Set(raw.map(domain))];
+ if(domains.some(d=>!d))return output({error:"Invalid merchant domain."},400);
+ if(!credentials()){
+  return output({enabled:false,status:"not_configured",offers:{},
+   message:"Awin publisher integration awaits an API token and publisher ID."});
  }
  try{
-  const listings=await refresh();
-  const offers={};
+  const listed=await loadAwin();
+  const found={};
   for(const d of domains){
-   const list=new Map();
-   for(const coupon of listings||[]){
-    if(!matchesDomain(coupon.domain,d))continue;
-    const key=coupon.code;
-    if(!list.has(key))list.set(key,coupon);
+   const matched=new Map();
+   for(const offer of listed||[]){
+    if(!offer.domains.some(host=>matches(host,d)))continue;
+    if(!matched.has(offer.code)){
+     // Never send internal matching domains or unrelated merchant entries.
+     const {domains:_,...view}=offer;
+     matched.set(offer.code,view);
+    }
    }
-   offers[d]=[...list.values()].slice(0,5);
+   found[d]=[...matched.values()].slice(0,5);
   }
-  return out({enabled:true,status:"listed_not_checkout_verified",offers,
-   source:"LinkMyDeals",checkedAt:new Date().toISOString(),
-   message:"Codes are currently listed by a third-party feed; checkout acceptance is unverified. Do not include discounts in price totals."});
+  return output({enabled:true,status:"listed_not_checkout_verified",offers:found,source:"Awin",
+   checkedAt:new Date().toISOString(),
+   limitedScan:true,
+   message:"Awin-listed vouchers for joined advertisers. Code acceptance at retailer checkout is not verified."});
  }catch(err){
-  // Never log upstream URL or API keys; provider errors may contain secrets.
-  console.error("MATCHLATCH Savings Check upstream failed",err?.name||"Error");
-  return out({enabled:true,status:"provider_unavailable",offers:{},
-   message:"Coupon provider is temporarily unavailable; codes were not checked."},503);
+  // Never echo tokens, URLs, or upstream provider error bodies to logs or clients.
+  console.error("MATCHLATCH Savings Check provider unavailable:",err?.name||"Error");
+  return output({enabled:true,status:"provider_unavailable",offers:{},
+   message:"Awin promotions are temporarily unavailable; no codes were verified."},503);
  }
 }
