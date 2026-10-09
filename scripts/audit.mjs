@@ -115,6 +115,17 @@ check(html.includes("matchlatch-appearance-v1")&&html.includes('href="/theme.css
 check(html.includes("media?.addListener")&&html.includes("matchlatch:appearance")
   &&appShell.includes("initThemeToggle"),
   "Appearance updates on older and modern mobile browsers");
+const lightMark=file("logo-mark.svg"),darkMark=file("logo-mark-dark.svg"),themeCss=file("theme.css");
+const geometry=svg=>[...svg.matchAll(/\bd="([^"]+)"/g)].map(m=>m[1]);
+check(JSON.stringify(geometry(lightMark))===JSON.stringify(geometry(darkMark))
+  &&darkMark.includes('fill="#141714"')&&darkMark.includes('stroke="#E9F0E8"'),
+  "Dark logo preserves the original lock M and tag geometry with visible cutouts");
+check(html.split('src="/logo-mark-dark.svg"').length===3
+  &&html.split('src="/logo-mark.svg"').length===3
+  &&themeCss.includes('.brand-emblem .brand-mark-dark{display:none}')
+  &&themeCss.includes(':root[data-theme="dark"] .brand-emblem .brand-mark-dark{display:block}')
+  &&!themeCss.includes("brightness(0) invert"),
+  "Header and footer switch logo artwork instead of applying a destructive inversion");
 check(file("app-shell.css").includes("repeat(5,minmax(0,1fr))")
   &&file("app-shell.css").includes("safe-area-inset-bottom"),
   "Five destinations remain usable above iPhone home indicator");

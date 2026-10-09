@@ -8,7 +8,12 @@
 :root[data-theme="dark"] body{background:var(--bg);color:var(--ink)}
 :root[data-theme="dark"] :is(.site-header,.footer){background:var(--bg);border-color:var(--line)}
 :root[data-theme="dark"] :is(.brand-lockup,.brand-lockup span,.footer .brand-lockup){color:var(--ink)}
-:root[data-theme="dark"] .brand-mark{filter:brightness(0) invert(.94)}
+/* Keep the M and garment-tag cutouts intact: switch artwork instead of filtering it. */
+.brand-emblem{display:grid;align-items:center;flex:0 0 auto}
+.brand-emblem .brand-mark{grid-area:1/1}
+.brand-emblem .brand-mark-dark{display:none}
+:root[data-theme="dark"] .brand-emblem .brand-mark-light{display:none}
+:root[data-theme="dark"] .brand-emblem .brand-mark-dark{display:block}
 :root[data-theme="dark"] :is(h1 span,.destination-heading h1 span,.library-top h1 span,.intro h1 span){color:#a9b8a7}
 :root[data-theme="dark"] :is(.kicker,.micro-title,.panel-tag,.tiny-label,.library-top .tiny-label,.piece-label,.item-index,.num,.mode,.store-field,.me-setting-label,.header-signature,.destination-inline-title,.collection-icon,.collection-card-arrow){color:#9eaf9e}
 :root[data-theme="dark"] :is(.intro p,.sub,.privacy,.privacy b,.note,.disclaimer,.results-card p,.found p,.found .meta,.library-caption,.library-top p,.destination-heading p,.destination-section-title>p,.mood-card-sub,.mood-reason,.store-search-status,.library-meta,.account-panel p,.small-footnote,.account-import p,.collections-create p,.collection-empty p,.me-preferences-status,.appearance-help,.tree-note,.tree-heading p,.tree-total small,.tree-slot-info small,.private-shop-sub,.private-shop-details small,.shop-feedback,.private-shop-empty,.savings-note,.savings-offer-copy small,.cart-info small,.purchase-summary p,.purchase-form p,.collection-card-meta,.closet-summary-tile small,.closet-folder-tile small,.folder-chip small,.profile-shortcut-copy small,.store-size,.library-card p,.empty-state p,.mood-archive-copy small){color:var(--muted)}
