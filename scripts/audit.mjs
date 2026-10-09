@@ -451,5 +451,17 @@ check(appShell.includes('input.pattern="[0-9]{5}"')
   &&appShell.includes("never sent to product search, analytics or OpenAI"),
   "Shipping destination is optional, editable and kept locally");
 
+/* V1.2 delivery deadline blocks unsupported arrival claims and stays optional. */
+check(appShell.includes('deadline.type="date"')
+  &&appShell.includes('storeState.needBy=deadline.value')
+  &&appShell.includes('deliveryByDate(item,storeState.needBy,shippingZip())'),
+  "Store native calendar deadline participates in result filtering");
+check(appShell.includes('e.latest<=deadline')
+  &&appShell.includes('e?.source==="retailer"')
+  &&appShell.includes('Save your destination ZIP in Me before using Need it by.'),
+  "Need-by results require matching destination and retailer-estimated latest arrival");
+check(file("app-shell.css").includes('.v12-date-field input[type="date"]'),
+  "Delivery deadline calendar uses mobile-accessible styling");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
