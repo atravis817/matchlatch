@@ -503,7 +503,7 @@
       ];
       if(!ids.size){
         const empty=node("div","collection-empty");
-        empty.append(node("h3",null,"Your collection is ready."));
+        empty.append(node("h3",null,"Your collection is ready"));
         empty.append(node("p",null,"Find an inspiration or saved outfit and choose its Folder button to file it here."));
         empty.append(btn("Browse inspirations ↗",()=>{
           selectedTab="inspirations";renderStyles();
@@ -520,7 +520,7 @@
     }
     const bar=node("div","collections-create");
     const intro=node("div");
-    intro.append(node("h2",null,"Your collections."));
+    intro.append(node("h2",null,"Your collections"));
     intro.append(node("p",null,"Name a moment, trip, occasion, or idea. Everything attached to each inspiration stays together."));
     const form=document.createElement("form");form.className="collections-create-form";
     const input=document.createElement("input");input.type="text";input.maxLength=80;
@@ -656,7 +656,7 @@
     showPage("studio");
     window.MatchlatchResetStudio?.();
     currentLookId=look.id;
-    $("result-title").textContent="Your saved outfit.";
+    $("result-title").textContent="Your saved outfit";
     $("mode").textContent=look.mode==="ai"?"AI-CURATED LOOK":"GUIDED LOOK";
     $("found-title").textContent=look.item?.label||look.label;
     $("found-meta").textContent=[look.item?.color,look.item?.category].filter(Boolean).join(" · ");

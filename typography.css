@@ -1,0 +1,216 @@
+/*
+ * MATCHLATCH v1.1 — shared type system for Mood, My Closet, Studio, Store, Me.
+ *
+ * Typography rules:
+ * - Sentence case for page/section/card titles, no trailing full stop.
+ * - Uppercase is reserved for navigation, eyebrows, micro-labels and statuses.
+ * - Body copy remains sentence case with normal punctuation.
+ * - Different semantic levels share the same design tokens across destinations.
+ *
+ * This file is deliberately loaded LAST to override accumulated legacy styles
+ * without changing the responsive layout or app behavior.
+ */
+:root{
+  --ml-font-ui:Inter,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,system-ui,sans-serif;
+  --ml-type-page:clamp(44px,5.8vw,64px);
+  --ml-type-section:clamp(24px,3.2vw,30px);
+  --ml-type-tile:18px;
+  --ml-type-body:13.5px;
+  --ml-type-meta:11px;
+  --ml-type-label:10.5px;
+  --ml-type-action:12.5px;
+  --ml-line-body:1.6;
+  --ml-track-title:-.055em;
+}
+
+/* A single font stack and text-rendering treatment across all five routes. */
+:root,body,button,input,select,textarea{
+  font-family:var(--ml-font-ui);
+}
+body{
+  font-size:var(--ml-type-body);
+  line-height:var(--ml-line-body);
+}
+
+/* All top-level destinations use one shared visual H1 size and weight.
+   Studio's workspace title is a true H1, like Mood, Closet, Store, and Me. */
+.destination-heading h1,
+.library-top h1,
+#studio-workspace > .destination-section-title h1,
+.flow-header .flow-heading h1,
+.me-page-heading h1{
+  font-size:var(--ml-type-page);
+  font-weight:570;
+  line-height:1.08;
+  letter-spacing:var(--ml-track-title);
+  margin:10px 0 12px;
+  text-transform:none;
+}
+#studio-workspace > .destination-section-title h1{
+  color:var(--ink);
+}
+#studio-workspace > .destination-section-title{
+  display:block;
+  margin-bottom:28px;
+}
+.destination-heading p,
+.library-top p,
+#studio-workspace > .destination-section-title > p{
+  max-width:580px;
+  font-size:var(--ml-type-body);
+  line-height:var(--ml-line-body);
+  font-weight:400;
+  letter-spacing:normal;
+}
+
+/* Match page-heading top spacing and second-tier heading styles across destinations. */
+.destination-space,.library-section,.studio-workspace{padding-top:62px}
+
+/* Second-tier headings share one editorial scale on every destination. */
+.destination-section-title h2,
+.collections-create h2,
+.collection-view-heading h2,
+.store-results-top h2,
+.closet-page-title,
+.me-appearance h2,
+.me-preferences h2,
+.account-panel h2,
+.results-head h2{
+  font-size:var(--ml-type-section);
+  line-height:1.16;
+  font-weight:590;
+  letter-spacing:-.045em;
+  text-transform:none;
+}
+
+/* All eyebrow labels use the same capitalization, sizing and tracking. */
+.kicker,
+.micro-title,
+.tiny-label,
+.panel-tag,
+.studio-entry-eyebrow,
+.destination-inline-title,
+.library-top .tiny-label,
+.destination-recent-info .micro-title,
+.mood-card-detail .micro-title,
+.store-card-info .micro-title,
+.store-suggestions > .micro-title,
+.profile-shortcut-copy .micro-title,
+.me-setting-label{
+  font-family:var(--ml-font-ui);
+  font-size:var(--ml-type-label);
+  font-weight:760;
+  line-height:1.35;
+  letter-spacing:.115em;
+  text-transform:uppercase;
+}
+
+/* Consistent primary tile headings across Studio, Mood, Closet, and Me. */
+.studio-entry h3,
+.mood-card-detail h3,
+#screen-account[data-me-view="home"] .profile-shortcut-copy strong,
+.closet-summary-tile strong,
+.collection-card strong,
+.closet-feature-heading h2{
+  font-family:var(--ml-font-ui);
+  font-size:var(--ml-type-tile);
+  font-weight:650;
+  line-height:1.3;
+  letter-spacing:-.035em;
+  text-transform:none;
+}
+
+/* Product names are the same compact scale in Store and saved-Closet tiles. */
+.store-card-info h3,
+.library-card-title,
+.destination-recent-info h3,
+.closet-folder-tile strong{
+  font-size:14px;
+  font-weight:660;
+  line-height:1.4;
+  letter-spacing:-.015em;
+}
+
+/* Descriptions match, independent of the page supplying the tile. */
+.studio-entry p,
+.mood-card-sub,
+.mood-reason,
+#screen-account[data-me-view="home"] .profile-shortcut-copy small,
+.closet-summary-tile small,
+.collection-card-meta,
+.flow-heading p,
+.account-panel p{
+  font-size:var(--ml-type-body);
+  line-height:var(--ml-line-body);
+  letter-spacing:normal;
+  text-transform:none;
+}
+.mood-reason{min-height:0}
+
+/* Compact data and helper text stay at the same supporting size. */
+.closet-summary-metric,
+.folder-chip small,
+.store-size,
+.library-meta,
+.collection-card-meta,
+.mood-archive-copy small,
+.me-preferences-status,
+.appearance-help{
+  font-size:var(--ml-type-meta);
+  line-height:1.5;
+}
+
+/* Action labels use sentence case; navigation labels stay uppercase. */
+.studio-entry-action,
+.destination-link,
+.flow-back,
+.flow-primary,
+.library-primary,
+.library-subtle,
+.store-submit,
+.store-chip,
+.look-action,
+.store-retailer-link{
+  font-family:var(--ml-font-ui);
+  font-size:var(--ml-type-action);
+  font-weight:720;
+  line-height:1.4;
+  letter-spacing:.005em;
+  text-transform:none;
+}
+.bottom-nav .dock-link{
+  font-family:var(--ml-font-ui);
+  font-weight:760;
+  text-transform:uppercase;
+}
+
+/* The earlier result-grid ordinal was removed during tile cleanup;
+   keep result links directly beneath the description on narrow screens. */
+@media(max-width:650px){
+  .result-item{grid-template-columns:minmax(0,1fr)}
+  .result-item a{grid-column:1}
+}
+@media(max-width:700px){
+  .destination-space,.library-section,.studio-workspace{padding-top:43px}
+  :root{
+    --ml-type-page:clamp(40px,10.5vw,46px);
+    --ml-type-section:clamp(23px,6vw,27px);
+    --ml-type-tile:17px;
+    --ml-type-body:13px;
+  }
+  .studio-entry h3,
+  .mood-card-detail h3,
+  #screen-account[data-me-view="home"] .profile-shortcut-copy strong,
+  .closet-summary-tile strong{font-size:var(--ml-type-tile)}
+  .store-card-info h3{font-size:14px}
+  .library-top h1,
+  .destination-heading h1,
+  #studio-workspace > .destination-section-title h1,
+  .flow-header .flow-heading h1,
+  .me-page-heading h1{font-size:var(--ml-type-page)}
+}
+@media(max-width:380px){
+  :root{--ml-type-page:39px}
+  .destination-heading h1,.library-top h1,#studio-workspace > .destination-section-title h1,
+  .flow-header .flow-heading h1,.me-page-heading h1{font-size:var(--ml-type-page)}
+}

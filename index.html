@@ -187,8 +187,8 @@
       .drop{min-height:240px}
       .preview-box img{height:240px}
       .field-grid{gap:12px}
-      .result-item{grid-template-columns:27px minmax(0,1fr);gap:11px}
-      .result-item a{grid-column:2;justify-self:start;margin-top:4px}
+      .result-item{grid-template-columns:minmax(0,1fr);gap:11px}
+      .result-item a{grid-column:1;justify-self:start;margin-top:4px}
       .results-head h2{font-size:38px}
     }
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -211,6 +211,7 @@
   <link rel="stylesheet" href="/flow-pages.css">
   <link rel="stylesheet" href="/greenglass.css">
   <link rel="stylesheet" href="/splash.css">
+  <link rel="stylesheet" href="/typography.css">
 </head>
 <body>
   <div id="matchlatch-splash" class="ml-splash is-playing" aria-hidden="true">
@@ -263,8 +264,8 @@
     <section id="screen-mood" class="app-screen" hidden aria-label="Mood inspiration">
       <div class="container destination-space">
         <div class="destination-heading">
-          <span class="kicker">MOOD / INSPIRATION</span>
-          <h1>Find your <span>mood.</span></h1>
+          <span class="kicker">Mood / inspiration</span>
+          <h1>Find your <span>mood</span></h1>
           <p>Outfit ideas inspired by your style preferences and saved looks.</p>
         </div>
         <div id="mood-body"></div>
@@ -273,8 +274,8 @@
     <section id="screen-store" class="app-screen" hidden aria-label="MATCHLATCH Store">
       <div class="container destination-space">
         <div class="destination-heading">
-          <span class="kicker">STORE / EXPLORE</span>
-          <h1>The <span>store.</span></h1>
+          <span class="kicker">Store / explore</span>
+          <h1>The <span>store</span></h1>
           <p>Search clothing and accessories from participating retailers by style, category, and budget.</p>
         </div>
         <div id="store-body"></div>
@@ -284,7 +285,7 @@
       <section class="container studio-workspace" id="studio-workspace" aria-label="Studio projects"></section>
     <section class="intro container">
       <div class="kicker">Your style, unlocked.</div>
-      <h1>Find your next <span>look.</span></h1>
+      <h1>Find your next <span>look</span></h1>
       <p>Start with a photo or describe a piece. Build an outfit that feels like you.</p>
     </section>
     <div class="sequence" aria-label="How it works">
@@ -295,7 +296,7 @@
     <section class="container studio" id="studio" aria-label="Style studio">
       <div class="panel">
         <div class="panel-top"><span class="panel-tag">Start with a piece</span></div>
-        <h2>Choose a starting piece.</h2>
+        <h2>Choose a starting piece</h2>
         <p class="sub">A shirt, sneaker, jacket, or anything that inspires your next look.</p>
         <label class="drop" id="drop" for="photo" role="button" tabindex="0" aria-label="Choose a photo to style">
           <span class="upload-glyph" aria-hidden="true">+</span>
@@ -425,7 +426,7 @@
       </div>
       <div class="panel">
         <div class="panel-top"><span class="panel-tag">Make it yours</span></div>
-        <h2>Set your preferences.</h2>
+        <h2>Set your preferences</h2>
         <p class="sub">Choose your style and budget. You can update these anytime in Me.</p>
         <div class="field-grid">
           <label class="field"><span>Style expression</span>
@@ -546,7 +547,7 @@
     <section class="results" id="results" aria-live="polite">
       <div class="container">
         <div class="results-head">
-          <div><div class="kicker">YOUR LOOK</div><h2 id="result-title">Your look, unlocked.</h2></div>
+          <div><div class="kicker">Your look</div><h2 id="result-title">Your look, unlocked</h2></div>
           <span class="mode" id="mode">AI STYLING</span>
         </div>
         <div class="results-layout">
@@ -559,7 +560,7 @@
           </article>
           <article class="results-card">
             <div class="micro-title">Complete the look</div>
-            <h3>Made for your inspiration.</h3>
+            <h3>Made for your inspiration</h3>
             <p id="style-notes"></p>
             <details class="styling-suggestions" id="styling-suggestions">
               <summary>See the original styling suggestions</summary>
@@ -576,8 +577,8 @@
     <section id="screen-styles" class="app-screen" hidden aria-label="My Closet">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">YOUR WARDROBE</span>
-          <h1>My <span>Closet.</span></h1>
+          <span class="tiny-label">Your wardrobe</span>
+          <h1>My <span>Closet</span></h1>
           <p>Find your collections, saved looks, favorites, want list, and shopping shortlist.</p>
         </div><button class="library-subtle" type="button" id="closet-new-look">Create a new look ↗</button></div>
         <div id="styles-tabs" class="closet-page-nav" aria-label="My Closet navigation"></div>
@@ -588,7 +589,7 @@
       <div class="container library-section">
         <div class="library-top"><div>
           <span class="tiny-label">Your shopping shortlist</span>
-          <h1>Your Cart.</h1>
+          <h1>Your cart</h1>
           <p>Gather pieces you like, open retailer searches and record purchases you make elsewhere.</p>
         </div><button class="library-subtle" type="button" data-nav-page="studio">Keep exploring ↗</button></div>
         <div id="cart-body"></div>
@@ -597,15 +598,15 @@
     <section id="screen-account" class="app-screen" hidden aria-label="Account and sign in">
       <div class="container library-section">
         <div class="library-top"><div>
-          <span class="tiny-label">YOUR SPACE</span>
-          <h1>Me<span>.</span></h1>
+          <span class="tiny-label">Your space</span>
+          <h1>Me</h1>
           <p>Manage your style preferences, appearance, account, and privacy settings.</p>
         </div></div>
         <div id="profile-shortcuts" class="profile-shortcuts" aria-label="Personal settings navigation"></div>
         <section id="me-appearance" class="me-appearance" aria-label="Appearance settings"></section>
         <section id="me-preferences" class="me-preferences" aria-label="Your style preferences"></section>
         <div class="account-panel" id="me-account-panel">
-          <h2>Your account.</h2>
+          <h2>Your account</h2>
           <p>Use MATCHLATCH as a guest or sign in to keep your saved looks connected to your account.</p>
           <form id="login-form" hidden>
             <label for="login-email">Email address</label>
@@ -627,7 +628,7 @@
           <p class="small-footnote">Signed-in libraries sync privately across devices after setup. Guest styles stay on this browser until you choose to import them.</p>
         </div>
         <div class="account-panel" id="me-privacy-panel">
-          <h2>Privacy &amp; device data.</h2>
+          <h2>Privacy &amp; device data</h2>
           <p>Guest data stays on this device. Signed-in data is stored in your private account. Deleting guest data won't delete your signed-in closet.</p>
           <button id="clear-library" class="library-subtle" type="button">Delete local library</button>
         </div>
@@ -641,7 +642,7 @@
         <span>MOOD</span>
       </button>
       <button class="dock-link" type="button" data-page="closet" aria-label="My Closet, collections, favorites and saved pieces">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8v11.5h17V8H3.5Z"/><path d="M8 8V5.5h8V8"/><path d="M12 8v11.5"/><path d="M3.5 12h17"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="1.2"/><path d="M12 3v18"/><circle cx="9.5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="14.5" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
         <span>MY CLOSET</span>
       </button>
       <button class="dock-link dock-studio" type="button" data-page="studio" aria-label="Studio, create or continue a project" aria-current="page">

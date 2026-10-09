@@ -17,9 +17,9 @@ const el=(tag,cls,text)=>{
 const button=(label,fn,cls="destination-link")=>{
  const b=el("button",cls,label);b.type="button";b.addEventListener("click",fn);return b;
 };
-const sectionTitle=(kicker,title,description)=>{
+const sectionTitle=(kicker,title,description,headingTag="h2")=>{
  const wrap=el("div","destination-section-title");
- const names=el("div");names.append(el("span","micro-title",kicker),el("h2",null,title));
+ const names=el("div");names.append(el("span","micro-title",kicker),el(headingTag,null,title));
  wrap.append(names);
  if(description)wrap.append(el("p",null,description));
  return wrap;
@@ -49,18 +49,18 @@ function renderWorkspace(){
  const target=$("studio-workspace");if(!target)return;
  target.replaceChildren();
  const state=snapshot();
- const heading=sectionTitle("YOUR STUDIO","Studio.","Start a new look or continue a saved project.");
+ const heading=sectionTitle("Your studio","Studio","Start a new look or continue a saved project.","h1");
  target.append(heading);
  const actions=el("div","studio-entry-grid");
  const newCard=el("article","studio-entry studio-entry-primary");
- newCard.append(el("span","studio-entry-eyebrow","START FRESH"));
- newCard.append(el("h3",null,"Start with a piece."));
+ newCard.append(el("span","studio-entry-eyebrow","Start fresh"));
+ newCard.append(el("h3",null,"Start with a piece"));
  newCard.append(el("p",null,"Upload an image or describe the piece you want to build around."));
  newCard.append(button("Create a new look ↗",()=>lib()?.startFreshStudio?.(),"studio-entry-action"));
  actions.append(newCard);
  const resumeCard=el("article","studio-entry");
- resumeCard.append(el("span","studio-entry-eyebrow","SAVED WORK"));
- resumeCard.append(el("h3",null,"Continue a look."));
+ resumeCard.append(el("span","studio-entry-eyebrow","Saved work"));
+ resumeCard.append(el("h3",null,"Continue a look"));
  resumeCard.append(el("p",null,state.looks.length?
    state.looks.length+" look"+(state.looks.length===1?"":"s")+" in your archive · "+state.collections.length+" folder"+(state.collections.length===1?"":"s"):
    "Your saved looks and collections will appear here."));
@@ -68,7 +68,7 @@ function renderWorkspace(){
  actions.append(resumeCard);target.append(actions);
  if(state.collections.length){
   const row=el("div","destination-folders");
-  row.append(el("div","destination-inline-title","YOUR COLLECTIONS"));
+  row.append(el("div","destination-inline-title","Your collections"));
   const rail=el("div","folder-rail");
   for(const folder of state.collections.slice(0,3)){
    const count=state.inspirations.filter(x=>x.collectionId===folder.id).length;
@@ -82,7 +82,7 @@ function renderWorkspace(){
  }
  if(state.looks.length){
   const wrap=el("div","destination-recent");
-  wrap.append(sectionTitle("PICK UP WHERE YOU LEFT OFF","Recent looks","Open a saved look to keep styling or shopping."));
+  wrap.append(sectionTitle("Pick up where you left off","Recent looks","Open a saved look to keep styling or shopping."));
   const grid=el("div","destination-recent-grid");
   for(const look of state.looks.slice(0,2)){
    const card=el("article","destination-recent-card");
@@ -152,7 +152,7 @@ function renderMood(){
  const target=$("mood-body");if(!target)return;
  target.replaceChildren();
  const state=snapshot(),p=profile();
- const headline=sectionTitle("THE DAILY EDIT","Curated for your taste.",
+ const headline=sectionTitle("The daily edit","Curated for your taste",
   "Outfit ideas based on your saved preferences and collections. These are styling suggestions, not live products.");
  target.append(headline);
  const meta=el("div","mood-signal");
@@ -254,7 +254,7 @@ function renderStore(){
  if(location.hash==="#store/results")history.replaceState(null,"","#store");
  const p=profile();
  const box=el("section","store-search");
- box.append(sectionTitle("FIND YOUR NEXT PIECE","Find something new.",
+ box.append(sectionTitle("Find your next piece","Find something new",
   "Search participating retailers for available products. Results don't cover every store."));
  const form=el("form","store-search-form");
  const query=el("input");query.type="search";query.placeholder="e.g. charcoal oversized shirt";
@@ -345,19 +345,19 @@ function renderProfileLinks(){
  const root=$("profile-shortcuts");if(!root)return;
  root.replaceChildren();
  const sections=[
-  ["DISPLAY","Appearance","Light, dark or your device theme.", "me-appearance"],
-  ["PERSONALIZATION","My style","Preferences, sizes and your look.", "me-preferences"],
-  ["ACCOUNT ACCESS","My account","Guest access and secure sign-in.", "me-account-panel"],
-  ["PRIVACY CONTROL","Privacy & data","Device data and account controls.", "me-privacy-panel"]
+  ["Display","Appearance","Light, dark or your device theme.", "me-appearance"],
+  ["Personalization","My style","Preferences, sizes and your look.", "me-preferences"],
+  ["Account access","My account","Guest access and secure sign-in.", "me-account-panel"],
+  ["Privacy control","Privacy & data","Device data and account controls.", "me-privacy-panel"]
  ];
- for(const [number,name,description,targetId] of sections){
+ for(const [eyebrow,name,description,targetId] of sections){
   const card=button("",()=>{
    const view={"me-appearance":"appearance","me-preferences":"preferences",
      "me-account-panel":"account","me-privacy-panel":"privacy"}[targetId];
    window.MatchlatchMeFlow?.open(view||"home");
   },"profile-shortcut");
   const info=el("span","profile-shortcut-copy");
-  info.append(el("span","micro-title",number),el("strong",null,name),el("small",null,description));
+  info.append(el("span","micro-title",eyebrow),el("strong",null,name),el("small",null,description));
   card.append(info,el("span","profile-shortcut-arrow","↗"));
   root.append(card);
  }
@@ -365,7 +365,7 @@ function renderProfileLinks(){
 function renderAppearance(){
  const root=$("me-appearance");if(!root)return;
  root.replaceChildren();
- root.append(sectionTitle("DISPLAY SETTINGS","Appearance.",
+ root.append(sectionTitle("Display settings","Appearance",
   "Choose a look that feels right, day or night."));
  const row=el("div","appearance-control");
  row.setAttribute("role","group");row.setAttribute("aria-label","App color theme");
@@ -391,7 +391,7 @@ function renderAppearance(){
 function renderMePreferences(){
  const root=$("me-preferences");if(!root)return;
  root.replaceChildren();
- const heading=sectionTitle("STYLE PREFERENCES","Your style, your rules.",
+ const heading=sectionTitle("Style preferences","Your style, your rules",
   "Update the preferences used in Studio and Mood.");
  root.append(heading);
  const grid=el("div","me-settings-grid");
