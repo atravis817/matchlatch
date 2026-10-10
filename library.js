@@ -68,7 +68,7 @@
   const setGuest=()=>{
     activeUser=null;
     setState(guestState());
-    window.MatchlatchStyleProfile?.restoreGuest?.();
+    window.MatchlatchStyleProfile?.apply?.({}); // Neutral defaults after sign-out, not legacy guest preferences.
     if(activePage==="account")renderAccount();
   };
 
