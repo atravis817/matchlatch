@@ -8,6 +8,7 @@ create table if not exists public.matchlatch_private_profiles (
 );
 alter table public.matchlatch_private_profiles enable row level security;
 revoke all on public.matchlatch_private_profiles from anon;
+revoke all on public.matchlatch_private_profiles from authenticated;
 grant select,insert,update,delete on public.matchlatch_private_profiles to authenticated;
 drop policy if exists "private_profile_select_owner" on public.matchlatch_private_profiles;
 create policy "private_profile_select_owner" on public.matchlatch_private_profiles for select to authenticated using ((select auth.uid())=user_id);
