@@ -1,0 +1,28 @@
+name: MATCHLATCH V1.2 staging quality gate
+on:
+  push:
+    branches:
+      - design/v1.2-studio-first-100926
+      - staging/v1.1-tile-cleanup-100926
+  pull_request:
+    branches:
+      - staging/v1.1-tile-cleanup-100926
+  workflow_dispatch:
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse all app and backend JavaScript
+        run: |
+          find . -path './.git' -prune -o \( -name '*.js' -o -name '*.mjs' \) -type f -print0 | xargs -0 -n1 node --check
+      - name: Regression audit
+        run: node scripts/audit.mjs
+      - name: Public catalog policy tests
+        run: node scripts/test-public-catalog.mjs
+      - name: Delivery intelligence tests
+        run: node scripts/test-delivery-intelligence.mjs
