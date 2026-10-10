@@ -471,7 +471,7 @@ function renderStore(){
     retailReferences.append(el("h3",null,"Retailer research references"));
     retailReferences.append(el("p","store-web-note","Source-linked inspiration only. Prices, stock, sizes and delivery are not verified."));
     for(const item of approvedReferences){
-     if(!/^https:\\/\\//i.test(item?.url||"")||item?.cartEligible!==false)continue;
+     if(!/^https:\/\//i.test(item?.url||"")||item?.cartEligible!==false)continue;
      const entry=el("div","store-public-reference");
      const link=el("a",null,item.title||item.retailer||"Research source");
      link.href=item.url;link.target="_blank";link.rel="noopener noreferrer";
@@ -678,7 +678,7 @@ function renderMePreferences(){
  const zipStatus=el("p","v12-me-context");zipStatus.setAttribute("role","status");
  shipping.append(button("Save destination",()=>{
   const value=input.value.trim();
-  if(value&&!/^\\d{5}$/.test(value)){zipStatus.textContent="Enter a valid five-digit US ZIP code.";return;}
+  if(value&&!/^\d{5}$/.test(value)){zipStatus.textContent="Enter a valid five-digit US ZIP code.";return;}
   try{if(value)localStorage.setItem(SHIPPING_KEY,value);else localStorage.removeItem(SHIPPING_KEY);
    zipStatus.textContent=value?"Destination saved on this device.":"Destination cleared.";
   }catch{zipStatus.textContent="Local storage is unavailable. Destination not saved.";}
