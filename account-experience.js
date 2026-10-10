@@ -170,12 +170,14 @@ function launch(){
    document.querySelector(".bottom-nav")?.removeAttribute("inert");
    if(returnFocus?.isConnected)returnFocus.focus();else $("matchlatch-login-entry")?.focus();
    returnFocus=null;
+   window.dispatchEvent(new Event("matchlatch:account-dismissed"));
   }
  }
 }
 let ui;
 function init(){
  ui=launch();
+ window.dispatchEvent(new Event("matchlatch:account-ui-ready"));
  $("matchlatch-login-entry")?.addEventListener("click",()=>ui.show(true));
  window.addEventListener("matchlatch:account-required",event=>{
   if(!ui)return;
