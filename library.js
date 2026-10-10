@@ -1197,7 +1197,9 @@
   function renderAccount() {
     const status=$("account-status"),form=$("login-form"),logout=$("logout-button"),
       guest=$("account-guest"),importBox=$("account-import"),clear=$("clear-library");
-    form.hidden=true;guest.hidden=true;importBox.hidden=true;
+    form.hidden=true;guest.hidden=true;
+    const priorDeviceItems=Object.values(guestState()).reduce((n,a)=>n+a.length,0)+(window.MatchlatchStyleProfile?.getGuest?.()?1:0);
+    importBox.hidden=!(activeUser&&cloudAdapter?.isReady?.()&&priorDeviceItems>0);
     logout.hidden=!activeUser;
     clear.textContent="Delete previous device-only library";
     status.textContent=activeUser
