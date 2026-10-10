@@ -7,7 +7,16 @@
 const $=id=>document.getElementById(id);
 const lib=()=>window.MatchlatchLibrary;
 const snapshot=()=>lib()?.discoverySnapshot?.()||{collections:[],inspirations:[],looks:[],favorites:[],cartCount:0};
-const profile=()=>window.MatchlatchStyleProfile?.get?.()||{};
+const profile=()=>{
+ const base=window.MatchlatchStyleProfile?.get?.()||{};
+ try{
+  const quiz=JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null");
+  if(quiz?.version!==1||!quiz.answers||typeof quiz.answers!=="object")return base;
+  const labels=["Everyday vibe","Silhouette","Palette","Pattern","Layering","Occasion","Footwear","Priority","Accessories","Fabric","Denim","Top","Jacket","Trends","Inspiration","Contrast","Season","Complexity","Brands","AI goal"];
+  const traits=Object.entries(quiz.answers).filter(([index,value])=>/^\\d{1,2}$/.test(index)&&+index<20&&typeof value==="string"&&value.length<50).slice(0,12).map(([i,value])=>labels[+i]+": "+value);
+  return {...base,notes:[String(base.notes||""),traits.join("; ")].filter(Boolean).join(". ").slice(0,210)};
+ }catch{return base;}
+};
 const SHIPPING_KEY="matchlatch-shipping-region-v12";
 const shippingZip=()=>{try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
 const shippingInfo=item=>{
