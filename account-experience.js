@@ -147,6 +147,15 @@ function launch(){
  function show(open){shell.hidden=!open;if(open){setStatus("");close.focus();}else $("matchlatch-login-entry")?.focus();}
 }
 let ui;
-function init(){ui=launch();$("matchlatch-login-entry")?.addEventListener("click",()=>ui.show(true));}
+function init(){
+ ui=launch();
+ $("matchlatch-login-entry")?.addEventListener("click",()=>ui.show(true));
+ window.addEventListener("matchlatch:account-required",event=>{
+  if(!ui)return;
+  ui.modeTo("login");
+  const status=$("ml-account-status");
+  if(status&&event.detail?.reason)status.textContent=event.detail.reason;
+ });
+}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
