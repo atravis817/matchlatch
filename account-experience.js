@@ -177,7 +177,6 @@ function launch(){
 let ui;
 function init(){
  ui=launch();
- window.dispatchEvent(new Event("matchlatch:account-ui-ready"));
  $("matchlatch-login-entry")?.addEventListener("click",()=>ui.show(true));
  window.addEventListener("matchlatch:account-required",event=>{
   if(!ui)return;
@@ -185,6 +184,7 @@ function init(){
   const status=$("ml-account-status");
   if(status&&event.detail?.reason)status.textContent=event.detail.reason;
  });
+ window.dispatchEvent(new Event("matchlatch:account-ui-ready"));
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
