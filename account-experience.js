@@ -47,7 +47,7 @@ function launch(){
  const switchMode=btn("Sign up");switchMode.className="ml-account-switch";
  const quizWrap=document.createElement("section");quizWrap.id="ml-account-quiz";quizWrap.hidden=true;
  const quizButton=btn("Take optional 20-question style quiz");quizButton.className="ml-account-quiz-button";
- let mode="login",pendingEmail="",pendingAnswers={};
+ let mode="login",pendingEmail="",pendingAnswers={},pendingAddresses=null;
  const client=()=>window.MatchlatchAuth?.client;
  function setStatus(message){status.textContent=message;}
  function drawForm(){
@@ -103,21 +103,28 @@ function launch(){
    }else if(mode==="signup"){
     if(data.password.length<8)throw Error("Use a password of at least eight characters.");
     const email=data.email.trim();pendingEmail=email;
+    pendingAddresses={shipping:{line1:data.ship1||"",line2:data.ship2||"",city:data.shipCity||"",state:data.shipState||"",zip:data.shipZip||""},billing:{line1:data.bill1||"",city:data.billCity||"",state:data.billState||"",zip:data.billZip||""}};
     const {error}=await auth.auth.signUp({email,password:data.password,options:{data:{first_name:data.first.trim().slice(0,80),last_name:data.last.trim().slice(0,80),phone:data.phone.trim().slice(0,32)}}});
     if(error)throw error;
     // Never persist addresses locally or through editable auth metadata.
     // Private address profile table + RLS is a separate required provisioning step.
     mode="verify";drawForm();
-    setStatus("Check your inbox for the one-time verification code. Address details are not saved yet.");
+    setStatus("Check your inbox for the one-time verification code. Addresses will be saved after verification when the secure profile table is provisioned.");
    }else if(mode==="verify"){
     const {error}=await auth.auth.verifyOtp({email:pendingEmail,token:data.otp.trim(),type:"email"});if(error)throw error;
     const answered=Object.entries(pendingAnswers).filter(([,v])=>v);
+    const {data:accountData}=await auth.auth.getUser();
+    if(accountData?.user?.id&&pendingAddresses){
+      const {error:profileError}=await auth.from("matchlatch_private_profiles").upsert({user_id:accountData.user.id,shipping_address:pendingAddresses.shipping,billing_address:pendingAddresses.billing},{onConflict:"user_id"});
+      if(profileError)setStatus("Email verified. Secure address saving is not configured yet; please add addresses later.");
+      pendingAddresses=null;
+    }
     if(answered.length){const styleQuiz={version:1,answers:Object.fromEntries(answered),completedAt:new Date().toISOString()};
       try{const old=JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null");
         localStorage.setItem("matchlatch-style-quiz-v1",JSON.stringify(styleQuiz));
         window.dispatchEvent(new CustomEvent("matchlatch:style-quiz",{detail:styleQuiz}));
       }catch{}}
-    mode="account";drawForm();setStatus("Email verified. Welcome to MATCHLATCH!");
+    mode="account";drawForm();if(!status.textContent.includes("not configured"))setStatus("Email verified. Welcome to MATCHLATCH!");
    }
   }catch(e){setStatus(e.message||"Authentication could not be completed.");}
   finally{if(submit.isConnected)submit.disabled=false;}
@@ -126,7 +133,10 @@ function launch(){
  window.addEventListener("matchlatch:auth-user",event=>{const user=event.detail?.user;const first=String(user?.user_metadata?.first_name||"").trim().slice(0,60);
   const header=$("matchlatch-login-entry");if(header)header.textContent=first?first:user?"My account":"Log in";
   const splash=document.querySelector("#screen-studio h1,#screen-mood h1");
-  if(user&&first){greeting.textContent="Great to see you, "+first+"!";}else greeting.textContent="Welcome back. Your style starts here.";
+  if(user&&first){greeting.textContent="Great to see you, "+first+"!";
+    let hello=$("ml-personal-greeting");if(!hello){hello=document.createElement("p");hello.id="ml-personal-greeting";hello.className="ml-personal-greeting";const target=document.querySelector("#screen-studio .container,#screen-mood .container");if(target)target.prepend(hello);}
+    if(hello)hello.textContent=(new Date().getHours()<12?"Good morning":new Date().getHours()<17?"Good afternoon":"Good evening")+", "+first+"!";
+  }else{greeting.textContent="Welcome back. Your style starts here.";$("ml-personal-greeting")?.remove();}
  });
  return {show,modeTo(next){mode=next;drawForm();show(true);}};
  function show(open){shell.hidden=!open;if(open){setStatus("");close.focus();}else $("matchlatch-login-entry")?.focus();}
