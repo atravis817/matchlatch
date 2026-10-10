@@ -686,6 +686,7 @@ function renderMePreferences(){
  input.value=shippingZip();zipLabel.append(input);shipping.append(zipLabel);
  const zipStatus=el("p","v12-me-context");zipStatus.setAttribute("role","status");
  shipping.append(button("Save destination",()=>{
+   if(!lib()?.requireAccount?.(()=>showPage("account")))return;
   const value=input.value.trim();
   if(value&&!/^\d{5}$/.test(value)){zipStatus.textContent="Enter a valid five-digit US ZIP code.";return;}
   try{if(value)localStorage.setItem(SHIPPING_KEY,value);else localStorage.removeItem(SHIPPING_KEY);
