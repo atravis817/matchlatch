@@ -389,7 +389,12 @@
     if(!loggedIn()&&["Enter"," "].includes(event.key)&&event.target?.matches?.("#drop"))guardStudioIntake(event);
   },true);
   refreshCounts();
-  showPage(readLocation(),false,!location.hash);
+  const initialDestination=readLocation();
+  if(["studio","store"].includes(initialDestination))showPage(initialDestination,false,!location.hash);
+  else{
+    showPage("studio",false,true);
+    pendingProtectedAction=()=>showPage(initialDestination,false);
+  }
 
   function captureLook(input,photoData,profile) {
     if(!requireAccount(()=>showPage("studio")))return;
@@ -1279,7 +1284,11 @@
       await cloudAdapter.setUser(activeUser);
     }
     window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
-    if(activeUser)resumeProtectedAction();else if(!["store","studio"].includes(activePage))showPage("studio");
+    if(activeUser)resumeProtectedAction();
+    else {
+      if(!["store","studio"].includes(activePage))showPage("studio");
+      if(pendingProtectedAction)requireAccount(pendingProtectedAction);
+    }
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
