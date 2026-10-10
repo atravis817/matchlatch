@@ -366,6 +366,8 @@
     if(["mood","closet","studio","store","me","styles","cart","account"].includes(hash))return hash;
     return "studio";
   }
+  window.addEventListener("matchlatch:account-ui-ready",()=>{if(!loggedIn()&&pendingProtectedAction)requireAccount(pendingProtectedAction);});
+  window.addEventListener("matchlatch:account-dismissed",()=>{if(!loggedIn())pendingProtectedAction=null;});
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.page==="closet"){selectedTab="overview";selectedLookDetail=null;selectedCollectionId=null;}
     showPage(b.dataset.page);
