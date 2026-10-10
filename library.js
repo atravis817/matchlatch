@@ -18,7 +18,20 @@
       for (const key of Object.keys(dbState)) if (Array.isArray(raw[key])) dbState[key] = raw[key];
     }
   } catch {}
-  let activePage="studio";
+  let activePage="store";
+  let pendingProtectedAction=null;
+  const loggedIn=()=>Boolean(activeUser?.id);
+  function requireAccount(action){
+    if(loggedIn())return true;
+    pendingProtectedAction=typeof action==="function"?action:null;
+    window.dispatchEvent(new CustomEvent("matchlatch:account-required",{detail:{reason:"Sign in or create an account to save your looks, cart, preferences, favorites, folders and history."}}));
+    return false;
+  }
+  function resumeProtectedAction(){
+    if(!loggedIn()||!pendingProtectedAction)return;
+    const action=pendingProtectedAction;pendingProtectedAction=null;
+    queueMicrotask(()=>action());
+  }
   let selectedTab="overview";
   let currentLookId=null;
   let selectedInspiration=null;
@@ -326,6 +339,10 @@
     if(page==="closet")page="styles";
     if(page==="me")page="account";
     if(!["mood","studio","store","styles","account"].includes(page))page="studio";
+    if(page!=="store"&&!loggedIn()){
+      requireAccount(()=>showPage(page,updateHash));
+      return;
+    }
     activePage=page;
     document.querySelectorAll(".app-screen").forEach(section=>section.hidden=section.id!=="screen-"+page);
     document.querySelectorAll(".bottom-nav button").forEach(button=>{
@@ -345,7 +362,7 @@
   function readLocation() {
     const hash=(location.hash||"").replace("#","").split("?")[0].split("/")[0].toLowerCase();
     if(["mood","closet","studio","store","me","styles","cart","account"].includes(hash))return hash;
-    return "studio";
+    return "store";
   }
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.page==="closet"){selectedTab="overview";selectedLookDetail=null;selectedCollectionId=null;}
@@ -358,6 +375,7 @@
   showPage(readLocation(),false);
 
   function captureLook(input,photoData,profile) {
+    if(!requireAccount(()=>showPage("studio")))return;
     if(!input||!input.item||!Array.isArray(input.pieces))return;
     const now=new Date().toISOString();
     const inspirationId=uid();
@@ -395,6 +413,7 @@
     return dbState.cart.some(x=>x.lookId===lookId&&x.pieceIndex===index);
   }
   function toggleFavorite(lookId,index) {
+    if(!requireAccount(()=>toggleFavorite(lookId,index)))return;
     const existing=dbState.favorites.find(x=>x.lookId===lookId&&x.pieceIndex===index);
     if(existing)dbState.favorites=dbState.favorites.filter(x=>x.id!==existing.id);
     else {
@@ -412,6 +431,7 @@
     else feedback("Saved to favorites.");
   }
   function addToCart(lookId,index) {
+    if(!requireAccount(()=>addToCart(lookId,index)))return;
     const look=lookFor(lookId),piece=look?.pieces[index];
     if(!piece)return;
     const existing=cartExists(lookId,index);
@@ -867,6 +887,7 @@
   };
   const moneyAmount=x=>Number.isFinite(Number(x))&&Number(x)>=0?Number(x):null;
   function addRetailProduct(item){
+    if(!requireAccount(()=>addRetailProduct(item)))return;
     const price=moneyAmount(item?.price),url=secureProductUrl(item?.url);
     const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
     const shopify=/^gid:\/\/shopify\//.test(productId)&&/^gid:\/\/shopify\//.test(variantId);
@@ -1251,6 +1272,7 @@
       await cloudAdapter.setUser(activeUser);
     }
     window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
+    if(activeUser)resumeProtectedAction();else if(activePage!=="store")showPage("store");
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
@@ -1354,6 +1376,7 @@
     selectedTab="collections";selectedCollectionId=id;selectedLookDetail=null;showPage("closet");
   }
   function startFreshStudio(){
+    if(!requireAccount(startFreshStudio))return;
     window.MatchlatchResetStudio?.();
     currentLookId=null;
     showPage("studio");
