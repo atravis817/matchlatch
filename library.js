@@ -24,7 +24,7 @@
   const loggedIn=()=>Boolean(activeUser?.id);
   function requireAccount(action){
     if(loggedIn())return true;
-    pendingProtectedAction=typeof action==="function"?action:null;
+    if(typeof action==="function")pendingProtectedAction=action;
     window.dispatchEvent(new CustomEvent("matchlatch:account-required",{detail:{reason:"Sign in or create an account to save your looks, cart, preferences, favorites, folders and history."}}));
     return false;
   }
@@ -340,11 +340,11 @@
     if(page==="closet")page="styles";
     if(page==="me")page="account";
     if(!["mood","studio","store","styles","account"].includes(page))page="studio";
-    if(page!=="store"&&!loggedIn()&&!(page==="studio"&&initialLanding)) {
+    if(!["store","studio"].includes(page)&&!loggedIn()) {
       requireAccount(()=>showPage(page,updateHash));
       return;
     }
-    guestStudioLanding=page==="studio"&&initialLanding&&!loggedIn();
+    guestStudioLanding=page==="studio"&&!loggedIn();
     activePage=page;
     document.querySelectorAll(".app-screen").forEach(section=>section.hidden=section.id!=="screen-"+page);
     document.querySelectorAll(".bottom-nav button").forEach(button=>{
@@ -582,6 +582,7 @@
   }
 
   function openClosetTab(tab){
+    if(!requireAccount(()=>openClosetTab(tab)))return;
     const allowed=["overview","collections","wants","favorites","shortlist","checkout","outfits","purchases","inspirations"];
     selectedTab=allowed.includes(tab)?tab:"overview";
     selectedLookDetail=null;
@@ -1179,27 +1180,14 @@
   }
 
   function renderAccount() {
-    const status=$("account-status"),submit=$("send-login"),form=$("login-form"),
-      logout=$("logout-button"),guest=$("account-guest"),importBox=$("account-import"),
-      clear=$("clear-library");
-    if(activeUser&&supabase&&cloudAdapter){
-      status.textContent=cloudAdapter.getStatus();
-      form.hidden=true;logout.hidden=false;guest.hidden=true;
-      const guestCount=Object.values(guestState()).reduce((sum,a)=>sum+a.length,0)+
-        (window.MatchlatchStyleProfile?.getGuest?.()?1:0);
-      importBox.hidden=guestCount===0;
-      $("import-guest").disabled=!cloudAdapter.isReady();
-      clear.textContent="Delete guest data on this device";
-    } else if(supabase) {
-      status.textContent="Secure sign-in is ready. Use email to save your styles across devices.";
-      form.hidden=false;submit.disabled=false;logout.hidden=true;guest.hidden=false;
-      importBox.hidden=true;
-      clear.textContent="Delete guest library";
-    } else {
-      status.textContent="Continue as a guest until the secure account connection is configured.";
-      form.hidden=true;logout.hidden=true;guest.hidden=false;
-      importBox.hidden=true;clear.textContent="Delete guest library";
-    }
+    const status=$("account-status"),form=$("login-form"),logout=$("logout-button"),
+      guest=$("account-guest"),importBox=$("account-import"),clear=$("clear-library");
+    form.hidden=true;guest.hidden=true;importBox.hidden=true;
+    logout.hidden=!activeUser;
+    clear.textContent="Delete previous device-only library";
+    status.textContent=activeUser
+      ? (cloudAdapter?.getStatus?.()||"Your account is connected.")
+      : "Sign in or create an account to save your looks, favorites, cart and preferences.";
   }
 
   $("login-form").addEventListener("submit",async event=>{
@@ -1226,7 +1214,7 @@
       const {error}=await supabase.auth.signOut();
       if(error)throw error;
       await applyAuth(null);
-      feedback("Signed out. Guest library restored.");
+      feedback("Signed out securely.");
     }catch(error){feedback(error?.message||"Couldn't sign out. Try again.");}
     finally{button.disabled=false;}
   });
@@ -1274,7 +1262,7 @@
       await cloudAdapter.setUser(activeUser);
     }
     window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
-    if(activeUser)resumeProtectedAction();else if(activePage!=="store"&&!guestStudioLanding)showPage("store");
+    if(activeUser)resumeProtectedAction();else if(!["store","studio"].includes(activePage))showPage("studio");
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
@@ -1377,6 +1365,7 @@
     };
   }
   function openCollectionFromStudio(id){
+    if(!requireAccount(()=>openCollectionFromStudio(id)))return;
     if(!requireAccount(()=>openCollectionFromStudio(id)))return;
     if(id!=="__unfiled__"&&!collectionFor(id))return;
     selectedTab="collections";selectedCollectionId=id;selectedLookDetail=null;showPage("closet");
