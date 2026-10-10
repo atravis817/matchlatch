@@ -90,9 +90,9 @@ async function run(){
   if(all.length>=maxItems)break;
  }
  if(write){
-  const base=process.env.SUPABASE_URL;
+  const base=process.env.MATCHLATCH_SUPABASE_URL || process.env.SUPABASE_URL;
   const secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!https(base)||!secret)throw Error("Write requires SUPABASE_URL and server-only SUPABASE_SERVICE_ROLE_KEY");
+  if(!https(base)||!secret)throw Error("Write requires MATCHLATCH_SUPABASE_URL (or SUPABASE_URL) and server-only SUPABASE_SERVICE_ROLE_KEY");
   for(let i=0;i<all.length;i+=100){
    const response=await fetch(base.replace(/\/$/,"")+"/rest/v1/matchlatch_awin_products?on_conflict=advertiser_id,source_variant_id",{
     method:"POST",headers:{"apikey":secret,"Authorization":"Bearer "+secret,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(all.slice(i,i+100)),signal:AbortSignal.timeout(30000)
