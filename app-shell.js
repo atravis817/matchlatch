@@ -10,7 +10,7 @@ const snapshot=()=>lib()?.discoverySnapshot?.()||{collections:[],inspirations:[]
 const profile=()=>{
  const base=window.MatchlatchStyleProfile?.get?.()||{};
  try{
-  const quiz=JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null");
+  const quiz=window.MatchlatchLibrary?.isSignedIn?.()?JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null"):null;
   if(quiz?.version!==1||!quiz.answers||typeof quiz.answers!=="object")return base;
   const labels=["Everyday vibe","Silhouette","Palette","Pattern","Layering","Occasion","Footwear","Priority","Accessories","Fabric","Denim","Top","Jacket","Trends","Inspiration","Contrast","Season","Complexity","Brands","AI goal"];
   const traits=Object.entries(quiz.answers).filter(([index,value])=>/^\d{1,2}$/.test(index)&&+index<20&&typeof value==="string"&&value.length<50).slice(0,12).map(([i,value])=>labels[+i]+": "+value);
@@ -18,7 +18,7 @@ const profile=()=>{
  }catch{return base;}
 };
 const SHIPPING_KEY="matchlatch-shipping-region-v12";
-const shippingZip=()=>{try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
+const shippingZip=()=>{if(!window.MatchlatchLibrary?.isSignedIn?.())return "";try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
 const shippingInfo=item=>{
  const zip=shippingZip(),label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
  const verified=item?.delivery?.tier==="retailer_confirmed"?item.delivery:null;
@@ -595,7 +595,7 @@ function renderProfileLinks(){
  const sections=[
   ["Display","Appearance","Light, dark or your device theme.", "me-appearance"],
   ["Personalization","My style","Preferences, sizes and your look.", "me-preferences"],
-  ["Account access","My account","Guest access and secure sign-in.", "me-account-panel"],
+  ["Account access","My account","Manage your sign-in and security.", "me-account-panel"],
   ["Privacy control","Privacy & data","Device data and account controls.", "me-privacy-panel"]
  ];
  for(const [eyebrow,name,description,targetId] of sections){
