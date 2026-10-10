@@ -19,3 +19,20 @@
 .ml-quiz-question{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;font-size:12px}
 #ml-account-status{min-height:18px;font-size:13px;color:var(--ink,#173e30)}
 @media(max-width:600px){.account-header-login{padding:7px 9px;font-size:11px}.ml-account-screen{padding:0}.ml-account-box{border-radius:0;min-height:100dvh}}
+
+/* Brand motion: official splash geometry, restrained in-place replay every 5 seconds. */
+.ml-account-brand{position:absolute;top:20px;left:clamp(20px,4vw,38px);width:75px;height:57px;color:#303C31;pointer-events:none}
+.ml-account-logo-svg{display:block;width:75px;height:auto;overflow:visible}
+.ml-account-brand .ml-shackle{transform-box:view-box;transform-origin:55px 59px;transform:rotate(0deg)}
+.ml-account-brand.is-unlocking .ml-shackle{animation:ml-account-unlock .7s ease-in-out both}
+.ml-account-brand .ml-tag-group{transform-box:view-box;transform-origin:139px 80px}
+.ml-account-brand.is-unlocking .ml-tag-group{animation:ml-splash-tag-wiggle .69s .7s ease-in-out both}
+@keyframes ml-account-unlock{
+  0%{transform:rotate(13deg)}
+  65%,100%{transform:rotate(0deg)}
+}
+.ml-account-close{position:relative;z-index:1}
+@media(prefers-reduced-motion:reduce){
+ .ml-account-brand.is-unlocking .ml-shackle,.ml-account-brand.is-unlocking .ml-tag-group{animation:none}
+}
+@media(max-width:600px){.ml-account-brand{top:18px;left:20px}}
