@@ -146,7 +146,6 @@ function launch(){
  if(client())void client().auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});
  shell.addEventListener("keydown",event=>{if(event.key==="Escape")show(false);});
  return {show,modeTo(next){mode=next;drawForm();show(true);}};
- let logoTimer=null;
  function animateLogo(){
   if(shell.hidden||window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)return;
   brand.classList.remove("is-unlocking");
@@ -155,10 +154,8 @@ function launch(){
  }
  function show(open){
   shell.hidden=!open;
-  if(logoTimer){clearInterval(logoTimer);logoTimer=null;}
   if(open){
    setStatus("");close.focus();brand.classList.remove("is-unlocking");animateLogo();
-   if(!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)logoTimer=setInterval(animateLogo,5000);
   }else{
    brand.classList.remove("is-unlocking");
    $("matchlatch-login-entry")?.focus();
