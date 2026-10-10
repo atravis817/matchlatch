@@ -38,6 +38,8 @@ function launch(){
  const shell=document.createElement("section");shell.id="ml-account-screen";shell.className="ml-account-screen";shell.hidden=true;
  shell.setAttribute("role","dialog");shell.setAttribute("aria-modal","true");shell.setAttribute("aria-label","MATCHLATCH login and signup");
  const box=document.createElement("div");box.className="ml-account-box";
+ const brand=document.createElement("div");brand.className="ml-account-brand";brand.setAttribute("role","img");brand.setAttribute("aria-label","MATCHLATCH animated unlock logo");
+ brand.innerHTML="<svg class=\"ml-account-logo-svg\" viewBox=\"0 0 252 170\" fill=\"none\" aria-hidden=\"true\">\n        \n        <path class=\"ml-shackle\" d=\"M55 59V40C55 22.3 68.7 11 86 11C104.3 11 119 25.7 119 44V52\"\n              stroke=\"currentColor\" stroke-width=\"12.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n        \n        <rect x=\"34\" y=\"67\" width=\"106\" height=\"93\" rx=\"12\" fill=\"currentColor\"/>\n        \n        <path d=\"M52 145V89H66L87 110L108 89H122V145H105V115L87 131L69 115V145H52Z\" fill=\"var(--surface,#fff)\"/>\n        \n        <g class=\"ml-tag-group\">\n        <path d=\"M139 80C153 89 160 91 172 83C186 73 190 70 199 80C204 86 206 96 210 106\"\n              stroke=\"currentColor\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n        \n        <path d=\"M208 96L228 91C231.9 90 234.3 91.9 235.5 95.6L246 125.5C247.2 129 245.6 132 241.9 133.5L221 143.8C217.4 145.6 214.4 144.4 212.8 140.6L198.2 110.7C196.6 107 198 103.9 201.2 101.4L208 96Z\" fill=\"currentColor\"/>\n        <circle cx=\"208\" cy=\"106\" r=\"3\" fill=\"var(--surface,#fff)\"/>\n        \n        <path d=\"M216 110L223.2 128L233 123.9\" stroke=\"var(--surface,#fff)\" stroke-width=\"4.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>\n      </g>\n      </svg>";
  const close=btn("✕ Close");close.className="ml-account-close";close.onclick=()=>show(false);
  const h=document.createElement("h2");h.textContent="Your MATCHLATCH";h.id="ml-account-title";
  const greeting=document.createElement("p");greeting.id="ml-account-greeting";greeting.textContent="Welcome back. Your style starts here.";
@@ -130,7 +132,7 @@ function launch(){
   }catch(e){setStatus(e.message||"Authentication could not be completed.");}
   finally{if(submit.isConnected)submit.disabled=false;}
  };
- box.append(close,h,greeting,status,form,extra);shell.append(box);document.body.append(shell);drawForm();
+ box.append(close,brand,h,greeting,status,form,extra);shell.append(box);document.body.append(shell);drawForm();
  const updateGreeting=user=>{const first=String(user?.user_metadata?.first_name||"").trim().slice(0,60);
   const header=$("matchlatch-login-entry");if(header)header.textContent=first?first:user?"My account":"Log in";
   const splash=document.querySelector("#screen-studio h1,#screen-mood h1");
@@ -144,7 +146,24 @@ function launch(){
  if(client())void client().auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});
  shell.addEventListener("keydown",event=>{if(event.key==="Escape")show(false);});
  return {show,modeTo(next){mode=next;drawForm();show(true);}};
- function show(open){shell.hidden=!open;if(open){setStatus("");close.focus();}else $("matchlatch-login-entry")?.focus();}
+ let logoTimer=null;
+ function animateLogo(){
+  if(shell.hidden||window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)return;
+  brand.classList.remove("is-unlocking");
+  void brand.offsetWidth;
+  brand.classList.add("is-unlocking");
+ }
+ function show(open){
+  shell.hidden=!open;
+  if(logoTimer){clearInterval(logoTimer);logoTimer=null;}
+  if(open){
+   setStatus("");close.focus();brand.classList.remove("is-unlocking");animateLogo();
+   if(!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)logoTimer=setInterval(animateLogo,5000);
+  }else{
+   brand.classList.remove("is-unlocking");
+   $("matchlatch-login-entry")?.focus();
+  }
+ }
 }
 let ui;
 function init(){
