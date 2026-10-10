@@ -625,7 +625,7 @@
         <section id="me-preferences" class="me-preferences" aria-label="Your style preferences"></section>
         <div class="account-panel" id="me-account-panel">
           <h2>Your account</h2>
-          <p>Use MATCHLATCH as a guest or sign in to keep your saved looks connected to your account.</p>
+          <p>Your personal style lives in your account, securely synced across devices.</p>
           <form id="login-form" hidden>
             <label for="login-email">Email address</label>
             <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
@@ -633,8 +633,8 @@
               <button id="send-login" class="library-primary" type="submit" disabled>Send sign-in link</button>
             </div>
           </form>
-          <div id="account-guest">
-            <button type="button" class="library-primary" data-nav-page="studio">Continue as guest →</button>
+          <div id="account-guest" hidden>
+            <button type="button" class="library-primary" data-nav-page="studio">Explore Studio →</button>
           </div>
           <button id="logout-button" class="library-subtle" type="button" hidden>Sign out</button>
           <div id="account-import" class="account-import" hidden>
@@ -642,13 +642,13 @@
             <p>Transfer looks, favorites, cart items, purchase records, and their inspiration photos from this device into your account. Nothing is uploaded without your permission.</p>
             <button id="import-guest" class="library-subtle" type="button">Import guest styles ↗</button>
           </div>
-          <p class="status-text" role="status" id="account-status">Your library is available without an account.</p>
-          <p class="small-footnote">Signed-in libraries sync privately across devices after setup. Guest styles stay on this browser until you choose to import them.</p>
+          <p class="status-text" role="status" id="account-status">Sign in to create and save your personal wardrobe.</p>
+          <p class="small-footnote">Your wardrobe, saved looks and favorites belong to your account.</p>
         </div>
         <div class="account-panel" id="me-privacy-panel">
           <h2>Privacy &amp; device data</h2>
-          <p>Guest data stays on this device. Signed-in data is stored in your private account. Deleting guest data won't delete your signed-in closet.</p>
-          <button id="clear-library" class="library-subtle" type="button">Delete local library</button>
+          <p>Older device-only data, if present, can be deleted here. Your signed-in wardrobe stays in your private account.</p>
+          <button id="clear-library" class="library-subtle" type="button">Delete previous device-only library</button>
         </div>
       </div>
     </section>
@@ -793,10 +793,10 @@
       const saveProfile=()=>{
         try {
           if(window.MatchlatchCloud?.isSignedIn?.())window.MatchlatchCloud.updateProfile(profile());
-          else localStorage.setItem("matchlatch-style-v1",JSON.stringify(profile()));
+          else return; // Browsing without an account never saves personal style preferences.
         }catch{}
       };
-      // Profiles are user-scoped while signed in; guest preferences remain separate.
+      // Existing device-only profile data remains available only for explicit legacy import.
       window.MatchlatchStyleProfile={
         get:profile,
         getGuest:()=>{
