@@ -373,6 +373,21 @@
   document.querySelectorAll("[data-nav-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.navPage)));
   window.addEventListener("hashchange",()=>showPage(readLocation(),false));
   window.addEventListener("popstate",()=>showPage(readLocation(),false));
+  // The Studio landing is public, but photo intake starts a private look.
+  // Gate before requesting camera access or opening a file picker.
+  const guardedStudioInputs="#open-camera,#drop,#photo,#camera-fallback,#change,#retake-camera";
+  function guardStudioIntake(event){
+    if(loggedIn()||!event.target?.closest?.(guardedStudioInputs))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    requireAccount(()=>showPage("studio"));
+  }
+  document.addEventListener("click",guardStudioIntake,true);
+  document.addEventListener("drop",guardStudioIntake,true);
+  document.addEventListener("change",guardStudioIntake,true);
+  document.addEventListener("keydown",event=>{
+    if(!loggedIn()&&["Enter"," "].includes(event.key)&&event.target?.matches?.("#drop"))guardStudioIntake(event);
+  },true);
   refreshCounts();
   showPage(readLocation(),false,!location.hash);
 
