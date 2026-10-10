@@ -49,6 +49,7 @@ function launch(){
  const quizButton=btn("Take optional 20-question style quiz");quizButton.className="ml-account-quiz-button";
  let mode="login",pendingEmail="",pendingAnswers={},pendingAddresses=null;
  const client=()=>window.MatchlatchAuth?.client;
+ const authPasskey=()=>client()?.auth?.signInWithPasskey;
  function setStatus(message){status.textContent=message;}
  function drawForm(){
   form.replaceChildren();extra.replaceChildren();quizWrap.hidden=true;
@@ -62,7 +63,7 @@ function launch(){
     try{const {error}=await auth.auth.signInWithPasskey();if(error)throw error;setStatus("Signed in securely.");}
     catch(e){setStatus(e.message||"Passkey sign-in is not yet available on this device.");}};
    // Passkey API is experimental and needs explicit provider configuration before display.
-   passkey.hidden=true;extra.append(passkey);
+   passkey.hidden=!(window.MatchlatchAuth?.passkeysEnabled&&typeof authPasskey()==="function");extra.append(passkey);
   }else if(mode==="signup"){
    h.textContent="Create your account";
    form.append(section("Your details"),field("first","First name","text",true),field("last","Last name"),field("email","Email","email",true),field("password","Create password","password",true),field("phone","Phone (optional)","tel"));
@@ -84,7 +85,7 @@ function launch(){
    signout.onclick=async()=>{const {error}=await client()?.auth.signOut();if(error)setStatus(error.message);else {mode="login";drawForm();setStatus("Signed out.");}};
    form.append(signout);
    const passkey=btn("Enable Face ID / passkey");passkey.className="ml-account-secondary";
-   passkey.hidden=true;passkey.onclick=async()=>{try{const {error}=await client().auth.registerPasskey();if(error)throw error;setStatus("Passkey registered.");}catch(e){setStatus(e.message||"Passkey registration unavailable.");}};
+   passkey.hidden=!window.MatchlatchAuth?.passkeysEnabled;passkey.onclick=async()=>{try{const {error}=await client().auth.registerPasskey();if(error)throw error;setStatus("Passkey registered.");}catch(e){setStatus(e.message||"Passkey registration unavailable.");}};
    form.append(passkey);
    extra.append(switchMode);switchMode.textContent="Return to account";
   }
@@ -130,14 +131,18 @@ function launch(){
   finally{if(submit.isConnected)submit.disabled=false;}
  };
  box.append(close,h,greeting,status,form,extra);shell.append(box);document.body.append(shell);drawForm();
- window.addEventListener("matchlatch:auth-user",event=>{const user=event.detail?.user;const first=String(user?.user_metadata?.first_name||"").trim().slice(0,60);
+ const updateGreeting=user=>{const first=String(user?.user_metadata?.first_name||"").trim().slice(0,60);
   const header=$("matchlatch-login-entry");if(header)header.textContent=first?first:user?"My account":"Log in";
   const splash=document.querySelector("#screen-studio h1,#screen-mood h1");
   if(user&&first){greeting.textContent="Great to see you, "+first+"!";
     let hello=$("ml-personal-greeting");if(!hello){hello=document.createElement("p");hello.id="ml-personal-greeting";hello.className="ml-personal-greeting";const target=document.querySelector("#screen-studio .container,#screen-mood .container");if(target)target.prepend(hello);}
     if(hello)hello.textContent=(new Date().getHours()<12?"Good morning":new Date().getHours()<17?"Good afternoon":"Good evening")+", "+first+"!";
   }else{greeting.textContent="Welcome back. Your style starts here.";$("ml-personal-greeting")?.remove();}
- });
+ };
+ window.addEventListener("matchlatch:auth-user",event=>updateGreeting(event.detail?.user));
+ window.addEventListener("matchlatch:auth-ready",()=>{drawForm();void client()?.auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});});
+ if(client())void client().auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});
+ shell.addEventListener("keydown",event=>{if(event.key==="Escape")show(false);});
  return {show,modeTo(next){mode=next;drawForm();show(true);}};
  function show(open){shell.hidden=!open;if(open){setStatus("");close.focus();}else $("matchlatch-login-entry")?.focus();}
 }
