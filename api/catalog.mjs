@@ -1,6 +1,8 @@
+import {allowRequest} from '../lib/request-limits.mjs';
 import {json,session,staffAccess,retrieveCatalog,clean,SLOTS} from '../lib/catalog-server.mjs';
 import {intentFromText,rankCandidates} from '../lib/styling-engine.mjs';
 export async function GET(request){
+ if(!allowRequest(request,'catalog',60))return json({error:'Too many catalog requests. Retry shortly.'},429);
  try{
   const u=new URL(request.url);const account=await session(request);
   if(u.searchParams.get('mode')==='capabilities')return json({staff:await staffAccess(account),aiReady:process.env.VERCEL_ENV==='preview'&&Boolean(process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY)});

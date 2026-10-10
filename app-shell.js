@@ -709,7 +709,7 @@ function renderMePreferences(){
  root.append(footer);
 }
 function renderClosetBridge(){
- const root=$("screen-styles")||$("screen-closet");
+ const root=$("screen-styles");
  if(!root)return;
  let bridge=root.querySelector(".v12-closet-bridge");
  if(!bridge){

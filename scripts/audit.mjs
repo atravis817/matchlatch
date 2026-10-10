@@ -243,7 +243,7 @@ check(camera.includes('sequence++')
   "Camera tracks are released after closing, page exit and in-flight permission cancellation");
 check(camera.includes('canvas.toBlob(resolve,"image/jpeg",.84)')
   &&camera.includes('window.MatchlatchStudioPhoto?.loadFile?.(photo)')
-  &&html.includes('MatchlatchStudioPhoto=Object.freeze({loadFile:file=>loadImage(file,true)})'),
+  &&html.includes('MatchlatchStudioPhoto=Object.freeze({loadFile:file=>loadImage(file,true),getImage:()=>imageData})'),
   "Captured frames reuse Studio's existing photo processing and privacy pipeline");
 check(file("camera.css").includes("safe-area-inset-bottom")
   &&file("camera.css").includes("prefers-reduced-motion")
@@ -267,7 +267,7 @@ check(retailerMatch.includes('candidates.sort((a,b)=>b.score-a.score||b.saving-a
   &&!retailerMatch.includes('item.commission'),
   "Verified sale benefits can only break equal style-relevance ties; commissions never rank");
 check(appShell.includes("function storeSizeFor(slot,p)")
-  &&appShell.includes("items=matcher.rank(")
+  &&/\b(?:items|ranked)\s*=\s*matcher\.rank\(/.test(appShell)
   &&appShell.includes('params.set("size",criteria.size)')
   &&appShell.includes('params.set("color",criteria.color)'),
   "All manual Store searches apply saved sizing and curation constraints");

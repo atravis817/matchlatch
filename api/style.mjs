@@ -1,7 +1,9 @@
+import {allowRequest} from '../lib/request-limits.mjs';
 import {json,session,staffAccess,retrieveCatalog,database,clean,SLOTS} from '../lib/catalog-server.mjs';
 import {intentFromText,constrainIntent,rankCandidates,groundedLook,modelJSON} from '../lib/styling-engine.mjs';
 import {rpc} from '../scripts/awin-bulk.mjs';
 export async function POST(request){
+ if(!allowRequest(request,'style',20))return json({error:'Too many styling requests. Retry shortly.'},429);
  let usageId=null,usage={input_tokens:0,output_tokens:0};
  const meter=async(outcome)=>{if(usageId)await rpc('matchlatch_ai_meter',{p_id:usageId,p_input:usage.input_tokens,p_output:usage.output_tokens,p_outcome:outcome}).catch(()=>{});};
  try{
@@ -23,6 +25,7 @@ export async function POST(request){
   const query=clean(input.query,500);let intent;try{intent=intentFromText(query,profile);}catch(e){return json({error:e.message},400);}
   let model=null,visionUsed=false;const image=input.image;
   if(image!==undefined&&image!==null&&(typeof image!=='string'||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>2200000))return json({error:'Choose a valid resized JPEG.'},400);
+  if(image){const signature=Buffer.from(image.split(',')[1],'base64');if(signature[0]!==255||signature[1]!==216||signature[2]!==255)return json({error:'Choose a valid resized JPEG.'},400);}
   if(input.ai===true){
    if(!process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY)return json({error:'AI is unavailable in Preview. Use catalog search while credentials are configured.'},503);
    const quota=await rpc('matchlatch_ai_reserve',{p_user:account.user.id});if(!quota.allowed)return json({error:'Today’s styling limit is reached. Catalog search remains available.'},429);
