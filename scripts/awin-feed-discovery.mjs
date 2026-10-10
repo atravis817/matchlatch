@@ -39,10 +39,10 @@ else {
     for(const row of rows){
       const advertiserId=Number(row[idx.id]);
       if(!approved.has(advertiserId))continue;
-      const url=new URL(row[idx.url]||"");
+      let url;try{url=new URL(row[idx.url]||"");}catch{continue;}
       if(url.protocol!=="https:"||!["datafeed.api.productserve.com","productdata.awin.com"].includes(url.hostname))continue;
       output.push({advertiser_id:advertiserId,advertiser_name:row[idx.name]||"",feed_id:row[idx.feed],last_imported:row[idx.updated]||null,membership:row[idx.membership]||null});
     }
-    console.log(JSON.stringify({ok:true,approved_advertisers:[...approved],feed_count:output.length,feeds:output},null,2));
+    console.log(JSON.stringify({ok:true,approved_advertisers:[...approved],total_feed_list_rows:rows.length,feed_count:output.length,headers:header,feeds:output},null,2));
   }catch(error){console.error("Awin feed discovery failed:",error.message);process.exitCode=1;}
 }
