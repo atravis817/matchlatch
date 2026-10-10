@@ -4,6 +4,7 @@
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {CANDIDATES,merchantLinkAllowed} from '../lib/awin-retailers.mjs';
+import {ACCESSIBLE_TEST_SOURCES} from './awin-test-sources.mjs';
 import {APPROVED_ADVERTISERS,PUBLISHER_ID,FEED_HOSTS,field,https,feedKey,discoverFeeds,fetchCSV,feedMetadata,safeError} from './awin-feed-utils.mjs';
 function slot(category){
  const s=category.toLowerCase();
@@ -28,7 +29,7 @@ export function affiliateAllowed(url,advertiserId) {
   return publisher===PUBLISHER_ID&&merchant===String(advertiserId);
  }catch{return false;}
 }
-export function validateProduct(p,id,retailer) {
+export function validateProduct(p,id,retailer,testSource=null) {
  const productId=field(p,'merchant_product_id','aw_product_id','product_id');
  const variantId=field(p,'aw_product_id','merchant_product_id','product_id');
  const title=field(p,'product_name','title').slice(0,250);
@@ -42,9 +43,10 @@ export function validateProduct(p,id,retailer) {
  const stock=field(p,'in_stock','stock_status').toLowerCase();
  const available=['1','yes','true','in stock','in_stock','instock','available'].includes(stock);
  const sourceAdvertiser=field(p,'merchant_id','advertiser_id');
- const candidate=CANDIDATES.find(c=>c.id===id);
+ const authorizedTest=ACCESSIBLE_TEST_SOURCES.find(source=>source===testSource&&source.id===id);
+ const candidate=authorizedTest||CANDIDATES.find(c=>c.id===id);
  const errors=[];
- if(!APPROVED_ADVERTISERS.has(id))errors.push('unapproved_advertiser');
+ if(!APPROVED_ADVERTISERS.has(id)&&!authorizedTest)errors.push('unapproved_advertiser');
  if(sourceAdvertiser&&Number(sourceAdvertiser)!==id)errors.push('advertiser_mismatch');
  if(!productId||productId.length>200||!variantId||variantId.length>200)errors.push('invalid_identifier');
  if(title.length<3)errors.push('invalid_title');
@@ -67,22 +69,29 @@ export function validateProduct(p,id,retailer) {
  }};
 }
 export const mapProduct=(p,id,retailer)=>validateProduct(p,id,retailer).product;
-export async function run({write=process.argv.includes('--write')}={}) {
+export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds')}={}) {
+ if(accessibleTestFeeds&&process.env.VERCEL_ENV!=='preview')throw Error('Accessible test feeds require the Preview environment');
  const key=feedKey();const maxItems=Math.min(1000,Math.max(1,Math.floor(Number(process.env.AWIN_IMPORT_LIMIT)||200)));
  const list=await discoverFeeds(key);
- const approved=list.rows.filter(row=>APPROVED_ADVERTISERS.has(Number(field(row,'advertiser_id','merchant_id'))));
- const feeds=approved.filter(row=>!field(row,'membership_status')||field(row,'membership_status').toLowerCase()==='joined');
+ const testSourceFor=row=>ACCESSIBLE_TEST_SOURCES.find(source=>source.id===Number(field(row,'advertiser_id','merchant_id'))&&source.feedId===field(row,'feed_id'));
+ const approved=list.rows.filter(row=>accessibleTestFeeds?Boolean(testSourceFor(row)):APPROVED_ADVERTISERS.has(Number(field(row,'advertiser_id','merchant_id'))));
+ const feeds=approved.filter(row=>accessibleTestFeeds?['joined','not joined'].includes(field(row,'membership_status').toLowerCase()):!field(row,'membership_status')||field(row,'membership_status').toLowerCase()==='joined');
  console.log(JSON.stringify({stage:'feed-list',http_status:list.http_status,rows:list.rows.length,headers:list.headers,matched_feeds:approved.map(feedMetadata),eligible_feeds:feeds.length,membership_conflicts:approved.length-feeds.length}));
  if(!feeds.length)throw Error('No eligible feeds for approved advertisers; no database writes performed');
  const all=[],seen=new Set(),report=[];
  for(const feed of feeds) {
   const metadata=feedMetadata(feed);const id=metadata.advertiser_id;
+  const testSource=accessibleTestFeeds?testSourceFor(feed):null;
+  if(testSource){
+   const imported=Date.parse(field(feed,'last_imported').replace(' ','T')+'Z');
+   if(!Number.isFinite(imported)||imported>Date.now()+5*60000||Date.now()-imported>testSource.maxAgeHours*3600000){report.push({...metadata,error:'missing_or_stale_feed_timestamp'});continue;}
+  }
   const src=https(field(feed,'url','download_url','feed_url','datafeed_url'),FEED_HOSTS);
   if(!src){report.push({...metadata,error:'missing_supported_feed_url'});continue;}
   try {
    const products=await fetchCSV(src);let accepted=0,selected=0,duplicates=0;const rejected={};
    for(const row of products.rows) {
-    const {product,errors}=validateProduct(row,id,field(feed,'advertiser_name','merchant_name')||'Retailer');
+    const {product,errors}=validateProduct(row,id,field(feed,'advertiser_name','merchant_name')||'Retailer',testSource);
     if(!product){for(const error of errors)rejected[error]=(rejected[error]||0)+1;continue;}
     const identity=id+':'+product.source_variant_id;
     if(seen.has(identity)){duplicates++;continue;}seen.add(identity);accepted++;
@@ -98,6 +107,14 @@ export async function run({write=process.argv.includes('--write')}={}) {
  if(write) {
   const base=process.env.MATCHLATCH_SUPABASE_URL||process.env.SUPABASE_URL;const secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
   if(!https(base)||!secret)throw Error('Write requires Supabase URL and server-only SUPABASE_SERVICE_ROLE_KEY');
+  if(accessibleTestFeeds){
+   for(const source of ACCESSIBLE_TEST_SOURCES.filter(source=>all.some(p=>p.advertiser_id===source.id))){
+    const feed=feeds.find(row=>testSourceFor(row)===source);
+    const partner={advertiser_id:source.id,name:source.name,website_domain:source.domains[0],category:'Private development feed',membership_status:field(feed,'membership_status').toLowerCase()==='joined'?'joined':'not_joined',feed_status:'verified',deeplink_supported:true,browse_enabled:false,checkout_enabled:false,membership_checked_at:new Date().toISOString(),feed_checked_at:new Date().toISOString()};
+    const response=await fetch(base.replace(/\/$/,'')+'/rest/v1/matchlatch_awin_partners?on_conflict=advertiser_id',{method:'POST',headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(partner),signal:AbortSignal.timeout(30000)});
+    if(!response.ok)throw Error('Private test partner insert failed: HTTP '+response.status);
+   }
+  }
   for(let i=0;i<all.length;i+=100) {
    const response=await fetch(base.replace(/\/$/,'')+'/rest/v1/matchlatch_awin_products?on_conflict=advertiser_id,source_variant_id',{
     method:'POST',headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(all.slice(i,i+100)),signal:AbortSignal.timeout(30000)

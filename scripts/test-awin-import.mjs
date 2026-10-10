@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {gzipSync} from 'node:zlib';
 import {csv,feedKey,fetchCSV,safeError} from './awin-feed-utils.mjs';
-import {mapProduct,run} from './awin-import.mjs';
+import {mapProduct,run,validateProduct} from './awin-import.mjs';
+import {ACCESSIBLE_TEST_SOURCES} from './awin-test-sources.mjs';
 const product={merchant_id:'117849',merchant_product_id:'SKU-1',aw_product_id:'AW-1',product_name:'Cotton Oxford Shirt',merchant_category:'Shirts',search_price:'39.95',currency:'USD',merchant_image_url:'https://images.example.test/shirt.png',merchant_deep_link:'https://zazzmode.com/products/shirt',aw_deep_link:'https://www.awin1.com/cread.php?awinmid=117849&awinaffid=3118944','Fashion:size':'M',in_stock:'in_stock'};
 const encode=rows=>rows.map(row=>row.map(value=>'"'+String(value).replaceAll('"','""')+'"').join(',')).join('\r\n');
 const list=(membership='Joined',id=117849)=>encode([['Advertiser ID','Advertiser Name','Membership Status','Feed ID','URL'],[id,'Test retailer',membership,42,'https://datafeed.api.productserve.com/datafeed/download/apikey/FAKE_TEST_KEY/fid/42']]);
@@ -62,4 +63,27 @@ test('synthetic write is limited to 25 and every payload stays private',()=>isol
 }));
 test('errors redact the configured URL and extracted key',()=>isolated(async()=>{
  const message=safeError(Error('Credential FAKE_TEST_KEY '+process.env.AWIN_PRODUCT_FEED_API_KEY));assert.ok(!message.includes('FAKE_TEST_KEY'));assert.ok(!message.includes('https://'));
+}));
+test('accessible test source validates exact advertiser, merchant and USD without expanding public candidates',()=>{
+ const source=ACCESSIBLE_TEST_SOURCES[0];
+ const row=Object.fromEntries(Object.entries({...product,merchant_id:'116479',merchant_deep_link:'https://watchesofusa.com/products/watch',aw_deep_link:'https://www.awin1.com/pclick.php?p=123&a=3118944&m=116479',product_name:'Steel Watch',merchant_category:'Watches'}).map(([key,value])=>[key.toLowerCase().replace(/[^a-z0-9]/g,''),value]));
+ assert.equal(validateProduct(row,116479,'Watches Of USA').product,null);
+ assert.equal(validateProduct(row,116479,'Watches Of USA',{...source}).product,null);
+ assert.equal(validateProduct(row,116479,'Watches Of USA',source).product.is_public,false);
+ assert.equal(validateProduct({...row,currency:'GBP'},116479,'Watches Of USA',source).product,null);
+});
+test('accessible feed import requires Preview, exact feed ID and recent timestamp; keeps partner disabled',()=>isolated(async()=>{
+ await assert.rejects(run({accessibleTestFeeds:true}),/Preview/);
+ process.env.VERCEL_ENV='preview';
+ const row={...product,merchant_id:'116479',merchant_deep_link:'https://watchesofusa.com/products/watch',aw_deep_link:'https://www.awin1.com/pclick.php?p=123&a=3118944&m=116479',product_name:'Steel Watch',merchant_category:'Watches'};
+ const listing=(feedId='102556',timestamp=new Date().toISOString().slice(0,19).replace('T',' '))=>encode([['Advertiser ID','Advertiser Name','Membership Status','Feed ID','Last Imported','URL'],[116479,'Watches Of USA','Not Joined',feedId,timestamp,'https://datafeed.api.productserve.com/datafeed/download/apikey/FAKE_TEST_KEY/fid/'+feedId]]);
+ let posts=[];let directory=listing();
+ globalThis.fetch=async(url,options)=>{
+  if(options?.method==='POST'){posts.push({url,payload:JSON.parse(options.body)});return new Response(null,{status:204});}
+  return new Response(String(url).includes('/list/')?directory:encode([Object.keys(row),Object.values(row)]));
+ };
+ const dry=await run({accessibleTestFeeds:true,write:false});assert.equal(dry.eligible_products,1);assert.equal(posts.length,0);
+ await run({accessibleTestFeeds:true,write:true});assert.equal(posts.length,2);assert.equal(posts[0].payload.membership_status,'not_joined');assert.equal(posts[0].payload.browse_enabled,false);assert.equal(posts[0].payload.checkout_enabled,false);assert.equal(posts[1].payload[0].is_public,false);
+ posts=[];directory=listing('999');await assert.rejects(run({accessibleTestFeeds:true,write:true}),/No eligible feeds/);assert.equal(posts.length,0);
+ directory=listing('102556','2000-01-01 00:00:00');await assert.rejects(run({accessibleTestFeeds:true,write:true}),/downloads failed/);assert.equal(posts.length,0);
 }));
