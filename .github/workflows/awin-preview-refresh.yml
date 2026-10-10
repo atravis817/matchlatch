@@ -1,0 +1,43 @@
+name: Private Preview Awin refresh
+on:
+  workflow_dispatch:
+  push:
+    branches: [design/v1.2-studio-first-100926]
+    paths: [scripts/awin-import.mjs, scripts/awin-bulk.mjs, .github/workflows/awin-preview-refresh.yml]
+# GitHub cron runs only from the default branch. Do not add a default-branch
+# schedule or change Production to activate this development-only workflow.
+permissions:
+  contents: read
+concurrency:
+  group: matchlatch-private-awin-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/design/v1.2-studio-first-100926'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: matchlatch-preview
+    env:
+      VERCEL_ENV: preview
+      MATCHLATCH_SUPABASE_URL: https://odxqxymwlwnbqginqems.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.MATCHLATCH_PREVIEW_SUPABASE_SERVICE_ROLE_KEY }}
+      AWIN_PRODUCT_FEED_API_KEY: ${{ secrets.MATCHLATCH_PREVIEW_AWIN_FEED_KEY }}
+      AWIN_BULK_LIMIT: '10000'
+      AWIN_BATCH_SIZE: '100'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Validate protected configuration
+        run: |
+          test -n "$SUPABASE_SERVICE_ROLE_KEY"
+          test -n "$AWIN_PRODUCT_FEED_API_KEY"
+          node --check scripts/awin-import.mjs
+      - name: Validate feed before writes
+        run: node scripts/refresh-preview.mjs
+      - name: Refresh private catalog
+        run: node scripts/refresh-preview.mjs --write
+      - name: Failure diagnostic
+        if: failure()
+        run: echo 'Private catalog refresh failed. Inspect protected run logs and Supabase import history. No storefront release or publication was performed.' >> "$GITHUB_STEP_SUMMARY"

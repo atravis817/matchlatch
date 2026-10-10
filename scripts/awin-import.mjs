@@ -69,9 +69,10 @@ export function validateProduct(p,id,retailer,testSource=null) {
  }};
 }
 export const mapProduct=(p,id,retailer)=>validateProduct(p,id,retailer).product;
-export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds')}={}) {
+export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds'),full=process.argv.includes('--full'),resumeId=process.argv.find(a=>a.startsWith('--resume='))?.slice(9)||null}={}) {
  if(accessibleTestFeeds&&process.env.VERCEL_ENV!=='preview')throw Error('Accessible test feeds require the Preview environment');
- const key=feedKey();const maxItems=Math.min(1000,Math.max(1,Math.floor(Number(process.env.AWIN_IMPORT_LIMIT)||200)));
+ if(full&&process.env.VERCEL_ENV!=='preview')throw Error('Full ingestion requires Preview');
+ const key=feedKey();const maxItems=full?Math.min(50000,Math.max(1,Math.floor(Number(process.env.AWIN_BULK_LIMIT)||10000))):Math.min(1000,Math.max(1,Math.floor(Number(process.env.AWIN_IMPORT_LIMIT)||200)));
  const list=await discoverFeeds(key);
  const testSourceFor=row=>ACCESSIBLE_TEST_SOURCES.find(source=>source.id===Number(field(row,'advertiser_id','merchant_id'))&&source.feedId===field(row,'feed_id'));
  const approved=list.rows.filter(row=>accessibleTestFeeds?Boolean(testSourceFor(row)):APPROVED_ADVERTISERS.has(Number(field(row,'advertiser_id','merchant_id'))));
@@ -101,9 +102,11 @@ export async function run({write=process.argv.includes('--write'),accessibleTest
   }catch(error){report.push({...metadata,error:safeError(error)});}
  }
  const summary={mode:write?'private-import':'dry-run',feeds:report,eligible_products:all.length,limit:maxItems,public_products_created:0,sample_products:all.slice(0,5).map(p=>({advertiser_id:p.advertiser_id,title:p.title,price_usd:p.price_usd,size:p.size,stock_status:p.stock_status,available:p.available,image_host:new URL(p.image_url).hostname,affiliate_verified:affiliateAllowed(p.affiliate_url,p.advertiser_id)}))};
- console.log(JSON.stringify(summary,null,2));
+ for(const feed of report)console.log(JSON.stringify({stage:'feed-validation',...feed}));
+ console.log(JSON.stringify({...summary,feeds:undefined}));
  if(report.some(feed=>feed.error))throw Error('One or more eligible feed downloads failed; no database writes performed');
  if(!all.length)throw Error('No valid products; no database writes performed');
+ if(full&&report.reduce((n,feed)=>n+feed.eligible,0)>maxItems)throw Error('Full feed exceeds configured bulk bound; no database writes performed');
  if(write) {
   const base=process.env.MATCHLATCH_SUPABASE_URL||process.env.SUPABASE_URL;const secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
   if(!https(base)||!secret)throw Error('Write requires Supabase URL and server-only SUPABASE_SERVICE_ROLE_KEY');
@@ -114,6 +117,11 @@ export async function run({write=process.argv.includes('--write'),accessibleTest
     const response=await fetch(base.replace(/\/$/,'')+'/rest/v1/matchlatch_awin_partners?on_conflict=advertiser_id',{method:'POST',headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(partner),signal:AbortSignal.timeout(30000)});
     if(!response.ok)throw Error('Private test partner insert failed: HTTP '+response.status);
    }
+  }
+  if(full){
+   const {bulkWrite}=await import('./awin-bulk.mjs');
+   summary.import_results=await bulkWrite(all,report,{resumeId});
+   return summary;
   }
   for(let i=0;i<all.length;i+=100) {
    const response=await fetch(base.replace(/\/$/,'')+'/rest/v1/matchlatch_awin_products?on_conflict=advertiser_id,source_variant_id',{

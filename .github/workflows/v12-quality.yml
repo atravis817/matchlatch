@@ -26,3 +26,8 @@ jobs:
         run: node scripts/test-public-catalog.mjs
       - name: Delivery intelligence tests
         run: node scripts/test-delivery-intelligence.mjs
+
+      - name: Import and grounded styling security tests
+        run: |
+          node scripts/test-awin-import.mjs
+          node scripts/test-catalog-styling.mjs
