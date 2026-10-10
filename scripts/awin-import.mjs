@@ -71,12 +71,14 @@ async function fetchCSV(url){
 async function run(){
  if(!key)throw Error("Missing AWIN_PRODUCT_FEED_API_KEY");
  const list=await fetchCSV("https://productdata.awin.com/datafeed/list/apikey/"+encodeURIComponent(key));
- const feeds=list.filter(x=>approved.has(Number(field(x,"advertiser_id")))&&/joined/i.test(field(x,"membership_status")));
+ const feeds=list.filter(x=>approved.has(Number(field(x,"advertiser_id","merchant_id","advertiserid","merchantid"))));
  const all=[];const seen=new Set();const report=[];
+ const listHeaders=Object.keys(list[0]||{});
+ console.log(JSON.stringify({stage:"feed-list",rows:list.length,headers:listHeaders,matched_feeds:feeds.length}));
  for(const feed of feeds){
-  const id=Number(field(feed,"advertiser_id"));
-  const src=https(field(feed,"url"),["datafeed.api.productserve.com","productdata.awin.com"]);
-  if(!src)continue;
+  const id=Number(field(feed,"advertiser_id","merchant_id","advertiserid","merchantid"));
+  const src=https(field(feed,"url","download_url","feed_url","datafeed_url"),["datafeed.api.productserve.com","productdata.awin.com","productserve.com"]);
+  if(!src){report.push({advertiser_id:id,feed_id:field(feed,"feed_id","id"),error:"missing_supported_feed_url"});continue;}
   const products=await fetchCSV(src);let accepted=0;
   for(const p of products){
    const candidate=mapProduct(p,id,field(feed,"advertiser_name")||"Retailer");
@@ -86,7 +88,7 @@ async function run(){
    seen.add(identity);all.push(candidate);accepted++;
    if(all.length>=maxItems)break;
   }
-  report.push({advertiser_id:id,feed_id:field(feed,"feed_id"),rows:products.length,eligible:accepted});
+  report.push({advertiser_id:id,feed_id:field(feed,"feed_id","id"),rows:products.length,eligible:accepted});
   if(all.length>=maxItems)break;
  }
  if(write){
