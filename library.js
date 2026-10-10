@@ -1264,9 +1264,9 @@
         import("/cloud-sync.js")
       ]);
       supabase=module.createClient(cfg.url,cfg.publishableKey,{
-        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,...(cfg.passkeysEnabled?{experimental:{passkey:true}}:{})}
       });
-      window.MatchlatchAuth={client:supabase,getUser:()=>supabase.auth.getUser()};
+      window.MatchlatchAuth={client:supabase,getUser:()=>supabase.auth.getUser(),passkeysEnabled:cfg.passkeysEnabled===true};
       window.dispatchEvent(new Event("matchlatch:auth-ready"));
       cloudAdapter=cloudModule.createCloudSync(supabase,{
         setState, setGuest,getGuestState:guestState,
