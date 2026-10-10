@@ -92,7 +92,9 @@ Do not paste the key into chat. Production credentials were neither read nor mod
 
 ## Deployments, checks and remaining risks
 
-Backend commit: `dbd3c15b69cba4a89682091389258e026905676c`. Frontend/report follow in a separate development commit.
+Backend commit: `dbd3c15b69cba4a89682091389258e026905676c`. Browse/Studio commit: `6146cfc7e2fa31d45644df858e35ab64a7850dcb`. HTML transfer restoration: `90ca49a2f6a39434a720503a17ca5ef2b7fb135a`. The complete HTML, application shell and audit were compared byte for byte against the fetched branch after restoration. A final development commit includes exact-size controls and this report update.
+
+Last verified full application Preview: `dpl_5bxnukE61zBPJrDwRZjNujKnV6Eu`, READY, https://matchlatch-2013ssong-matchlatch.vercel.app , commit `90ca49a2f6a39434a720503a17ca5ef2b7fb135a`. This retains Deployment Protection. A truncated intermediate HTML transfer was detected and repaired before accepting this Preview; Production was unaffected.
 
 Independent verification deployment: `dpl_26pnv32YCpc6fbMWFywCsLgnSJfx`, READY, https://matchlatch-2bcxaudy9-matchlatch.vercel.app . It is protected and contains private diagnostics; no public share URL was created. The preceding full-import deployment was `dpl_6Zvn4jXn3jfcyUR4DFwAu3GE21Hn`. Diagnostic builds are verification runs, not the recurring scheduler.
 
