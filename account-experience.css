@@ -1,0 +1,21 @@
+/* MATCHLATCH account flow: retain theme surfaces and forest-green tokens. */
+.account-header-login{border:1px solid var(--line,#dedfdb);border-radius:999px;background:var(--surface,#fff);color:var(--ink,#173e30);min-height:40px;padding:7px 14px;font-weight:700;font-size:13px;white-space:nowrap}
+.account-header-login:hover,.account-header-login:focus-visible{outline:2px solid var(--ink,#173e30);outline-offset:2px}
+.ml-account-screen[hidden],#ml-account-quiz[hidden]{display:none!important}
+.ml-account-screen{position:fixed;inset:0;z-index:10000;background:rgba(7,20,13,.75);display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:clamp(15px,5vh,50px) 14px}
+.ml-account-box{position:relative;background:var(--surface,#fff);color:var(--ink,#173e30);border:1px solid var(--line,#dedfdb);border-radius:22px;width:min(100%,620px);padding:clamp(20px,4vw,38px);box-shadow:0 16px 80px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:14px}
+.ml-account-box h2{font-size:clamp(24px,4vw,36px);line-height:1.1;margin:4px 0}
+.ml-account-box h3{font-size:15px;margin:20px 0 8px;letter-spacing:.02em}
+.ml-account-close{align-self:flex-end;background:transparent;color:inherit;border:0;padding:7px;font-size:13px}
+#ml-account-form{display:flex;flex-direction:column;gap:12px}
+.ml-account-field{display:flex;flex-direction:column;gap:6px;font-weight:650;font-size:13px}
+.ml-account-field input,.ml-quiz-question select{background:var(--surface,#fff);color:var(--ink,#173e30);border:1px solid var(--line,#dedfdb);border-radius:10px;width:100%;padding:12px;min-height:44px}
+.ml-account-primary,.ml-account-secondary,.ml-account-quiz-button,.ml-account-switch{padding:12px 15px;min-height:44px;border-radius:12px;border:1px solid var(--line,#dedfdb);font-weight:700}
+.ml-account-primary{background:var(--ink,#173e30);color:var(--surface,#fff)}
+.ml-account-secondary,.ml-account-quiz-button{background:var(--subtle,#f1f4ef);color:var(--ink,#173e30)}
+.ml-account-switch{background:transparent;border:0;text-decoration:underline;color:var(--ink,#173e30)}
+.ml-account-hint{font-size:12px;color:var(--muted,#6f726e);line-height:1.6}
+#ml-account-quiz{padding:12px;border:1px solid var(--line,#dedfdb);border-radius:14px;max-height:420px;overflow:auto}
+.ml-quiz-question{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;font-size:12px}
+#ml-account-status{min-height:18px;font-size:13px;color:var(--ink,#173e30)}
+@media(max-width:600px){.account-header-login{padding:7px 9px;font-size:11px}.ml-account-screen{padding:0}.ml-account-box{border-radius:0;min-height:100dvh}}
