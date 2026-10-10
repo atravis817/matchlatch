@@ -13,7 +13,7 @@ const profile=()=>{
   const quiz=JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null");
   if(quiz?.version!==1||!quiz.answers||typeof quiz.answers!=="object")return base;
   const labels=["Everyday vibe","Silhouette","Palette","Pattern","Layering","Occasion","Footwear","Priority","Accessories","Fabric","Denim","Top","Jacket","Trends","Inspiration","Contrast","Season","Complexity","Brands","AI goal"];
-  const traits=Object.entries(quiz.answers).filter(([index,value])=>/^\\d{1,2}$/.test(index)&&+index<20&&typeof value==="string"&&value.length<50).slice(0,12).map(([i,value])=>labels[+i]+": "+value);
+  const traits=Object.entries(quiz.answers).filter(([index,value])=>/^\d{1,2}$/.test(index)&&+index<20&&typeof value==="string"&&value.length<50).slice(0,12).map(([i,value])=>labels[+i]+": "+value);
   return {...base,notes:[String(base.notes||""),traits.join("; ")].filter(Boolean).join(". ").slice(0,210)};
  }catch{return base;}
 };
