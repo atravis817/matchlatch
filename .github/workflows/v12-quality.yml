@@ -31,3 +31,8 @@ jobs:
         run: |
           node scripts/test-awin-import.mjs
           node scripts/test-catalog-styling.mjs
+
+      - name: Permanent commerce policy and intelligence tests
+        run: |
+          node scripts/check-commerce-policy.mjs
+          node scripts/test-commerce.mjs

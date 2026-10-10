@@ -1,0 +1,8 @@
+# Repository settings must require code-owner review to enforce this ownership.
+/policies/ @atravis817
+/MATCHLATCH-AI-COMMERCE-GUARDRAILS.md @atravis817
+/lib/commerce-*.mjs @atravis817
+/api/commerce.mjs @atravis817
+/supabase/commerce_search_limits.sql @atravis817
+/scripts/check-commerce-policy.mjs @atravis817
+/scripts/test-commerce.mjs @atravis817
