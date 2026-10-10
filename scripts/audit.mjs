@@ -482,5 +482,27 @@ check(file("api/delivery-intelligence.mjs").includes('mode:"server_authoritative
   &&file("api/delivery-intelligence.mjs").includes("publicEvidenceSubmission:false"),
   "POC-03 exposes no public elevation of submitted shipping evidence");
 
+/* New account UX: parse and validate all new account assets. */
+check(html.includes('id="matchlatch-login-entry"')
+  &&html.includes('src="/account-experience.js"')
+  &&html.includes('href="/account-experience.css"'),
+  "Account entry is present near cart with linked frontend assets");
+check(file("account-experience.js").includes('questions=[')
+  &&file("account-experience.js").includes('mode="verify"')
+  &&file("account-experience.js").includes('auth.auth.verifyOtp')
+  &&file("account-experience.js").includes('signInWithPassword')
+  &&file("account-experience.js").includes('signUp'),
+  "Account signup, login, 20-question quiz and email OTP supported");
+try{new vm.Script(file("account-experience.js"),{filename:"account-experience.js"});check(true,"Account experience parses");}
+catch(error){console.error(error.message);check(false,"Account experience parses");}
+check(!file("account-experience.js").includes("cardNumber")
+  &&!file("account-experience.js").includes("cvv")
+  &&file("sql/matchlatch-private-profiles.sql").includes("enable row level security")
+  &&file("sql/matchlatch-private-profiles.sql").includes("auth.uid()"),
+  "No payment-card capture; private shipping and billing profile prepared with owner RLS");
+check(file("api/auth-config.mjs").includes("MATCHLATCH_PASSKEYS_ENABLED")
+  &&file("library.js").includes("experimental:{passkey:true}"),
+  "Face ID passkeys gated behind explicit experimental provider opt-in");
+
 if(process.exitCode)console.error("MATCHLATCH static audit failed.");
 else console.log("MATCHLATCH static audit passed.");
