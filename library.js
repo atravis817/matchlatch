@@ -1250,6 +1250,7 @@
     } else if(cloudAdapter) {
       await cloudAdapter.setUser(activeUser);
     }
+    window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
@@ -1265,6 +1266,8 @@
       supabase=module.createClient(cfg.url,cfg.publishableKey,{
         auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
       });
+      window.MatchlatchAuth={client:supabase,getUser:()=>supabase.auth.getUser()};
+      window.dispatchEvent(new Event("matchlatch:auth-ready"));
       cloudAdapter=cloudModule.createCloudSync(supabase,{
         setState, setGuest,getGuestState:guestState,
         onStatus:()=>{if(activePage==="account")renderAccount();},
