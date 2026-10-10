@@ -119,7 +119,7 @@ function launch(){
       if(profileError)setStatus("Email verified. Secure address saving is not configured yet; please add addresses later.");
       pendingAddresses=null;
     }
-    if(answered.length){const styleQuiz={version:1,answers:Object.fromEntries(answered),completedAt:new Date().toISOString()};
+    if(accountData?.user?.id&&answered.length){const styleQuiz={version:1,answers:Object.fromEntries(answered),completedAt:new Date().toISOString()};
       try{const old=JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null");
         localStorage.setItem("matchlatch-style-quiz-v1",JSON.stringify(styleQuiz));
         window.dispatchEvent(new CustomEvent("matchlatch:style-quiz",{detail:styleQuiz}));
@@ -152,10 +152,16 @@ function launch(){
  function show(open){
   shell.hidden=!open;
   if(open){
+   if(!returnFocus)returnFocus=document.activeElement;
+   document.querySelector("main")?.setAttribute("inert","");
+   document.querySelector(".bottom-nav")?.setAttribute("inert","");
    setStatus("");close.focus();brand.classList.remove("is-unlocking");animateLogo();
   }else{
    brand.classList.remove("is-unlocking");
-   $("matchlatch-login-entry")?.focus();
+   document.querySelector("main")?.removeAttribute("inert");
+   document.querySelector(".bottom-nav")?.removeAttribute("inert");
+   if(returnFocus?.isConnected)returnFocus.focus();else $("matchlatch-login-entry")?.focus();
+   returnFocus=null;
   }
  }
 }
