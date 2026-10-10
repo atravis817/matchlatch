@@ -782,7 +782,9 @@
         if([...sel.options].some(o=>o.value===previous))sel.value=previous;
       };
       let saved={};
-      try {saved=JSON.parse(localStorage.getItem("matchlatch-style-v1") || "{}") || {};}catch{}
+      // Legacy device profiles are only considered during explicit account migration.
+      // Anonymous visitors start with neutral Studio defaults.
+      saved={};
       const dynamicSizes=new Set(dynamicPairs.map(pair=>pair[1]));
       storedFields.filter(id=>!dynamicSizes.has(id)).forEach(id=>{
         const el=$(id);
