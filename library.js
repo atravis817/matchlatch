@@ -89,7 +89,7 @@
   function persist() {
     try {
       if(activeUser&&cloudAdapter)cloudAdapter.queueState(dbState);
-      else localStorage.setItem(STORAGE_KEY,JSON.stringify(dbState));
+      else {requireAccount();return false;}
       refreshCounts();
       window.dispatchEvent(new Event("matchlatch:library"));
       return true;
@@ -1339,6 +1339,7 @@
     return index;
   }
   function chooseShopItem(slot,item){
+    if(!requireAccount(()=>chooseShopItem(slot,item)))return;
     const look=currentLook();
     if(!look||!item?.variantId||!item?.productId)return;
     if(!look.shopSelections)look.shopSelections={};
@@ -1349,12 +1350,14 @@
     persist();
   }
   function favoriteShopItem(slot,item){
+    if(!requireAccount(()=>favoriteShopItem(slot,item)))return;
     const index=shopPiece(slot,item);
     if(index<0)return;
     if(!favoriteExists(currentLookId,index))toggleFavorite(currentLookId,index);
     else feedback("This item is already in your favorites.");
   }
   function cartShopItem(slot,item){
+    if(!requireAccount(()=>cartShopItem(slot,item)))return;
     const index=shopPiece(slot,item);
     if(index>=0)addToCart(currentLookId,index);
   }
@@ -1372,6 +1375,7 @@
     };
   }
   function openCollectionFromStudio(id){
+    if(!requireAccount(()=>openCollectionFromStudio(id)))return;
     if(id!=="__unfiled__"&&!collectionFor(id))return;
     selectedTab="collections";selectedCollectionId=id;selectedLookDetail=null;showPage("closet");
   }
