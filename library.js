@@ -18,7 +18,8 @@
       for (const key of Object.keys(dbState)) if (Array.isArray(raw[key])) dbState[key] = raw[key];
     }
   } catch {}
-  let activePage="store";
+  let activePage="studio";
+  let guestStudioLanding=false;
   let pendingProtectedAction=null;
   const loggedIn=()=>Boolean(activeUser?.id);
   function requireAccount(action){
@@ -329,7 +330,7 @@
     if(c)c.textContent=dbState.cart.length?String(dbState.cart.length):"";
   }
 
-  function showPage(page,updateHash=true) {
+  function showPage(page,updateHash=true,initialLanding=false) {
     // Keep old links valid while allowing focused, shareable Closet subpages.
     const path=(location.hash||"").slice(1).split("/");
     const closetPages=["overview","collections","wants","favorites","shortlist","checkout","outfits","purchases","inspirations"];
@@ -339,10 +340,11 @@
     if(page==="closet")page="styles";
     if(page==="me")page="account";
     if(!["mood","studio","store","styles","account"].includes(page))page="studio";
-    if(page!=="store"&&!loggedIn()){
+    if(page!=="store"&&!loggedIn()&&!(page==="studio"&&initialLanding)) {
       requireAccount(()=>showPage(page,updateHash));
       return;
     }
+    guestStudioLanding=page==="studio"&&initialLanding&&!loggedIn();
     activePage=page;
     document.querySelectorAll(".app-screen").forEach(section=>section.hidden=section.id!=="screen-"+page);
     document.querySelectorAll(".bottom-nav button").forEach(button=>{
@@ -362,7 +364,7 @@
   function readLocation() {
     const hash=(location.hash||"").replace("#","").split("?")[0].split("/")[0].toLowerCase();
     if(["mood","closet","studio","store","me","styles","cart","account"].includes(hash))return hash;
-    return "store";
+    return "studio";
   }
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.page==="closet"){selectedTab="overview";selectedLookDetail=null;selectedCollectionId=null;}
@@ -372,7 +374,7 @@
   window.addEventListener("hashchange",()=>showPage(readLocation(),false));
   window.addEventListener("popstate",()=>showPage(readLocation(),false));
   refreshCounts();
-  showPage(readLocation(),false);
+  showPage(readLocation(),false,!location.hash);
 
   function captureLook(input,photoData,profile) {
     if(!requireAccount(()=>showPage("studio")))return;
@@ -1272,7 +1274,7 @@
       await cloudAdapter.setUser(activeUser);
     }
     window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
-    if(activeUser)resumeProtectedAction();else if(activePage!=="store")showPage("store");
+    if(activeUser)resumeProtectedAction();else if(activePage!=="store"&&!guestStudioLanding)showPage("store");
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
