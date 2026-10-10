@@ -139,7 +139,7 @@ function launch(){
     if(hello)hello.textContent=(new Date().getHours()<12?"Good morning":new Date().getHours()<17?"Good afternoon":"Good evening")+", "+first+"!";
   }else{greeting.textContent="Welcome back. Your style starts here.";$("ml-personal-greeting")?.remove();}
  };
- window.addEventListener("matchlatch:auth-user",event=>updateGreeting(event.detail?.user));
+ window.addEventListener("matchlatch:auth-user",event=>{updateGreeting(event.detail?.user);if(event.detail?.user&&ui?.show)ui.show(false);});
  window.addEventListener("matchlatch:auth-ready",()=>{drawForm();void client()?.auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});});
  if(client())void client().auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});
  shell.addEventListener("keydown",event=>{if(event.key==="Escape")show(false);});
