@@ -10,7 +10,8 @@
       const key="matchlatch-appearance-v1";
       const allowed=["system","light","dark"];
       let preference="system";
-      try{const saved=localStorage.getItem(key);if(allowed.includes(saved))preference=saved;}catch{}
+      let accountId=null;
+      // Appearance changes by signed-out visitors are session-only; signed-in choices are account-scoped on this device.
       const device=()=>window.matchMedia?.("(prefers-color-scheme: dark)")?.matches?"dark":"light";
       const update=()=>{
         const theme=preference==="system"?device():preference;
@@ -25,12 +26,22 @@
         set:next=>{
           if(!allowed.includes(next))return;
           preference=next;
-          try{localStorage.setItem(key,next);}catch{}
+          if(accountId)try{localStorage.setItem(key+"-"+accountId,next);}catch{}
           update();
           window.dispatchEvent(new CustomEvent("matchlatch:appearance",{detail:{preference,effective:window.MatchlatchAppearance.effective()}}));
         }
       };
       update();
+      window.addEventListener("matchlatch:auth-user",event=>{
+        accountId=event.detail?.user?.id||null;
+        preference="system";
+        if(accountId)try{
+          const stored=localStorage.getItem(key+"-"+accountId);
+          if(allowed.includes(stored))preference=stored;
+        }catch{}
+        update();
+        window.dispatchEvent(new CustomEvent("matchlatch:appearance",{detail:{preference,effective:window.MatchlatchAppearance.effective()}}));
+      });
       try{
         const media=window.matchMedia?.("(prefers-color-scheme: dark)");
         const onSystemChange=()=>{
