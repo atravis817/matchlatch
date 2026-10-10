@@ -68,11 +68,9 @@ function launch(){
    passkey.hidden=!(window.MatchlatchAuth?.passkeysEnabled&&typeof authPasskey()==="function");extra.append(passkey);
   }else if(mode==="signup"){
    h.textContent="Create your account";
-   form.append(section("Your details"),field("first","First name","text",true),field("last","Last name"),field("email","Email","email",true),field("password","Create password","password",true),field("phone","Phone (optional)","tel"));
-   form.append(section("Shipping address · optional"),field("ship1","Street address"),field("ship2","Apartment / suite"),field("shipCity","City"),field("shipState","State"),field("shipZip","ZIP code"));
-   form.append(section("Billing address · optional"),field("bill1","Street address"),field("billCity","City"),field("billState","State"),field("billZip","ZIP code"));
-   const card=document.createElement("p");card.className="ml-account-hint";card.textContent="Payment details are optional and will be added later through a secure payment provider. MATCHLATCH does not collect card numbers. Apple Pay will appear when supported by checkout.";
-   form.append(card,quizButton,quizWrap);
+   form.append(section("Your details"),field("first","First name","text",true),field("last","Last name"),field("email","Email","email",true),field("password","Create password","password",true));
+   const hint=document.createElement("p");hint.className="ml-account-hint";hint.textContent="Your wardrobe stays private. Add style details later in ME.";
+   form.append(hint);
    const go=btn("Create account & email verification code","submit");go.className="ml-account-primary";form.append(go);
    extra.append(switchMode);switchMode.textContent="Already have an account? Log in";
   }else if(mode==="verify"){
@@ -106,13 +104,12 @@ function launch(){
    }else if(mode==="signup"){
     if(data.password.length<8)throw Error("Use a password of at least eight characters.");
     const email=data.email.trim();pendingEmail=email;
-    pendingAddresses={shipping:{line1:data.ship1||"",line2:data.ship2||"",city:data.shipCity||"",state:data.shipState||"",zip:data.shipZip||""},billing:{line1:data.bill1||"",city:data.billCity||"",state:data.billState||"",zip:data.billZip||""}};
-    const {error}=await auth.auth.signUp({email,password:data.password,options:{data:{first_name:data.first.trim().slice(0,80),last_name:data.last.trim().slice(0,80),phone:data.phone.trim().slice(0,32)}}});
+    const {error}=await auth.auth.signUp({email,password:data.password,options:{data:{first_name:data.first.trim().slice(0,80),last_name:data.last.trim().slice(0,80),phone:""}}});
     if(error)throw error;
     // Never persist addresses locally or through editable auth metadata.
     // Private address profile table + RLS is a separate required provisioning step.
     mode="verify";drawForm();
-    setStatus("Check your inbox for the one-time verification code. Addresses will be saved after verification when the secure profile table is provisioned.");
+    setStatus("Check your inbox for the one-time verification code.");
    }else if(mode==="verify"){
     const {error}=await auth.auth.verifyOtp({email:pendingEmail,token:data.otp.trim(),type:"email"});if(error)throw error;
     const answered=Object.entries(pendingAnswers).filter(([,v])=>v);
