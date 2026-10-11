@@ -138,7 +138,7 @@ function launch(){
     if(hello)hello.textContent=(new Date().getHours()<12?"Good morning":new Date().getHours()<17?"Good afternoon":"Good evening")+", "+first+"!";
   }else{greeting.textContent="Welcome back. Your style starts here.";$("ml-personal-greeting")?.remove();}
  };
- window.addEventListener("matchlatch:auth-user",event=>{updateGreeting(event.detail?.user);if(event.detail?.user&&ui?.show&&!shell.hidden)ui.show(false);});
+ window.addEventListener("matchlatch:auth-user",event=>{updateGreeting(event.detail?.user);if(event.detail?.user&&ui?.show&&!shell.hidden)ui.show(false,true);});
  window.addEventListener("matchlatch:auth-ready",()=>{drawForm();void client()?.auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});});
  if(client())void client().auth.getUser().then(({data})=>{updateGreeting(data?.user);if(data?.user){mode="account";drawForm();}});
  let returnFocus=null;
@@ -157,7 +157,7 @@ function launch(){
   void brand.offsetWidth;
   brand.classList.add("is-unlocking");
  }
- function show(open){
+ function show(open,authenticated=false){
   shell.hidden=!open;
   if(open){
    if(!returnFocus)returnFocus=document.activeElement;
@@ -170,7 +170,7 @@ function launch(){
    document.querySelector(".bottom-nav")?.removeAttribute("inert");
    if(returnFocus?.isConnected)returnFocus.focus();else $("matchlatch-login-entry")?.focus();
    returnFocus=null;
-   window.dispatchEvent(new Event("matchlatch:account-dismissed"));
+   if(!authenticated)window.dispatchEvent(new Event("matchlatch:account-dismissed"));
   }
  }
 }
