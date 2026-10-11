@@ -36,3 +36,6 @@ jobs:
         run: |
           node scripts/check-commerce-policy.mjs
           node scripts/test-commerce.mjs
+
+      - name: Owner KPI authorization, calculations and export tests
+        run: node scripts/test-admin-dashboard.mjs

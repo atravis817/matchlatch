@@ -446,7 +446,8 @@ check(appShell.includes('const SHIPPING_KEY="matchlatch-shipping-region-v12"')
   &&appShell.includes('Delivery estimate unavailable until retailer confirms transit times'),
   "Store only displays server-classified retailer delivery evidence");
 check(appShell.includes('input.pattern="[0-9]{5}"')
-  &&appShell.includes('localStorage.removeItem(SHIPPING_KEY)')
+  &&appShell.includes('const shippingKey=()=>{const id=lib()?.getUserId?.();return id?SHIPPING_KEY+"-"+id:null;}')
+  &&appShell.includes('else localStorage.removeItem(key)')
   &&appShell.includes('never to OpenAI research.'),
   "Destination ZIP stays locally stored and is shared only with retailer catalog search");
 check(appShell.includes('deadline.type="date"')
