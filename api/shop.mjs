@@ -5,6 +5,10 @@ import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
 // purchasable variant is explicitly reported available at a valid USD price.
 const CATALOG="https://catalog.shopify.com/api/ucp/mcp";
 const PROFILE="https://matchlatch.vercel.app/ucp-agent.json";
+// Shopify's documented public development profile. Our protected Preview
+// profile cannot be fetched externally; no protection bypass is introduced.
+// Only catalog tools are called. This is not a MATCHLATCH profile-hosting claim.
+const PREVIEW_PROFILE="https://shopify.dev/ucp/agent-profiles/examples/2026-08-25/valid-with-capabilities.json";
 const SLOTS=new Set(["hat","scarf","jacket","shirt","watch","belt","pants","socks","shoes"]);
 const gid=/^gid:\/\/shopify\/(?:p\/[A-Za-z0-9_-]+|ProductVariant\/[A-Za-z0-9_-]+)$/;
 const clip=(s,n)=>String(s??"").replace(/[\u0000-\u001f]/g," ").trim().slice(0,n);
@@ -35,7 +39,7 @@ function collect(data,selectedSize="",selectedColor=""){
       if(selectedColor&&(!color||!normalizeColor(color).includes(normalizeColor(selectedColor))))continue;
       const seller=v.seller||p.seller||{};
       const merchant=clip(seller.name,90);
-      const merchantLink=safeUrl(p.url)||safeUrl(v.checkout_url);
+      const merchantLink=safeUrl(p.url)||safeUrl(v.url)||safeUrl(v.checkout_url);
       // Only expose merchant-owned links; never invent checkout destinations.
       if(!merchantLink)continue;
       matches.push({
@@ -66,7 +70,7 @@ async function catalog(tool,catalogArgs){
       method:"POST",signal:controller.signal,
       headers:{"content-type":"application/json","accept":"application/json"},
       body:JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/call",params:{
-        name:tool,arguments:{meta:{"ucp-agent":{profile:PROFILE}},catalog:catalogArgs}
+        name:tool,arguments:{meta:{"ucp-agent":{profile:process.env.VERCEL_ENV==="preview"?PREVIEW_PROFILE:PROFILE}},catalog:catalogArgs}
       }})
     });
     if(!response.ok)throw new Error("CATALOG_HTTP_"+response.status);

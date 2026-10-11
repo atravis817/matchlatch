@@ -49,7 +49,7 @@ Studio's catalog styling panel precedes the existing project/photo/guided tools.
 ## Verification
 
 - Node v24 syntax validation: pass for changed JS/MJS.
-- `node --test scripts/test-*.mjs`: **73/73 pass**, synthetic/network-intercepted tests, zero live importer/AI/database writes. Includes 5 new refresh safety tests and5 UX/API compatibility/diagnostic tests, existing owner/non-owner authorization and account-switch regression tests.
+- `node --test scripts/test-*.mjs`: **75/75 pass**, synthetic/network-intercepted tests, zero live importer/AI/database writes. Includes 5 new refresh safety tests and 7 UX/API compatibility/diagnostic tests, existing owner/non-owner authorization and account-switch regression tests.
 - `node scripts/check-commerce-policy.mjs`: pass, reviewed policy2.0.0 unchanged.
 - Tests prove JavaScript bounds/protocol routing and proposed SQL structure; they do **not** prove PostgreSQL execution or live data invariants.
 - Browser UI verified on READY Preview commit `b8a90a345a0f351b60d72061d84defd09756c6cc`, deployment `dpl_2r1TZtLKJdAgCWCUkubLV7mbaahd`. Subsequent proposal/provider-diagnostic/document changes do not alter the verified UI assets.
@@ -57,7 +57,7 @@ Studio's catalog styling panel precedes the existing project/photo/guided tools.
 - Embedded actual app at390/430px frame widths: body width/scrollWidth375/375 and415/415 respectively (15px scrollbar), no horizontal overflow. Source selector is full width; Studio panel is visibly first. These are Chrome CSS viewport tests, not physical iPhone/Safari tests.
 - Studio guest "Find catalog matches" opens the existing login screen. No credentials or OTPs entered, signup performed, model request, cart write or user-account change.
 - Private fixture UI denies guest load with "Verified owner sign-in required for private fixtures." Server mock tests deny guest/customer/unverified UUID; owner-authorized fixture rendering is not live-tested because no owner session is available.
-- Retailer-provider search was retained but its live Preview test failed: UI showed "We couldn't check the live catalog. You can still explore research sources." Zero cards returned. Vercel runtime evidence: Oct11 17:34:29.317UTC, GET `/api/shop`, `CATALOG_ALL_PROVIDERS_UNAVAILABLE`, deployment above, request `k8ltw-1791740068932-0669e1c7594b`. Do not describe retailer retrieval as working. Narrow Preview-only diagnostics now emit fixed upstream categories without request contents, secrets, URLs or rows; deeper provider diagnosis remains open.
+- Retailer-provider search was retained but its live Preview test failed: UI showed "We couldn't check the live catalog. You can still explore research sources." Zero cards returned. Vercel runtime evidence: Oct11 17:34:29.317UTC, GET `/api/shop`, `CATALOG_ALL_PROVIDERS_UNAVAILABLE`, deployment above, request `k8ltw-1791740068932-0669e1c7594b`. Do not describe retailer retrieval as working. Narrow Preview-only diagnostics now emit fixed upstream categories without request contents, secrets, URLs or rows; Diagnosis: HTTP422 `profile_malformed`, missing profile services; GitHub raw corrected JSON is rejected because it serves text/plain. Preview now uses Shopify’s documented public development profile for catalog reads only; Production retains its existing profile. One bounded direct upstream request returned HTTP200 and 10 products, including Monterey Bay Tie-Less - White at USD109.99, size10, available in the source snapshot. Application browser verification follows deployment. No checkout/cart/model call was made. The corrected MATCHLATCH catalog-only profile still needs approved public application/json hosting; Preview protection remains enabled.
 - Some initial cloud-browser interactions immediately after reload did not advance until repeated after load. Settled navigation/search passed. Browser-extension metadata errors were observed; the cause of the initial interaction timing has not been established. Physical-device testing remains necessary.
 - Screenshots: desktop Store, mobile390 Studio readiness and mobile430 Store source selector, saved as deliverables. No private account or payment information is included.
 
@@ -79,11 +79,12 @@ Production baseline: deployment `dpl_35psQBq1wqGoi72B3A45GgKFGuZ3`, main `302fa9
 ## Exact files changed in this sprint
 
 | Files | Purpose |
+| `ucp-agent.json` | Corrected catalog-only discovery profile schema; no Production change |
 |---|---|
 | `scripts/awin-bulk.mjs`, `scripts/awin-import.mjs`, `scripts/awin-feed-utils.mjs` | Approval gates, v2-only writes, bounded source requests, hash baseline, no legacy reconciliation |
 | `.github/workflows/awin-preview-refresh.yml`, `scripts/README-AWIN-IMPORT.md` | Disabled write provisioning/recurrence,899/5min bounds, corrected operating instructions |
 | `supabase/PROPOSED_feed_freshness_v2.sql`, `supabase/PROPOSED_feed_freshness_v2_ROLLBACK.sql` | Unexecuted migration/operational rollback proposals |
-| `api/catalog.mjs`, `api/admin-summary.mjs`, `api/shop.mjs`, `lib/catalog-fixtures.mjs` | Honest readiness/deadline empty state, existing owner-gated fictional QA, safe provider diagnostics |
+| `api/catalog.mjs`, `api/admin-summary.mjs`, `api/shop.mjs`, `lib/catalog-fixtures.mjs` | Honest readiness/deadline empty state, existing owner-gated fictional QA, safe provider diagnostics and Preview discovery profile / variant retailer URLs |
 | `index.html`, `app-shell.js`, `app-shell.css`, `catalog-experience.js`, `catalog-experience.css`, `flow-pages.css` | Single Store search, Studio visibility/entry, filters/budgets, mobile/cards/account-switch behavior |
 | `preview-responsive.html` | Unlinked actual-app responsive inspection frame; no protection bypass |
 | `scripts/test-awin-import.mjs`, `scripts/test-catalog-reliability.mjs`, `scripts/test-refresh-safety.mjs`, `scripts/test-preview-ux.mjs` | Regression, safety, owner fixtures, old/new schema mapping and redacted diagnostics |

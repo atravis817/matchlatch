@@ -46,3 +46,15 @@ test('Preview provider diagnostics expose only fixed categories, never request o
  process.env.VERCEL_ENV='production';const before=logs.length;await shop(request);assert.equal(logs.length,before);
  }finally{process.env=env;globalThis.fetch=f;console.warn=warn;console.error=error;}
 });
+test('Preview uses the documented development profile and actual variant retailer URL; Production profile remains unchanged',async()=>{
+ const {GET:shop}=await import('../api/shop.mjs');const env={...process.env},f=globalThis.fetch;const profiles=[];
+ Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_SUPABASE_URL:'https://fixture.supabase.co',MATCHLATCH_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_fixture'});
+ try{globalThis.fetch=async(url,opts)=>{if(!String(url).includes('catalog.shopify.com'))return Response.json([]);const body=JSON.parse(opts.body),c=body.params.arguments.catalog;assert.equal(body.params.name,'search_catalog');profiles.push(body.params.arguments.meta['ucp-agent'].profile);assert.equal(c.filters.ships_to.country,'US');assert.equal(c.filters.available,true);assert.equal(c.filters.price.max,12000);assert.deepEqual(c.filters.attributes,[{name:'Size',values:['10']}]);assert.ok(c.pagination.limit<=32);
+ return Response.json({result:{structuredContent:{products:[{id:'gid://shopify/p/fixture',title:'Fictional white sneaker',media:[{type:'image',url:'https://retailer.example.test/fixture.jpg'}],variants:[{id:'gid://shopify/ProductVariant/fixture',url:'https://retailer.example.test/product',checkout_url:'https://retailer.example.test/checkout',price:{amount:10999,currency:'USD'},availability:{available:true},options:[{name:'Size',label:'10'}],seller:{name:'Fictional retailer'}}]}]}}});};
+ const req=()=>new Request('https://fixture.test/api/shop?mode=search&slot=shoes&q=white%20sneakers&size=10&max=120');const r=await shop(req());assert.equal(r.status,200);const d=await r.json();assert.equal(d.items.length,1);assert.equal(d.items[0].url,'https://retailer.example.test/product');assert.equal(d.items[0].price,109.99);assert.equal(d.items[0].size,'10');assert.match(profiles[0],/^https:\/\/shopify.dev\/ucp\/agent-profiles\/examples\/2026-08-25\//);
+ process.env.VERCEL_ENV='production';assert.equal((await shop(req())).status,200);assert.equal(profiles[1],'https://matchlatch.vercel.app/ucp-agent.json');
+ }finally{process.env=env;globalThis.fetch=f;}
+});
+test('corrected MATCHLATCH profile advertises catalog reads only and declares the documented MCP service schema',()=>{
+ const p=JSON.parse(readFileSync(new URL('../ucp-agent.json',import.meta.url),'utf8')).ucp;assert.equal(p.services['dev.ucp.shopping'][0].transport,'mcp');assert.match(p.services['dev.ucp.shopping'][0].schema,/2026-08-25\/services\/shopping\/mcp.openrpc.json$/);assert.deepEqual(Object.keys(p.capabilities).sort(),['dev.shopify.catalog.global','dev.ucp.shopping.catalog.lookup','dev.ucp.shopping.catalog.search'].sort());assert.deepEqual(p.payment_handlers,{});
+});
