@@ -1,12 +1,14 @@
 import {json,config} from '../lib/catalog-server.mjs';
 import {allowRequest} from '../lib/request-limits.mjs';
 import {collectMetrics} from '../lib/admin-data.mjs';
+import {privateCatalogFixtures} from '../lib/catalog-fixtures.mjs';
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
 const cache=new Map(),pending=new Map();
 export async function GET(request){
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
  if(!allowRequest(request,'admin-summary',30))return json({error:'Rate limited'},429);
  const gate=await authorizeOwner(request);if(gate.response)return gate.response;
+ if(new URL(request.url).searchParams.get('fixtures')==='1')return json(privateCatalogFixtures());
  // Capability mode never loads metrics or uses a service-role credential.
  if(new URL(request.url).searchParams.get('capability')==='1')return json({commandCenter:true});
  const {owner}=gate;

@@ -1,6 +1,6 @@
 # MATCHLATCH Awin product ingestion — operational runbook
 
-**Status:** V1.2 development only. No public publication or automated run configured.
+**Status (2026-10-11):** shared-database migration and refresh remain NO-GO. Only synthetic tests are authorized now. No recurring job, publication or refresh executed in the safety/UX sprint. See `MATCHLATCH-CATALOG-SAFETY-UX.md` for the current protocol and remaining execution gates. Historical commands below are reference, not execution approval.
 
 ## Dependencies and secrets
 
@@ -24,7 +24,7 @@ The feed list includes membership status, last imported timestamp, and a downloa
 node scripts/awin-import.mjs
 ```
 
-Dry-run fetches feed data but **does not write**. Default cap: 200 accepted variants; max configurable cap: 1000. Initial Preview runs use `AWIN_IMPORT_LIMIT=25`.
+Dry-run fetches feed data but **does not write**. Default sample cap: 25 accepted variants; hard ceiling: 899. Invalid bounds are rejected. Initial Preview runs use `AWIN_IMPORT_LIMIT=25`.
 The default script limits advertisers to the two joined programmes confirmed on 2026-10-10: 117849 and 126793.
 Explicit non-Joined feed membership is excluded. Missing membership does not expand the approved advertiser list. Zero eligible feeds, zero valid products, or any eligible-feed download failure produces a nonzero exit and prevents writes. A successful discovery request alone does not mean a product import succeeded.
 
@@ -47,7 +47,7 @@ These use synthetic fixtures and mocked requests. They validate parsing, downloa
 AWIN_IMPORT_LIMIT=25 node scripts/awin-import.mjs --write
 ```
 
-Run only after a real dry run finds validated products. Requires server-only database write credentials. New and updated products set `is_public = false` and `shipping_us_eligible = false`; neither public-facing release nor affiliate checkout is implied by a successful import. The importer reports upserts, not newly inserted rows. Query the database before and after to establish the actual inserted count.
+Run only after a real dry run finds validated products. Requires server-only database write credentials. Writes fail closed without Preview, `MATCHLATCH_CATALOG_WRITES_APPROVED=true`, and `MATCHLATCH_FEED_FRESHNESS_V2=true`, plus separately approved and installed v2 SQL. Only advertiser 116479/feed 102556 is supported for private writes. New products set `is_public=false` and `shipping_us_eligible=false`; existing qualification flags are preserved, and existing public rows are rejected. Partial and full bounded imports never reconcile omitted records or modify partner records. The v2 importer reports inserted, updated, initialized and unchanged counters; these remain unverified until isolated SQL testing and an approved live run. Query the database before and after to establish the actual inserted count.
 
 ### Accessible feeds for private development
 
@@ -60,9 +60,9 @@ AWIN_IMPORT_LIMIT=25 node scripts/awin-import.mjs --accessible-test-feeds --writ
 node scripts/awin-verify-private.mjs
 ```
 
-This mode requires `VERCEL_ENV=preview` and the exact advertiser/feed pair in `scripts/awin-test-sources.mjs`: Watches Of USA (116479), feed 102556, merchant domain watchesofusa.com. It rejects feeds older than 48 hours. Currency, merchant destination, publisher attribution and product validation remain mandatory. New backend partner records preserve the actual directory membership and disable browsing/checkout. Existing partner records are never overwritten. Products remain private and US shipping remains unverified. Public retailer candidates are unchanged. The verification script checks 25 stored rows, affiliate attribution, anonymous invisibility (using `MATCHLATCH_SUPABASE_PUBLISHABLE_KEY`) and three image responses.
+This mode requires `VERCEL_ENV=preview` and the exact advertiser/feed pair in `scripts/awin-test-sources.mjs`: Watches Of USA (116479), feed 102556, merchant domain watchesofusa.com. It rejects feeds older than 48 hours. Currency, merchant destination, publisher attribution and product validation remain mandatory. The current importer does not insert or update partner records; the reviewed partner must already exist. Products remain private and US shipping remains unverified. Public retailer candidates are unchanged. The verification script checks 25 stored rows, affiliate attribution, anonymous invisibility (using `MATCHLATCH_SUPABASE_PUBLISHABLE_KEY`) and three image responses.
 
-Apply `supabase/awin_host_validation_fix.sql` once to repair the double-escaped hostname checks found in the live database. This changes no RLS, privileges or publication triggers.
+Historical prerequisite (do not execute during this sprint): `supabase/awin_host_validation_fix.sql` was used to repair the double-escaped hostname checks found in the live database. This changes no RLS, privileges or publication triggers.
 
 ### Release gate
 

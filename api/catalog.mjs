@@ -5,7 +5,12 @@ export async function GET(request){
  if(!allowRequest(request,'catalog',60))return json({error:'Too many catalog requests. Retry shortly.'},429);
  try{
   const u=new URL(request.url);const account=await session(request);
-  if(u.searchParams.get('mode')==='capabilities')return json({staff:await staffAccess(account),aiReady:process.env.VERCEL_ENV==='preview'&&Boolean(process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY)});
+  if(u.searchParams.get('mode')==='capabilities'){
+   const aiConfigured=process.env.VERCEL_ENV==='preview'&&Boolean(process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY);
+   const publicProducts=await retrieveCatalog();
+   return json({staff:await staffAccess(account),aiReady:aiConfigured,aiConfigured,aiConnectionVerified:false,catalogAvailable:publicProducts.length>0,catalogStatus:publicProducts.length?'available':'empty'});
+  }
+  if(u.searchParams.get('needBy'))return json({items:[],message:'Feed catalog delivery dates are not verified. Clear the deadline or use participating retailer search.',deliveryFilter:{withheld:null}});
   const max=Number(u.searchParams.get('max')||10000),slot=clean(u.searchParams.get('slot'),20),size=clean(u.searchParams.get('size'),40),q=clean(u.searchParams.get('q'),500),privateInventory=u.searchParams.get('private')==='1';
   if(!Number.isFinite(max)||max<1||max>10000||(slot&&!SLOTS.includes(slot)))return json({error:'Choose valid filters.'},400);
   const intent=q?intentFromText(q,{budget:max,size}):{query:'',budget:max,slots:slot?[slot]:[],colors:[],brands:[],size,outfit:false};

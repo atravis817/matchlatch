@@ -52,14 +52,11 @@ test('dry run selects 25 unique private rows, reports duplicates, never posts',(
 }));
 test('empty or unapproved discovery cannot write even with --write requested',()=>isolated(async()=>{
  let posts=0;globalThis.fetch=async(_url,options)=>{if(options?.method==='POST')posts++;return new Response(list('Not Joined',99999));};
- await assert.rejects(run({write:true}),/No eligible feeds/);assert.equal(posts,0);
+ await assert.rejects(run({write:true}),/Catalog writes paused/);assert.equal(posts,0);
 }));
-test('synthetic write is limited to 25 and every payload stays private',()=>isolated(async()=>{
- let posted;globalThis.fetch=async(url,options)=>{
-  if(options?.method==='POST'){posted=JSON.parse(options.body);return new Response(null,{status:204});}
-  return new Response(String(url).includes('/list/')?list():feed());
- };
- await run({write:true});assert.equal(posted.length,25);assert.ok(posted.every(row=>row.is_public===false&&row.shipping_us_eligible===false&&row.advertiser_id===117849));
+test('unapproved writes fail before discovery or a database request',()=>isolated(async()=>{
+ let calls=0;globalThis.fetch=async()=>{calls++;throw Error('Network forbidden');};
+ await assert.rejects(run({write:true}),/Catalog writes paused/);assert.equal(calls,0);
 }));
 test('errors redact the configured URL and extracted key',()=>isolated(async()=>{
  const message=safeError(Error('Credential FAKE_TEST_KEY '+process.env.AWIN_PRODUCT_FEED_API_KEY));assert.ok(!message.includes('FAKE_TEST_KEY'));assert.ok(!message.includes('https://'));
@@ -83,9 +80,9 @@ test('accessible feed import requires Preview, exact feed ID and recent timestam
   return new Response(String(url).includes('/list/')?directory:encode([Object.keys(row),Object.values(row)]));
  };
  const dry=await run({accessibleTestFeeds:true,write:false});assert.equal(dry.eligible_products,1);assert.equal(posts.length,0);
- await run({accessibleTestFeeds:true,write:true});assert.equal(posts.length,2);assert.equal(posts[0].payload.membership_status,'not_joined');assert.equal(posts[0].payload.browse_enabled,false);assert.equal(posts[0].payload.checkout_enabled,false);assert.equal(posts[1].payload[0].is_public,false);
- posts=[];directory=listing('999');await assert.rejects(run({accessibleTestFeeds:true,write:true}),/No eligible feeds/);assert.equal(posts.length,0);
- directory=listing('102556','2000-01-01 00:00:00');await assert.rejects(run({accessibleTestFeeds:true,write:true}),/downloads failed/);assert.equal(posts.length,0);
+ await assert.rejects(run({accessibleTestFeeds:true,write:true}),/Catalog writes paused/);assert.equal(posts.length,0);
+ directory=listing('999');await assert.rejects(run({accessibleTestFeeds:true,write:false}),/No eligible feeds/);assert.equal(posts.length,0);
+ directory=listing('102556','2000-01-01 00:00:00');await assert.rejects(run({accessibleTestFeeds:true,write:false}),/downloads failed/);assert.equal(posts.length,0);
 }));
 test('steel and Top model names do not classify watches as shirts',()=>{
  const source=ACCESSIBLE_TEST_SOURCES[0];

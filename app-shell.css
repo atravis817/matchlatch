@@ -329,3 +329,13 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
 
 /* Owner shortcut inherits the existing GreenGlass account-card styling. */
 a.owner-command-center{text-decoration:none;color:inherit}
+
+/* One Store form, comfortable controls on iPhone widths. */
+.store-search-form{grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}
+.store-query-field{grid-column:1/-1}
+.store-field input,.store-field select{font-size:16px;min-height:46px}
+.store-submit{min-height:46px;align-self:end;background:#303C31}
+.store-card-actions button,.store-product-actions button,.store-product-retailer{min-height:44px}
+.store-card-info,.store-search-status{overflow-wrap:anywhere}
+@media(max-width:700px){.store-search-form{grid-template-columns:repeat(2,minmax(0,1fr))}.store-submit{grid-column:1/-1}.store-product-layout{grid-template-columns:1fr}}
+@media(max-width:430px){.store-grid{grid-template-columns:1fr}.store-card-info h3{min-height:0}.store-card-cover{height:220px}}

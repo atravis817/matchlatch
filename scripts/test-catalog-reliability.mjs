@@ -24,7 +24,7 @@ test('workflow never writes on push and defaults dispatch to dry run',()=>{
 });
 test('same-runtime overlapping refresh is rejected before a second feed request',async()=>{
  const env={...process.env},f=globalThis.fetch,log=console.error;let rejectDownload,calls=0;
- Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_REFRESH_SECRET:'fixture-refresh',MATCHLATCH_REFRESH_WRITES_ENABLED:'true',AWIN_PRODUCT_FEED_API_KEY:'FAKE_TEST_KEY'});
+ Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_REFRESH_SECRET:'fixture-refresh',MATCHLATCH_REFRESH_WRITES_ENABLED:'true',MATCHLATCH_CATALOG_WRITES_APPROVED:'true',MATCHLATCH_FEED_FRESHNESS_V2:'true',AWIN_PRODUCT_FEED_API_KEY:'FAKE_TEST_KEY'});
  try{
   console.error=()=>{};globalThis.fetch=()=>{calls++;return new Promise((_,reject)=>{rejectDownload=reject;});};
   const req=()=>new Request('https://fixture.test/api/catalog-refresh',{method:'POST',headers:{authorization:'Bearer fixture-refresh'}});

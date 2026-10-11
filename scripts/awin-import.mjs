@@ -1,7 +1,8 @@
 /* MATCHLATCH Awin importer: trusted Node.js 20+, dry-run by default.
- * Explicit --write only. Every upsert remains private and US shipping unverified.
+ * Explicit --write only. New records stay private; updates preserve existing eligibility.
  */
 import {resolve} from 'node:path';
+import {writeApproval,importBound} from './awin-bulk.mjs';
 import {feedFreshness} from '../lib/feed-freshness.mjs';
 import {fileURLToPath} from 'node:url';
 import {CANDIDATES,merchantLinkAllowed} from '../lib/awin-retailers.mjs';
@@ -66,10 +67,12 @@ export function validateProduct(p,id,retailer,testSource=null) {
 }
 export const mapProduct=(p,id,retailer)=>validateProduct(p,id,retailer).product;
 export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds'),full=process.argv.includes('--full'),resumeId=process.argv.find(a=>a.startsWith('--resume='))?.slice(9)||null}={}) {
+ if(write)writeApproval();
+ const signal=AbortSignal.timeout(240000);
  if(accessibleTestFeeds&&process.env.VERCEL_ENV!=='preview')throw Error('Accessible test feeds require the Preview environment');
  if(full&&process.env.VERCEL_ENV!=='preview')throw Error('Full ingestion requires Preview');
- const key=feedKey();const maxItems=full?Math.min(50000,Math.max(1,Math.floor(Number(process.env.AWIN_BULK_LIMIT)||10000))):Math.min(1000,Math.max(1,Math.floor(Number(process.env.AWIN_IMPORT_LIMIT)||200)));
- const list=await discoverFeeds(key);
+ const key=feedKey();const maxItems=importBound(full?process.env.AWIN_BULK_LIMIT:process.env.AWIN_IMPORT_LIMIT,full?899:25);
+ const list=await discoverFeeds(key,{signal});
  const testSourceFor=row=>ACCESSIBLE_TEST_SOURCES.find(source=>source.id===Number(field(row,'advertiser_id','merchant_id'))&&source.feedId===field(row,'feed_id'));
  const approved=list.rows.filter(row=>accessibleTestFeeds?Boolean(testSourceFor(row)):APPROVED_ADVERTISERS.has(Number(field(row,'advertiser_id','merchant_id'))));
  const matchingFeeds=approved.filter(row=>accessibleTestFeeds?['joined','not joined'].includes(field(row,'membership_status').toLowerCase()):!field(row,'membership_status')||field(row,'membership_status').toLowerCase()==='joined');
@@ -88,7 +91,7 @@ export async function run({write=process.argv.includes('--write'),accessibleTest
   const src=https(field(feed,'url','download_url','feed_url','datafeed_url'),FEED_HOSTS);
   if(!src){report.push({...metadata,error:'missing_supported_feed_url'});continue;}
   try {
-   const products=await fetchCSV(src);
+   const products=await fetchCSV(src,{signal});
    const checkedAt=new Date().toISOString();
    const timestamp=metadata.last_imported?.replace(' ','T')+'Z';
    const freshness=accessibleTestFeeds?feedFreshness(timestamp,checkedAt):null;
@@ -110,29 +113,12 @@ export async function run({write=process.argv.includes('--write'),accessibleTest
  if(!all.length)throw Error('No valid products; no database writes performed');
  if(full&&report.reduce((n,feed)=>n+feed.eligible,0)>maxItems)throw Error('Full feed exceeds configured bulk bound; no database writes performed');
  if(write) {
-  const base=process.env.MATCHLATCH_SUPABASE_URL||process.env.SUPABASE_URL;const secret=process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!https(base)||!secret)throw Error('Write requires Supabase URL and server-only SUPABASE_SERVICE_ROLE_KEY');
-  if(accessibleTestFeeds){
-   for(const source of ACCESSIBLE_TEST_SOURCES.filter(source=>all.some(p=>p.advertiser_id===source.id))){
-    const feed=feeds.find(row=>testSourceFor(row)===source);
-    const partner={advertiser_id:source.id,name:source.name,website_domain:source.domains[0],category:'Private development feed',membership_status:field(feed,'membership_status').toLowerCase()==='joined'?'joined':'not_joined',feed_status:'verified',deeplink_supported:true,browse_enabled:false,checkout_enabled:false,membership_checked_at:new Date().toISOString(),feed_checked_at:new Date().toISOString()};
-    const response=await fetch(base.replace(/\/$/,'')+'/rest/v1/matchlatch_awin_partners?on_conflict=advertiser_id',{method:'POST',headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(partner),signal:AbortSignal.timeout(30000)});
-    if(!response.ok)throw Error('Private test partner insert failed: HTTP '+response.status);
-   }
-  }
-  if(full){
-   const {bulkWrite}=await import('./awin-bulk.mjs');
-   summary.import_results=await bulkWrite(all,report,{resumeId});
-   return summary;
-  }
-  for(let i=0;i<all.length;i+=100) {
-   const response=await fetch(base.replace(/\/$/,'')+'/rest/v1/matchlatch_awin_products?on_conflict=advertiser_id,source_variant_id',{
-    method:'POST',headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(all.slice(i,i+100)),signal:AbortSignal.timeout(30000)
-   });
-   if(!response.ok)throw Error('Supabase upsert failed: HTTP '+response.status);
-  }
-  console.log(JSON.stringify({stage:'private-upsert',upserted_products:all.length,public_products_created:0}));
+  // No REST upsert fallback and no partner writes. Existing qualification and
+  // publication decisions are preserved by the separately approved v2 RPCs.
+  const {bulkWrite}=await import('./awin-bulk.mjs');
+  summary.import_results=await bulkWrite(all,report,{resumeId,signal});
  }
+
  return summary;
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1]))run().catch(error=>{console.error('Importer failed:',safeError(error));process.exitCode=1;});

@@ -41,8 +41,8 @@ export function csv(text) {
  if(value||row.length){row.push(value.replace(/\r$/,''));if(row.some(Boolean))rows.push(row);}
  return rows;
 }
-export async function fetchCSV(url,{timeoutMs=45000,maxCompressedBytes=25000000,maxDecodedBytes=75000000}={}) {
- const response=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{accept:'text/csv'}});
+export async function fetchCSV(url,{signal,timeoutMs=45000,maxCompressedBytes=25000000,maxDecodedBytes=75000000}={}) {
+ const response=await fetch(url,{redirect:'error',signal:AbortSignal.any([AbortSignal.timeout(timeoutMs),...(signal?[signal]:[])]),headers:{accept:'text/csv'}});
  if(!response.ok)throw Error('Feed HTTP '+response.status);
  const chunks=[];let bytes=0;
  for await(const chunk of response.body) {
@@ -67,8 +67,8 @@ export function feedMetadata(row) {
  const url=https(field(row,'url','download_url','feed_url','datafeed_url'),FEED_HOSTS);
  return {advertiser_id:Number(field(row,'advertiser_id','merchant_id')),advertiser_name:field(row,'advertiser_name','merchant_name'),feed_id:field(row,'feed_id','id'),membership:field(row,'membership_status')||null,last_imported:field(row,'last_imported','last_updated')||null,last_checked:field(row,'last_checked')||null,product_count:Number(field(row,'no_of_products'))||0,download_url_available:Boolean(url)};
 }
-export async function discoverFeeds(key=feedKey()) {
- const result=await fetchCSV('https://productdata.awin.com/datafeed/list/apikey/'+encodeURIComponent(key),{timeoutMs:20000,maxCompressedBytes:4000000,maxDecodedBytes:4000000});
+export async function discoverFeeds(key=feedKey(),{signal}={}) {
+ const result=await fetchCSV('https://productdata.awin.com/datafeed/list/apikey/'+encodeURIComponent(key),{signal,timeoutMs:20000,maxCompressedBytes:4000000,maxDecodedBytes:4000000});
  const normalized=result.headers.map(norm);
  if(!normalized.includes('advertiserid')&&!normalized.includes('merchantid'))throw Error('Feed list lacks advertiser ID column');
  if(!normalized.includes('feedid')||!normalized.includes('url'))throw Error('Unexpected feed list column headers');
