@@ -392,7 +392,7 @@ function renderStore(){
  for(const [value,label] of supportedSlots){const option=new Option(label,value);select.add(option);}
  select.value=initialStoreSlot||storeState.slot;
  initialStoreSlot="";
- const budget=el("input");budget.type="number";budget.min="1";budget.max="10000";budget.step="5";
+ const budget=el("input");budget.type="number";budget.min="1";budget.max="10000";budget.step="0.01";
  budget.setAttribute("aria-label","Maximum price in USD");
  budget.value=String(storeState.max||p.budget||200);
  const submit=el("button","store-submit","Search store ↗");submit.type="submit";
@@ -410,7 +410,7 @@ function renderStore(){
  deadlineLabel.append(deadline,deadlineNote);
  const provider=el("select");provider.setAttribute("aria-label","Product source");
  provider.add(new Option("Reviewed feed catalog","catalog"));provider.add(new Option("Participating retailer search","retailer"));provider.value=storeState.provider;
- const providerLabel=el("label","store-field");providerLabel.append(el("span",null,"PRODUCT SOURCE"),provider);
+ const providerLabel=el("label","store-field store-source-field");providerLabel.append(el("span",null,"PRODUCT SOURCE"),provider);
  const exactSize=el("input");exactSize.type="text";exactSize.maxLength=40;exactSize.value=storeState.exactSize;exactSize.placeholder="Use saved size";exactSize.setAttribute("aria-label","Exact size");
  const sizeLabel=el("label","store-field");sizeLabel.append(el("span",null,"SIZE · OPTIONAL"),exactSize);
  const brand=el("input");brand.type="text";brand.maxLength=60;brand.value=storeState.brand;brand.setAttribute("aria-label","Brand");
@@ -538,8 +538,9 @@ function renderStore(){
  }
  // This unlinked QA mode uses the existing server UUID gate, never email.
  if(new URLSearchParams(location.search).get("catalogQa")==="1"){
+  const qaStatus=el("p","v12-store-context");qaStatus.setAttribute("role","status");box.append(qaStatus);
   const fixtures=button("Load private UI fixtures",async()=>{
-   const ticket=searchId,userId=lib()?.getUserId?.();if(!userId){status.textContent="Verified owner sign-in required for private fixtures.";return;}
+   const ticket=searchId,userId=lib()?.getUserId?.();if(!userId){qaStatus.textContent="Verified owner sign-in required for private fixtures.";return;}
    fixtures.disabled=true;
    try{const session=(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session;
     if(session?.user?.id!==userId||!session.access_token)throw Error("Owner session unavailable.");
@@ -547,7 +548,7 @@ function renderStore(){
     if(!r.ok)throw Error("Private fixtures require verified owner access.");const data=await r.json();
     if(ticket!==searchId||lib()?.getUserId?.()!==userId||!fixtures.isConnected)return;
     storeState.items=data.items;storeState.selected=null;storeState.searched=true;showStoreView("results");status.textContent=data.label;list.replaceChildren(...data.items.map(storeCard));webPanel.hidden=true;
-   }catch(e){if(ticket===searchId)status.textContent=e.message;}finally{fixtures.disabled=false;}
+   }catch(e){if(ticket===searchId)qaStatus.textContent=e.message;}finally{fixtures.disabled=false;}
   },"destination-link quiet");box.append(fixtures);
  }
  form.addEventListener("submit",async event=>{
