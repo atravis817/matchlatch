@@ -26,14 +26,20 @@ export async function POST(request){
   let model=null,visionUsed=false;const image=input.image;
   if(image!==undefined&&image!==null&&(typeof image!=='string'||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(image)||image.length>2200000))return json({error:'Choose a valid resized JPEG.'},400);
   if(image){const signature=Buffer.from(image.split(',')[1],'base64');if(signature[0]!==255||signature[1]!==216||signature[2]!==255)return json({error:'Choose a valid resized JPEG.'},400);}
-  if(input.ai===true){
+  // Establish usable, authenticated catalog coverage before reserving money or
+  // sending preferences/photos to a model. This endpoint recommends products;
+  // general styling conversation continues through its existing separate path.
+  const retrieve=()=>retrieveCatalog({max:intent.budget,slot:intent.slots.length===1?intent.slots[0]:'',size:intent.size,brand:intent.hardBrands&&intent.brands.length===1?intent.brands[0]:'',privateInventory,account});
+  let candidates=rankCandidates(await retrieve(),intent).slice(0,20);
+  const aiSkipped=input.ai===true&&!candidates.length?'no_eligible_catalog':null;
+  if(input.ai===true&&candidates.length){
    if(!process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY)return json({error:'AI is unavailable in Preview. Use catalog search while credentials are configured.'},503);
    const quota=await rpc('matchlatch_ai_reserve',{p_user:account.user.id});if(!quota.allowed)return json({error:'Today’s styling limit is reached. Catalog search remains available.'},429);
    usageId=quota.usage_id;if(quota.alert)console.warn('Development AI budget alert: reserved usage reached $3');
    const result=await modelJSON({query,profile,image});usage.input_tokens+=result.usage?.input_tokens||0;usage.output_tokens+=result.usage?.output_tokens||0;model=result.model;visionUsed=Boolean(image);intent=constrainIntent(intent,result.result,profile);
   }
-  let candidates=await retrieveCatalog({max:intent.budget,slot:intent.slots.length===1?intent.slots[0]:'',size:intent.size,brand:intent.hardBrands&&intent.brands.length===1?intent.brands[0]:'',privateInventory,account});
-  candidates=rankCandidates(candidates,intent).slice(0,20);let order=[];
+  if(model)candidates=rankCandidates(await retrieve(),intent).slice(0,20);
+  let order=[];
   if(model&&candidates.length){const result=await modelJSON({query:intent.query,profile,candidates});order=result.result.ids;usage.input_tokens+=result.usage?.input_tokens||0;usage.output_tokens+=result.usage?.output_tokens||0;}
   let look=groundedLook(candidates,intent,order);
   if(input.save===true){
@@ -48,7 +54,7 @@ export async function POST(request){
    look.savedId=id;
   }
   await meter('completed');
-  return json({...look,intent,private:privateInventory,mode:model?'ai':'catalog',model,visionUsed,personalized:input.personalize===true});
+  return json({...look,intent,private:privateInventory,mode:model?'ai':'catalog',model,visionUsed,aiSkipped,personalized:input.personalize===true});
  }catch(e){await meter('failed');console.warn('Styling request failed:',e.name);return json({error:e.status===503?e.message:'Styling is temporarily unavailable. Try catalog search.'},e.status||502);}
 }
 export const GET=()=>json({error:'Method not allowed'},405);

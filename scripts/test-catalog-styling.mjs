@@ -16,3 +16,32 @@ test('guest cannot retrieve private inventory or incur AI calls',async()=>{const
 test('missing Preview model credential returns unavailable without external calls',async()=>{const key=process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY;delete process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY;try{await assert.rejects(modelJSON({query:'watch'}),e=>e.status===503);}finally{if(key!==undefined)process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY=key;}});
 test('RPC retries transient failures and never retries authorization failures',async()=>{const f=globalThis.fetch,env={...process.env};process.env.MATCHLATCH_SUPABASE_URL='https://fixture.supabase.co';process.env.SUPABASE_SERVICE_ROLE_KEY='test-only';try{let n=0;globalThis.fetch=async()=>{n++;return n===1?new Response('',{status:503}):Response.json({ok:true});};assert.deepEqual(await rpc('fixture',{}),{ok:true});assert.equal(n,2);n=0;globalThis.fetch=async()=>{n++;return new Response('',{status:403});};await assert.rejects(rpc('fixture',{}));assert.equal(n,1);}finally{globalThis.fetch=f;process.env=env;}});
 test('structured model adapter validates supplied IDs and records usage without trusting model facts',async()=>{const env={...process.env},f=globalThis.fetch;process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY='fixture-preview-only';try{const p=privateProduct();let supplied;globalThis.fetch=async(_url,opts)=>{supplied=JSON.parse(opts.body);return Response.json({status:'completed',usage:{input_tokens:50,output_tokens:20},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({ids:[p.id]})}]}]});};const r=await modelJSON({query:'watch',candidates:[p]});assert.deepEqual(r.result.ids,[p.id]);assert.equal(r.usage.input_tokens,50);assert.equal(supplied.store,false);assert.equal(supplied.text.format.strict,true);globalThis.fetch=async()=>Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:'{"ids":["fabricated"]}'}]}]});await assert.rejects(modelJSON({query:'watch',candidates:[p]}),/Invalid model product/);}finally{process.env=env;globalThis.fetch=f;}});
+
+test('authenticated empty or filtered catalog skips model and budget reservation, including a photo',async()=>{
+ const env={...process.env},originalFetch=globalThis.fetch;
+ Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_SUPABASE_URL:'https://fixture.supabase.co',MATCHLATCH_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_fixture',MATCHLATCH_PREVIEW_OPENAI_API_KEY:'fixture-only'});
+ try{
+  for(const [index,rows] of [[],[{...row,is_public:true,shipping_us_eligible:true,price_usd:900}]].entries()){
+   const calls=[];
+   globalThis.fetch=async url=>{calls.push(String(url));if(String(url).endsWith('/auth/v1/user'))return Response.json({id:'fixture-account',is_anonymous:false});if(String(url).includes('/rest/v1/matchlatch_awin_products?'))return Response.json(rows);throw Error('Unexpected external call');};
+   const response=await POST(new Request('https://fixture.test/api/style',{method:'POST',headers:{authorization:'Bearer '+'a'.repeat(60),'x-forwarded-for':'empty-fixture-'+index},body:JSON.stringify({ai:true,query:'watch under $100',consent:true,image:'data:image/jpeg;base64,/9j/AA=='})}));
+   assert.equal(response.status,200);const body=await response.json();assert.equal(body.aiSkipped,'no_eligible_catalog');assert.equal(body.model,null);assert.equal(body.visionUsed,false);assert.deepEqual(body.products,[]);assert.match(body.message,/No eligible/);assert.equal(calls.length,2);assert.ok(calls.every(url=>!url.includes('/rpc/')&&!url.includes('openai')));
+  }
+ }finally{process.env=env;globalThis.fetch=originalFetch;}
+});
+test('covered catalog retains two model calls, persistent quota and completed metering',async()=>{
+ const env={...process.env},originalFetch=globalThis.fetch;const calls=[];
+ Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_SUPABASE_URL:'https://fixture.supabase.co',MATCHLATCH_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_fixture',SUPABASE_SERVICE_ROLE_KEY:'fixture-only',MATCHLATCH_PREVIEW_OPENAI_API_KEY:'fixture-only'});
+ try{
+  globalThis.fetch=async(url,options)=>{url=String(url);calls.push(url);
+   if(url.endsWith('/auth/v1/user'))return Response.json({id:'fixture-account',is_anonymous:false});
+   if(url.includes('/rest/v1/matchlatch_awin_products?'))return Response.json([{...row,is_public:true,shipping_us_eligible:true}]);
+   if(url.endsWith('/rpc/matchlatch_ai_reserve'))return Response.json({allowed:true,usage_id:'fixture-usage'});
+   if(url.endsWith('/rpc/matchlatch_ai_meter')){assert.equal(JSON.parse(options.body).p_outcome,'completed');return Response.json(null);}
+   if(url==='https://api.openai.com/v1/responses'){const request=JSON.parse(options.body);return Response.json({status:'completed',usage:{input_tokens:50,output_tokens:20},output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(request.text.format.name==='catalog_rank'?{ids:[privateProduct().id]}:{slots:['watch'],budget:100,colors:[],brands:[],anchor:null})}]}]});}
+   throw Error('Unexpected call');
+  };
+  const response=await POST(new Request('https://fixture.test/api/style',{method:'POST',headers:{authorization:'Bearer '+'b'.repeat(60),'x-forwarded-for':'covered-fixture'},body:JSON.stringify({ai:true,query:'watch under $100',consent:true})}));
+  assert.equal(response.status,200);const body=await response.json();assert.equal(body.mode,'ai');assert.equal(body.products.length,1);assert.equal(calls.filter(url=>url.includes('api.openai.com')).length,2);assert.ok(calls.indexOf(calls.find(url=>url.includes('matchlatch_awin_products?')))<calls.indexOf(calls.find(url=>url.includes('matchlatch_ai_reserve'))));
+ }finally{process.env=env;globalThis.fetch=originalFetch;}
+});

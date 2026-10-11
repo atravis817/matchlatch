@@ -33,7 +33,8 @@ create function matchlatch_internal.catalog_maintenance() returns void language 
 begin
  update public.matchlatch_awin_products set is_public=false where is_public and (valid_until<=now() or not available);
  update public.matchlatch_refresh_requests r set status_code=n.status_code,timed_out=n.timed_out,error=case when n.error_msg is not null then 'Network failure' when n.status_code>=400 then 'Worker HTTP failure' else null end from net._http_response n where r.request_id=n.id and r.status_code is null;
- delete from public.matchlatch_ai_usage where created_at<now()-interval '7 days';
+ -- Retain complete monthly accounting; matches the installed cost-control policy.
+ delete from public.matchlatch_ai_usage where created_at<now()-interval '90 days';
 end $$;
 revoke all on function matchlatch_internal.catalog_maintenance() from public,anon,authenticated;
 select cron.schedule('matchlatch-catalog-maintenance','37 * * * *','select matchlatch_internal.catalog_maintenance();');

@@ -2,11 +2,12 @@
 import assert from "node:assert/strict";
 import {POST} from "../api/discover.mjs";
 const previous={
- api:process.env.OPENAI_API_KEY,code:process.env.MATCHLATCH_BETA_CODE,
+ environment:process.env.VERCEL_ENV,api:process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY,code:process.env.MATCHLATCH_BETA_CODE,
  model:process.env.OPENAI_WEB_MODEL,fetch:globalThis.fetch
 };
 try{
- process.env.OPENAI_API_KEY="unit_mock_server_only";
+ process.env.VERCEL_ENV="preview";
+ process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY="unit_mock_server_only";
  process.env.MATCHLATCH_BETA_CODE="TEST_BETA_CODE_123456";
  process.env.OPENAI_WEB_MODEL="gpt-5.4";
  let upstream=null,requests=0;
@@ -67,6 +68,6 @@ try{
  console.log("Web discovery mock: authorization, exact preference prompting, citations and no-cart invariant passed.");
 }finally{
  globalThis.fetch=previous.fetch;
- for(const [k,v] of [["OPENAI_API_KEY",previous.api],["MATCHLATCH_BETA_CODE",previous.code],["OPENAI_WEB_MODEL",previous.model]])
+ for(const [k,v] of [["VERCEL_ENV",previous.environment],["MATCHLATCH_PREVIEW_OPENAI_API_KEY",previous.api],["MATCHLATCH_BETA_CODE",previous.code],["OPENAI_WEB_MODEL",previous.model]])
   if(v===undefined)delete process.env[k];else process.env[k]=v;
 }

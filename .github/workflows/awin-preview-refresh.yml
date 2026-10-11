@@ -1,9 +1,12 @@
 name: Private Preview Awin refresh
 on:
   workflow_dispatch:
-  push:
-    branches: [design/v1.2-studio-first-100926]
-    paths: [scripts/awin-import.mjs, scripts/awin-bulk.mjs, .github/workflows/awin-preview-refresh.yml]
+    inputs:
+      write:
+        description: 'Shared-database write: requires owner approval of the reviewed snapshot'
+        type: boolean
+        default: false
+# Writes are never triggered by a code push. Recurrence awaits explicit approval.
 # GitHub cron runs only from the default branch. Do not add a default-branch
 # schedule or change Production to activate this development-only workflow.
 permissions:
@@ -37,6 +40,7 @@ jobs:
       - name: Validate feed before writes
         run: node scripts/refresh-preview.mjs
       - name: Refresh private catalog
+        if: inputs.write == true
         run: node scripts/refresh-preview.mjs --write
       - name: Failure diagnostic
         if: failure()

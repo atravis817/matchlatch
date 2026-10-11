@@ -87,3 +87,10 @@ test('accessible feed import requires Preview, exact feed ID and recent timestam
  posts=[];directory=listing('999');await assert.rejects(run({accessibleTestFeeds:true,write:true}),/No eligible feeds/);assert.equal(posts.length,0);
  directory=listing('102556','2000-01-01 00:00:00');await assert.rejects(run({accessibleTestFeeds:true,write:true}),/downloads failed/);assert.equal(posts.length,0);
 }));
+test('steel and Top model names do not classify watches as shirts',()=>{
+ const source=ACCESSIBLE_TEST_SOURCES[0];
+ for(const title of ['Burberry Black Dial Stainless Steel Unisex Watch','Hugo Boss Gents Top Blue Dial Watch']){
+  const raw={...product,merchant_id:'116479',merchant_deep_link:'https://watchesofusa.com/products/watch',aw_deep_link:'https://www.awin1.com/pclick.php?p=123&a=3118944&m=116479',product_name:title,merchant_category:'Watches'};
+  const row=Object.fromEntries(Object.entries(raw).map(([key,value])=>[key.toLowerCase().replace(/[^a-z0-9]/g,''),value]));assert.equal(validateProduct(row,116479,'Watches Of USA',source).product.slot,'watch');
+ }
+});
