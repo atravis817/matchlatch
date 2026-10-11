@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {GET} from '../api/owner-access.mjs';
+import {GET} from '../api/admin-summary.mjs';
 import {createOwnerNavigation} from '../owner-navigation.mjs';
 const owner='dacbe970-070d-4eb3-ad48-31c424bc6bc0',other='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const response=data=>new Response(JSON.stringify(data));
@@ -9,7 +9,7 @@ test('capability gate shares UUID authorization and never reads analytics or use
  try{
   Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_ADMIN_USER_ID:owner,MATCHLATCH_SUPABASE_URL:'https://example.supabase.co',MATCHLATCH_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test',SUPABASE_SERVICE_ROLE_KEY:'mock-never-sent'});
   let user=null,calls=0;globalThis.fetch=async(url,options)=>{calls++;assert.ok(url.endsWith('/auth/v1/user'));assert.equal(options.headers.apikey,'sb_publishable_test');assert.ok(!JSON.stringify(options).includes('mock-never-sent'));return user?response(user):new Response('',{status:401});};
-  const req=()=>new Request('https://example.test/api/owner-access',{headers:{authorization:'Bearer '+'a'.repeat(60)}});
+  const req=()=>new Request('https://example.test/api/admin-summary?capability=1',{headers:{authorization:'Bearer '+'a'.repeat(60)}});
   process.env.VERCEL_ENV='production';assert.equal((await GET(req())).status,404);assert.equal(calls,0);
   process.env.VERCEL_ENV='preview';assert.equal((await GET(new Request('https://example.test'))).status,403);assert.equal(calls,0);
   user={id:other,email:'admin@matchlatch.company',email_confirmed_at:'2026-10-11',user_metadata:{role:'owner',username:'ADMIN'}};assert.equal((await GET(req())).status,403);

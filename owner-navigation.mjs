@@ -8,7 +8,7 @@ export function createOwnerNavigation({getUserId,getSession,fetcher=fetch,docume
   try{
    const {data,error}=await getSession();const account=data?.session;
    if(error||!account?.access_token||account.user?.id!==userId)return;
-   const r=await fetcher('/api/owner-access',{headers:{Authorization:'Bearer '+account.access_token},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(8000)});
+   const r=await fetcher('/api/admin-summary?capability=1',{headers:{Authorization:'Bearer '+account.access_token},cache:'no-store',redirect:'error',signal:AbortSignal.timeout(8000)});
    if(!r.ok)return;const capability=await r.json();
    if(ticket!==generation||target!==root||!target.isConnected||getUserId()!==userId||capability.commandCenter!==true)return;
    link=doc.createElement('a');link.href='/admin.html';link.className='profile-shortcut owner-command-center';
