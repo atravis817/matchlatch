@@ -137,7 +137,14 @@ export async function GET(request){
       ])];
       const shopify=provider[0].status==="fulfilled"?provider[0].value:null;
       const awin=provider[1].status==="fulfilled"?provider[1].value:[];
-      if(!shopify&&!awin.length)throw new Error("CATALOG_ALL_PROVIDERS_UNAVAILABLE");
+      if(!shopify&&!awin.length){
+        if(process.env.VERCEL_ENV==="preview"){
+          const reason=r=>r.status==="fulfilled"?"fulfilled_empty":/^CATALOG_[A-Z_0-9]+$/.test(r.reason?.message||"")?r.reason.message:["AbortError","TimeoutError"].includes(r.reason?.name)?r.reason.name:"PROVIDER_FAILURE";
+          // Fixed categories only: never log requests, tokens, product rows or URLs.
+          console.warn("MATCHLATCH provider status:",JSON.stringify({shopify:reason(provider[0]),awin:reason(provider[1])}));
+        }
+        throw new Error("CATALOG_ALL_PROVIDERS_UNAVAILABLE");
+      }
       const byProduct=new Map();
       if(shopify)for(const p of collect(shopify,size,color)){
         if(p.price<=max&&!byProduct.has(p.productId))byProduct.set(p.productId,p);

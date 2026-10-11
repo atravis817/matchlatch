@@ -37,3 +37,12 @@ test('one Store search, Studio-first entry, account-change clearing, and fixture
  assert.match(shell,/budget.step="0.01"/);assert.match(studio,/max.n.step='0.01'/);assert.match(shell,/preferredSize=exactSize.value.trim\(\)\|\|storeSizeFor/);assert.match(shell,/storeState.provider=provider.value/);assert.match(shell,/Product source/);assert.match(shell,/Exact size/);assert.match(shell,/Sort products/);assert.match(shell,/nextAccountId===storeAccountId/);assert.match(shell,/searchId\+\+;controller\?\.abort/);assert.match(shell,/if\(!item.fixture\)actions.append\(button\("Add to shortlist"/);
  const flow=readFileSync(new URL('../flow-pages.css',import.meta.url),'utf8');assert.match(flow,/> :not\(#studio-workspace\):not\(#catalog-studio\)/);assert.match(studio,/MatchlatchStudioFlow\?\.open\('home'\)/);assert.ok(!studio.includes("?'Ready.'"));assert.match(studio,/if\(ticket!==generation\)return/);
 });
+test('Preview provider diagnostics expose only fixed categories, never request or credential values',async()=>{
+ const {GET:shop}=await import('../api/shop.mjs');const env={...process.env},f=globalThis.fetch,warn=console.warn,error=console.error;const logs=[];
+ Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_SUPABASE_URL:'https://fixture.supabase.co',MATCHLATCH_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_fixture'});
+ try{console.warn=(...args)=>logs.push(args);console.error=()=>{};globalThis.fetch=async url=>String(url).includes('catalog.shopify.com')?new Response('secret body must never be logged',{status:403}):Response.json([]);
+ const request=new Request('https://fixture.test/api/shop?mode=search&slot=shoes&q=private-request-text&max=120');assert.equal((await shop(request)).status,503);assert.deepEqual(JSON.parse(logs[0][1]),{shopify:'CATALOG_HTTP_403',awin:'fulfilled_empty'});assert.ok(!JSON.stringify(logs).includes('private-request-text'));assert.ok(!JSON.stringify(logs).includes('secret body'));
+ globalThis.fetch=async url=>{if(String(url).includes('catalog.shopify.com'))throw Error('sensitive payload must never be logged');return Response.json([]);};await shop(request);assert.equal(JSON.parse(logs[1][1]).shopify,'PROVIDER_FAILURE');assert.ok(!JSON.stringify(logs).includes('sensitive payload'));
+ process.env.VERCEL_ENV='production';const before=logs.length;await shop(request);assert.equal(logs.length,before);
+ }finally{process.env=env;globalThis.fetch=f;console.warn=warn;console.error=error;}
+});

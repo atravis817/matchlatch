@@ -27,7 +27,7 @@ alter table public.matchlatch_awin_products add column if not exists content_cha
 alter table public.matchlatch_awin_import_runs add column if not exists pipeline_version integer;
 alter table public.matchlatch_awin_import_runs add column if not exists initialized integer not null default 0;
 create or replace function public.matchlatch_awin_begin_v2(p_advertiser integer,p_feed text,p_checksum text,p_total integer,p_batch_size integer,p_resume uuid default null)
-returns jsonb language plpgsql security invoker set search_path='' as $$
+returns jsonb language plpgsql security invoker set search_path='' set lock_timeout='3s' as $$
 declare r public.matchlatch_awin_import_runs;
 begin
  if p_advertiser is distinct from 116479 or p_feed is distinct from '102556' or coalesce(p_checksum,'')!~'^[a-f0-9]{64}$' or p_total is null or p_total not between 1 and 899 or p_batch_size is null or p_batch_size not between 1 and 200 or p_resume is not null then raise exception 'Invalid private source, bounds or resume';end if;
@@ -37,7 +37,7 @@ begin
  return jsonb_build_object('run_id',r.id,'next_batch',0,'pipeline_version',2);
 end $$;
 create or replace function public.matchlatch_awin_batch_v2(p_run uuid,p_batch integer,p_products jsonb)
-returns jsonb language plpgsql security invoker set search_path='' as $$
+returns jsonb language plpgsql security invoker set search_path='' set lock_timeout='3s' as $$
 declare r public.matchlatch_awin_import_runs;p public.matchlatch_awin_products; j jsonb; receipt jsonb; was_insert boolean; was_changed boolean; prior_hash text; prior_source timestamptz; prior_check timestamptz; ni integer:=0;nu integer:=0;ns integer:=0; nh integer:=0; prior public.matchlatch_awin_products; existed boolean; payload_hash text;
 begin
  select * into r from public.matchlatch_awin_import_runs where id=p_run for update;
@@ -62,7 +62,9 @@ begin
   on conflict(advertiser_id,source_variant_id) do update set source_product_id=excluded.source_product_id,slot=excluded.slot,title=excluded.title,description=excluded.description,brand=excluded.brand,material=excluded.material,fit=excluded.fit,size=excluded.size,color=excluded.color,image_url=excluded.image_url,product_url=excluded.product_url,affiliate_url=excluded.affiliate_url,merchant_name=excluded.merchant_name,merchant_host=excluded.merchant_host,price_usd=excluded.price_usd,original_price_usd=excluded.original_price_usd,currency=excluded.currency,size_system=excluded.size_system,available=excluded.available,stock_status=excluded.stock_status,valid_until=excluded.valid_until,source_feed_id=excluded.source_feed_id,source_updated_at=excluded.source_updated_at,source_hash=excluded.source_hash,source_checked_at=excluded.source_checked_at,content_hash=excluded.content_hash,
   content_changed_at=case when was_changed then excluded.source_checked_at else existing.content_changed_at end,
   feed_imported_at=case when existing.source_updated_at is distinct from excluded.source_updated_at or existing.source_hash is distinct from excluded.source_hash then excluded.feed_imported_at else existing.feed_imported_at end
+  where existing.is_public is false
   returning (xmax=0) into was_insert;
+  if was_insert is null or (not existed and not was_insert) then raise exception 'Concurrent product insert/publication requires review';end if;
   if was_insert then ni:=ni+1;elsif was_changed then nu:=nu+1;elsif prior_hash is null then nh:=nh+1;else ns:=ns+1;end if;
  end loop;
  receipt:=jsonb_build_object('inserted',ni,'updated',nu,'unchanged',ns,'initialized',nh,'payload_hash',payload_hash,'ids',(select jsonb_agg(x->>'source_variant_id') from jsonb_array_elements(p_products)x));
@@ -70,7 +72,7 @@ begin
  update public.matchlatch_awin_import_runs set inserted=inserted+ni,updated=updated+nu,unchanged=unchanged+ns,initialized=initialized+nh,next_batch=next_batch+1,heartbeat_at=now() where id=p_run;
  return receipt;
 end $$;
-create or replace function public.matchlatch_awin_finish_v2(p_run uuid,p_valid_ids text[]) returns jsonb language plpgsql security invoker set search_path='' as $$
+create or replace function public.matchlatch_awin_finish_v2(p_run uuid,p_valid_ids text[]) returns jsonb language plpgsql security invoker set search_path='' set lock_timeout='3s' as $$
 declare r public.matchlatch_awin_import_runs; actual_ids text[];
 begin
  select * into r from public.matchlatch_awin_import_runs where id=p_run for update;

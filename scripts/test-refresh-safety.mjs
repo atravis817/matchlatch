@@ -36,7 +36,7 @@ test('SQL proposal preserves qualification/public flags on conflict, isolates v2
  const sql=readFileSync(new URL('../supabase/PROPOSED_feed_freshness_v2.sql',import.meta.url),'utf8');
  const conflict=sql.split('on conflict(advertiser_id,source_variant_id) do update set')[1].split('returning')[0];
  assert.ok(!/shipping_us_eligible\s*=|is_public\s*=/.test(conflict));
- assert.match(sql,/Published records excluded/);assert.match(sql,/pipeline_version is distinct from 2/);assert.match(sql,/Receipt payload mismatch/);
+ assert.match(sql,/where existing.is_public is false/);assert.match(sql,/Concurrent product insert\/publication requires review/);assert.match(sql,/Published records excluded/);assert.match(sql,/pipeline_version is distinct from 2/);assert.match(sql,/Receipt payload mismatch/);
  assert.match(sql,/initialized=initialized\+nh/);assert.match(sql,/least\(r.batch_size,r.total-p_batch\*r.batch_size\)/);
  assert.ok(!/update public\.matchlatch_awin_partners|set available=false|delete from public\.matchlatch_awin_products/i.test(sql));
  assert.match(sql,/lock_timeout='3s'/);assert.match(sql,/Unexpected product changes/);assert.match(sql,/Unexpected security or trigger changes/);

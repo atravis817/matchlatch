@@ -24,7 +24,7 @@
 
 It does not modify existing v1 function definitions, indexes, triggers, policies, table grants, partner records, users or products. Existing run rows receive the zero default counter. Adding columns expands SELECT * and the table's composite row shape, including existing staff RPC responses. No new sensitive values are stored. Existing RLS, triggers and grants are retained; API mappers ignore the extra nullable fields. Automated old/proposed-row mapping regression passes; actual Production/database SQL compatibility is **not yet proven**.
 
-Preflight uses advisory/table locks, 3s lock and 30s statement timeouts, rejects running jobs, checks required legacy fail routine, role, RLS and existing new-column types. Postflight compares all existing product and run values excluding new metadata, and table ACLs/RLS/policies/triggers; asserts v2 invoker/role permissions. The transaction rolls back on assertion failure. The proposal is repeatable via IF NOT EXISTS / CREATE OR REPLACE; idempotence has been structurally reviewed, not executed in PostgreSQL.
+Preflight uses advisory/table locks, 3s lock and 30s statement timeouts, rejects running jobs, checks required legacy fail routine, role, RLS and existing new-column types. An atomic conflict predicate plus row-lock/concurrent-insert rejection protects against a product being published by another writer during a batch. v2 functions set a3s lock timeout. Postflight compares all existing product and run values excluding new metadata, and table ACLs/RLS/policies/triggers; asserts v2 invoker/role permissions. The transaction rolls back on assertion failure. The proposal is repeatable via IF NOT EXISTS / CREATE OR REPLACE; idempotence has been structurally reviewed, not executed in PostgreSQL.
 
 `supabase/PROPOSED_feed_freshness_v2_ROLLBACK.sql` is an **operational rollback**: with writers paused, refuses running jobs, drops only the three v2 functions with IF EXISTS and without CASCADE, then asserts their absence. It deliberately retains nullable evidence columns and run counters. It is not an exact schema restoration and cannot reverse already committed product batches. Do not reactivate legacy writers after rollback; they have the old unsafe semantics.
 
@@ -49,18 +49,25 @@ Studio's catalog styling panel precedes the existing project/photo/guided tools.
 ## Verification
 
 - Node v24 syntax validation: pass for changed JS/MJS.
-- `node --test scripts/test-*.mjs`: **72/72 pass**, synthetic/network-intercepted tests, zero live importer/AI/database writes. Includes 5 new refresh safety tests and4 UX/API compatibility tests, existing owner/non-owner authorization and account-switch regression tests.
+- `node --test scripts/test-*.mjs`: **73/73 pass**, synthetic/network-intercepted tests, zero live importer/AI/database writes. Includes 5 new refresh safety tests and5 UX/API compatibility/diagnostic tests, existing owner/non-owner authorization and account-switch regression tests.
 - `node scripts/check-commerce-policy.mjs`: pass, reviewed policy2.0.0 unchanged.
 - Tests prove JavaScript bounds/protocol routing and proposed SQL structure; they do **not** prove PostgreSQL execution or live data invariants.
-- Preview/browser evidence: pending deployment and live visual verification; update this section with observed results.
+- Browser UI verified on READY Preview commit `b8a90a345a0f351b60d72061d84defd09756c6cc`, deployment `dpl_2r1TZtLKJdAgCWCUkubLV7mbaahd`. Subsequent proposal/provider-diagnostic/document changes do not alter the verified UI assets.
+- Desktop actual app: one visible Store form, document/body width1348px with no overflow. White sneakers / Footwear / exact size10 / $120 / ascending price reaches loading then the actual empty result: "No verified public products meet these filters. Private development inventory is excluded." Change-search preserves those filters. Browser QA found and corrected the inherited min1/step5 budget constraint (now0.01), hidden Studio home-panel CSS, narrow mobile source selector and redundant same-guest auth clearing.
+- Embedded actual app at390/430px frame widths: body width/scrollWidth375/375 and415/415 respectively (15px scrollbar), no horizontal overflow. Source selector is full width; Studio panel is visibly first. These are Chrome CSS viewport tests, not physical iPhone/Safari tests.
+- Studio guest "Find catalog matches" opens the existing login screen. No credentials or OTPs entered, signup performed, model request, cart write or user-account change.
+- Private fixture UI denies guest load with "Verified owner sign-in required for private fixtures." Server mock tests deny guest/customer/unverified UUID; owner-authorized fixture rendering is not live-tested because no owner session is available.
+- Retailer-provider search was retained but its live Preview test failed: UI showed "We couldn't check the live catalog. You can still explore research sources." Zero cards returned. Vercel runtime evidence: Oct11 17:34:29.317UTC, GET `/api/shop`, `CATALOG_ALL_PROVIDERS_UNAVAILABLE`, deployment above, request `k8ltw-1791740068932-0669e1c7594b`. Do not describe retailer retrieval as working. Narrow Preview-only diagnostics now emit fixed upstream categories without request contents, secrets, URLs or rows; deeper provider diagnosis remains open.
+- Some initial cloud-browser interactions immediately after reload did not advance until repeated after load. Settled navigation/search passed. Browser-extension metadata errors were observed; the cause of the initial interaction timing has not been established. Physical-device testing remains necessary.
+- Screenshots: desktop Store, mobile390 Studio readiness and mobile430 Store source selector, saved as deliverables. No private account or payment information is included.
 
 ## Desktop/mobile matrix and remaining blockers
 
 | Journey | Evidence planned / required |
 |---|---|
-| Desktop guest Store | One search form; filter round trip; loading→honest empty/error; no owner navigation/private products |
-|390/430px guest Store | Actual embedded app layout, no horizontal overflow, usable inputs/buttons; screenshot |
-|390px guest Studio | Studio-first layout/readiness and signed-out account gate; no paid model invocation |
+| Desktop guest Store | Verified: one form, filter round trip, loading→catalog empty and retailer-provider error; no private cards |
+|390/430px guest Store | Verified CSS layouts/no horizontal overflow; source selector refinement and screenshots |
+|390px guest Studio | Verified visible Studio-first panel, truthful readiness and signed-out gate; no model invocation |
 |Verified owner | Manual sign-in required to exercise private fictional cards/details; existing server authorization covered synthetically |
 |Customer / account switch | API denial and stale-response clearing regression; manual live multi-account test pending |
 |Real eligible product | Imagery, retailer destination, live stock, product saving/account isolation and actual filtering require qualified fresh inventory and authorized sign-in |
@@ -68,3 +75,18 @@ Studio's catalog styling panel precedes the existing project/photo/guided tools.
 Merchant membership/advertiser permissions, feed/image usage rights, product-specific US shipping, current source freshness, accurate category/variant evidence and publication approval still block Watches Of USA shopper activation. None was fabricated or altered. No claims of live retailer inventory, working coupon redemption, guaranteed arrival or verified affiliate redemption are made.
 
 Production baseline: deployment `dpl_35psQBq1wqGoi72B3A45GgKFGuZ3`, main `302fa9c3d83263ca25c3ed6252665fb73f06c569`. No main merge, Production deployment, DNS, environment provisioning, database change, refresh dispatch or billing action performed.
+
+## Exact files changed in this sprint
+
+| Files | Purpose |
+|---|---|
+| `scripts/awin-bulk.mjs`, `scripts/awin-import.mjs`, `scripts/awin-feed-utils.mjs` | Approval gates, v2-only writes, bounded source requests, hash baseline, no legacy reconciliation |
+| `.github/workflows/awin-preview-refresh.yml`, `scripts/README-AWIN-IMPORT.md` | Disabled write provisioning/recurrence,899/5min bounds, corrected operating instructions |
+| `supabase/PROPOSED_feed_freshness_v2.sql`, `supabase/PROPOSED_feed_freshness_v2_ROLLBACK.sql` | Unexecuted migration/operational rollback proposals |
+| `api/catalog.mjs`, `api/admin-summary.mjs`, `api/shop.mjs`, `lib/catalog-fixtures.mjs` | Honest readiness/deadline empty state, existing owner-gated fictional QA, safe provider diagnostics |
+| `index.html`, `app-shell.js`, `app-shell.css`, `catalog-experience.js`, `catalog-experience.css`, `flow-pages.css` | Single Store search, Studio visibility/entry, filters/budgets, mobile/cards/account-switch behavior |
+| `preview-responsive.html` | Unlinked actual-app responsive inspection frame; no protection bypass |
+| `scripts/test-awin-import.mjs`, `scripts/test-catalog-reliability.mjs`, `scripts/test-refresh-safety.mjs`, `scripts/test-preview-ux.mjs` | Regression, safety, owner fixtures, old/new schema mapping and redacted diagnostics |
+| `MATCHLATCH-CATALOG-SAFETY-UX.md` | Verification evidence, full proposal scope, recovery gates and remaining blockers |
+
+Database objects actually changed: **none**. Proposed scope is listed above, not installed. No environment variable values were printed or provisioned. No cron/external scheduler, merchant approval, publication or shipping qualification was enabled. Real feed/image permissions, private qualified sample, full inventory/variant quality, owner-session saving and physical iOS testing remain outstanding.
