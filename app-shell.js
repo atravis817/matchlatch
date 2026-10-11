@@ -10,7 +10,8 @@ const snapshot=()=>lib()?.discoverySnapshot?.()||{collections:[],inspirations:[]
 const profile=()=>{
  const base=window.MatchlatchStyleProfile?.get?.()||{};
  try{
-  const quiz=window.MatchlatchLibrary?.isSignedIn?.()?JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null"):null;
+  const accountId=window.MatchlatchLibrary?.getUserId?.();
+ const quiz=accountId?JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1-"+accountId)||"null"):null;
   if(quiz?.version!==1||!quiz.answers||typeof quiz.answers!=="object")return base;
   const labels=["Everyday vibe","Silhouette","Palette","Pattern","Layering","Occasion","Footwear","Priority","Accessories","Fabric","Denim","Top","Jacket","Trends","Inspiration","Contrast","Season","Complexity","Brands","AI goal"];
   const traits=Object.entries(quiz.answers).filter(([index,value])=>/^\d{1,2}$/.test(index)&&+index<20&&typeof value==="string"&&value.length<50).slice(0,12).map(([i,value])=>labels[+i]+": "+value);
@@ -18,7 +19,8 @@ const profile=()=>{
  }catch{return base;}
 };
 const SHIPPING_KEY="matchlatch-shipping-region-v12";
-const shippingZip=()=>{if(!window.MatchlatchLibrary?.isSignedIn?.())return "";try{const z=localStorage.getItem(SHIPPING_KEY)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
+const shippingKey=()=>{const id=lib()?.getUserId?.();return id?SHIPPING_KEY+"-"+id:null;};
+const shippingZip=()=>{const key=shippingKey();if(!key)return "";try{const z=localStorage.getItem(key)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
 const shippingInfo=item=>{
  const zip=shippingZip(),label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
  const verified=item?.delivery?.tier==="retailer_confirmed"?item.delivery:null;
@@ -693,7 +695,7 @@ function renderMePreferences(){
    if(!lib()?.requireAccount?.(()=>showPage("account")))return;
   const value=input.value.trim();
   if(value&&!/^\d{5}$/.test(value)){zipStatus.textContent="Enter a valid five-digit US ZIP code.";return;}
-  try{if(value)localStorage.setItem(SHIPPING_KEY,value);else localStorage.removeItem(SHIPPING_KEY);
+  try{const key=shippingKey();if(!key)throw Error("Sign in required");if(value)localStorage.setItem(key,value);else localStorage.removeItem(key);
    zipStatus.textContent=value?"Destination saved on this device.":"Destination cleared.";
   }catch{zipStatus.textContent="Local storage is unavailable. Destination not saved.";}
  },"destination-link"));
