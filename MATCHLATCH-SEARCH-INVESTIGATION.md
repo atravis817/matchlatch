@@ -53,3 +53,9 @@ All9 partners have browse=false and checkout=false. No authorized footwear feed 
 6. Expand footwear then tops/bottoms/outerwear/accessories with approved retailer feeds; monitor per-type qualified counts and freshness. A working model connection is not catalog readiness.
 
 Remaining: live signed-in Studio reproduction and owner catalog tests require an authorized session; historical user's exact request/body was not captured. No real AI expenditure performed. Public stock, coupons, checkout and affiliate conversion remain unverified. Public ranking still retrieves bounded pages; more complex profile/fit filters and private RPC color predicates require further design, not unsafe DB alteration.
+
+## Deployment and browser verification
+
+Search fix commit `cca62b099e5f6ba90ac4348682ab0f6d198e5887`, Preview deployment `dpl_5yCgn9RWwHkNwK5m2MBdQsbpFqz5`, READY. Actual browser Studio→Store handoff preserved black sneaker, Footwear,size10,maxUSD120, participating retailer source. Query remained user-driven; no hidden AI call. Retailer search correctly remained empty under exact-black constraints. Direct live execution of `/api/shop` mapper returned one source-available Women's Court Graffik Shoes, Black/Hot Pink,size10,USD52.50 (not exact solid black). This is upstream source evidence, not independently confirmed stock or shipping.
+
+Actual public reviewed-feed browser search black sneaker returned the new qualified-public-Awin empty state. Black watch tested with maxUSD10000 and no exact size to isolate visibility rather than price/size. Both return no public inventory; no private records exposed. Signed-in `/api/style` exact requests were tested using mocked authorization and zero AI/quota calls, not a live owner session. Taxonomy follow-up in `MATCHLATCH-UNIFIED-SEARCH-ARCHITECTURE.md` includes899 real titles shadow-classified and89 total tests.
