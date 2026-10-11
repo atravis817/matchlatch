@@ -67,7 +67,7 @@
   };
   const setGuest=()=>{
     activeUser=null;
-    setState(guestState());
+    setState(empty()); // Never restore legacy personal library into a signed-out session.
     window.MatchlatchStyleProfile?.apply?.({}); // Neutral defaults after sign-out, not legacy guest preferences.
     if(activePage==="account")renderAccount();
   };
