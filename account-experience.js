@@ -58,6 +58,7 @@ function launch(){
   if(mode==="login"){
    h.textContent="Welcome back";
    form.append(field("email","Email","email",true),field("password","Password","password",true));
+   form.elements.password.autocomplete="current-password";
    const go=btn("Log in","submit");go.className="ml-account-primary";form.append(go);
    extra.append(switchMode);switchMode.textContent="Sign up";
    const passkey=btn("Sign in with Face ID / passkey");passkey.className="ml-account-secondary";
