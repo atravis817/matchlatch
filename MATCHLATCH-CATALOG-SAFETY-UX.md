@@ -79,8 +79,8 @@ Production baseline: deployment `dpl_35psQBq1wqGoi72B3A45GgKFGuZ3`, main `302fa9
 ## Exact files changed in this sprint
 
 | Files | Purpose |
-| `ucp-agent.json` | Corrected catalog-only discovery profile schema; no Production change |
 |---|---|
+| `ucp-agent.json` | Corrected catalog-only discovery profile schema; no Production change |
 | `scripts/awin-bulk.mjs`, `scripts/awin-import.mjs`, `scripts/awin-feed-utils.mjs` | Approval gates, v2-only writes, bounded source requests, hash baseline, no legacy reconciliation |
 | `.github/workflows/awin-preview-refresh.yml`, `scripts/README-AWIN-IMPORT.md` | Disabled write provisioning/recurrence,899/5min bounds, corrected operating instructions |
 | `supabase/PROPOSED_feed_freshness_v2.sql`, `supabase/PROPOSED_feed_freshness_v2_ROLLBACK.sql` | Unexecuted migration/operational rollback proposals |
@@ -91,3 +91,9 @@ Production baseline: deployment `dpl_35psQBq1wqGoi72B3A45GgKFGuZ3`, main `302fa9
 | `MATCHLATCH-CATALOG-SAFETY-UX.md` | Verification evidence, full proposal scope, recovery gates and remaining blockers |
 
 Database objects actually changed: **none**. Proposed scope is listed above, not installed. No environment variable values were printed or provisioned. No cron/external scheduler, merchant approval, publication or shipping qualification was enabled. Real feed/image permissions, private qualified sample, full inventory/variant quality, owner-session saving and physical iOS testing remain outstanding.
+
+## Final retailer validation — 2026-10-11
+
+Preview code commit `16de7281fb13e2baec11d3856294f1c3d0b2cd50`, deployment `dpl_6ZGked68XY2NEiXpGK2FjgAfvhic` READY. Direct execution of the actual GET mapper against the live public Shopify service returned HTTP200 and two size10 products under USD120: DC Shoes Women’s Court Graffik Shoes USD52.50 and DTLR Nike Air Force 1 ’07 USD99.98, with HTTPS images and retailer variant links. Source available flags are snapshots; delivery evidence remained unknown. No independent stock, shipping, coupon redemption, affiliate authorization or checkout test. Exact white filtering can conservatively yield no matches: composite White/M Silver does not satisfy exact White and missing variant color is withheld. Do not relax this gate automatically.
+
+Live browser on this READY deployment: sneakers / footwear / size10 / maxUSD120 produced **4 listings, 3 retailers**: DC Shoes Women’s Court Graffik USD52.50; Earth Penny USD69.99; Earth Netta USD69.99; Shoe Palace Dunk Low Retro SE USD79.98. All four images loaded. DC Shoes product detail displayed size10, price52.50 and its HTTPS variant product URL. Guest Add to shortlist opened sign-in; no user data was written. Desktop proof: `../safety-ux-evidence/matchlatch-safety-live-retailer.jpg`. Earlier retailer error was resolved; exact-white test remained honestly empty. No standalone retailer checkout/stock/shipping/attribution verification. Production deployment checked again unchanged.
