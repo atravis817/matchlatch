@@ -78,7 +78,11 @@ function renderWorkspace(){
  const tags=el("div","v12-context-tags");
  for(const [label,value] of values)tags.append(el("span","v12-context-tag",label+" · "+value));
  context.append(tags);
- context.append(button("Edit style in Me ↗",()=>{showPage("account");window.MatchlatchMeFlow?.open("preferences");},"destination-link quiet"));
+ context.append(button("Edit style in Me ↗",()=>{
+  const openPreferences=()=>{if(lib()?.showPage?.("account")!==false)window.MatchlatchMeFlow?.open("preferences");};
+  if(!lib()?.requireAccount?.(openPreferences))return;
+  openPreferences();
+ },"destination-link quiet"));
  target.append(context);
  const actions=el("div","studio-entry-grid");
  const newCard=el("article","studio-entry studio-entry-primary");
