@@ -27,10 +27,10 @@ export async function GET(request){
   const since=new Date(now.getTime()-7*86400000).toISOString();
   const c=path=>count(path,key,base,key);
   const [products,publicProducts,eligible,available,usersWithRecords,looks,aiRequests,aiCompleted,aiFailed]=await Promise.all([
-   c('matchlatch_awin_products?select=id'),
-   c('matchlatch_awin_products?select=id&is_public=eq.true'),
-   c('matchlatch_awin_products?select=id&is_public=eq.true&shipping_us_eligible=eq.true&available=eq.true'),
-   c('matchlatch_awin_products?select=id&available=eq.true'),
+   c('matchlatch_awin_products?select=source_variant_id'),
+   c('matchlatch_awin_products?select=source_variant_id&is_public=eq.true'),
+   c('matchlatch_awin_products?select=source_variant_id&is_public=eq.true&shipping_us_eligible=eq.true&available=eq.true'),
+   c('matchlatch_awin_products?select=source_variant_id&available=eq.true'),
    c('matchlatch_records?select=user_id&is_deleted=eq.false'),
    c('matchlatch_records?select=user_id&kind=eq.looks&is_deleted=eq.false'),
    c('matchlatch_ai_usage?select=id&created_at=gte.'+encodeURIComponent(since)),
