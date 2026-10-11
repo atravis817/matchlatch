@@ -337,7 +337,7 @@
     if(!["mood","studio","store","styles","account"].includes(page))page="studio";
     if(!["store","studio"].includes(page)&&!loggedIn()) {
       requireAccount(()=>showPage(page,updateHash));
-      return;
+      return false;
     }
     guestStudioLanding=page==="studio"&&!loggedIn();
     activePage=page;
@@ -355,6 +355,7 @@
     if(page==="account")renderAccount();
     window.dispatchEvent(new CustomEvent("matchlatch:page",{detail:{page}}));
     window.scrollTo({top:0,behavior:"auto"});
+    return true;
   }
   function readLocation() {
     const hash=(location.hash||"").replace("#","").split("?")[0].split("/")[0].toLowerCase();
