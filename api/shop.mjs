@@ -1,14 +1,11 @@
+import {catalog,collectShopify,discoverProducts,parseDiscoveryRequest,STUDIO_PERMISSIONS} from '../lib/shopify-discovery.mjs';
+import {discoveryFixtureTransport} from '../lib/discovery-fixtures.mjs';
+import {allowRequest} from '../lib/request-limits.mjs';
 import {searchAwin,verifyAwin,postgrestConfig} from "../lib/awin-public-catalog.mjs";
 import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
 // MATCHLATCH Private Shop: live Shopify Global Catalog UCP interface.
 // No server-side catalog-result caching. A listing is displayed only when a
 // purchasable variant is explicitly reported available at a valid USD price.
-const CATALOG="https://catalog.shopify.com/api/ucp/mcp";
-const PROFILE="https://matchlatch.vercel.app/ucp-agent.json";
-// Shopify's documented public development profile. Our protected Preview
-// profile cannot be fetched externally; no protection bypass is introduced.
-// Only catalog tools are called. This is not a MATCHLATCH profile-hosting claim.
-const PREVIEW_PROFILE="https://shopify.dev/ucp/agent-profiles/examples/2026-08-25/valid-with-capabilities.json";
 const SLOTS=new Set(["hat","scarf","jacket","shirt","watch","belt","pants","socks","shoes"]);
 const gid=/^gid:\/\/shopify\/(?:p\/[A-Za-z0-9_-]+|ProductVariant\/[A-Za-z0-9_-]+)$/;
 const clip=(s,n)=>String(s??"").replace(/[\u0000-\u001f]/g," ").trim().slice(0,n);
@@ -62,33 +59,18 @@ function collect(data,selectedSize="",selectedColor=""){
   }
   return matches;
 }
-async function catalog(tool,catalogArgs){
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),11000);
-  try{
-    const response=await fetch(CATALOG,{
-      method:"POST",signal:controller.signal,
-      headers:{"content-type":"application/json","accept":"application/json"},
-      body:JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/call",params:{
-        name:tool,arguments:{meta:{"ucp-agent":{profile:process.env.VERCEL_ENV==="preview"?PREVIEW_PROFILE:PROFILE}},catalog:catalogArgs}
-      }})
-    });
-    if(!response.ok)throw new Error("CATALOG_HTTP_"+response.status);
-    const result=await response.json();
-    if(result.error||result.result?.isError)throw new Error("CATALOG_REJECTED");
-    let structured=result.result?.structuredContent;
-    if(!structured&&Array.isArray(result.result?.content)){
-      const txt=result.result.content.find(x=>x.type==="text")?.text;
-      if(txt){try{structured=JSON.parse(txt);}catch{}}
-    }
-    if(!structured||(!Array.isArray(structured.products)&&!structured.product))throw new Error("CATALOG_BAD_RESPONSE");
-    return structured;
-  }finally{clearTimeout(timeout);}
-}
 export async function GET(request){
   try{
     const u=new URL(request.url);
     const mode=u.searchParams.get("mode")||"search";
+    if(mode==='studio-demo'){
+      if(process.env.VERCEL_ENV!=='preview')return reply({error:'Not found'},404);
+      if(!allowRequest(request,'studio-demo',30))return reply({error:'Too many demonstration requests.'},429);
+      if(u.searchParams.get('save')||u.searchParams.get('ai'))return reply({error:'Saving and model calls are disabled in the fictional demonstration.'},403);
+      try{const intent=parseDiscoveryRequest(u.searchParams.get('q')||'',{max:u.searchParams.get('max')||200,size:u.searchParams.get('size')||'',sizeSystem:u.searchParams.get('sizeSystem')||'',color:u.searchParams.get('color')||'',allowMixed:u.searchParams.get('mixed')==='1',country:u.searchParams.get('country')||'US'});
+       return reply({...await discoverProducts(intent,{transport:discoveryFixtureTransport,fixture:true}),permissions:STUDIO_PERMISSIONS});
+      }catch{return reply({error:'Choose one product type, US destination, and a budget from $1 to $10,000.'},400);}
+    }
     const max=Number(u.searchParams.get("max"));
     const size=clip(u.searchParams.get("size"),36);
     const color=clip(u.searchParams.get("color"),50);
@@ -104,6 +86,8 @@ export async function GET(request){
       return reply({
         catalog:"Shopify Global Catalog + approved Awin feeds",
         access:"Shopify live catalog and approved, verified Awin merchant-feed snapshots; no website crawling",
+        studioDiscovery:STUDIO_PERMISSIONS,
+        studioDemoAvailable:process.env.VERCEL_ENV==='preview',
         retailerDirectoryAvailable:false,
         retailerNames:[],
         criteria:{
@@ -124,7 +108,9 @@ export async function GET(request){
       const q=clip(u.searchParams.get("q"),170);
       if(!SLOTS.has(slot)||q.length<2||!/^[A-Za-z0-9]/.test(q)||!Number.isFinite(max)||max<1||max>10000)
         return reply({error:"Invalid search criteria."},400);
-      const filters={available:true,ships_to:destination,condition:["new"],price:{max:Math.floor(max*100)}};
+      let discoveryIntent=null;
+      if(process.env.VERCEL_ENV==='preview'){try{discoveryIntent=parseDiscoveryRequest(q,{max,size,color});}catch{return reply({error:'Choose one product type and valid exact constraints.'},400);}}
+      const filters={available:true,ships_to:destination,condition:["new"],price:{max:discoveryIntent?.maxCents??Math.floor(max*100)}};
       const attributes=[];
       if(size)attributes.push({name:"Size",values:[size]});
       if(color)attributes.push({name:"Color",values:[color]});
@@ -133,7 +119,7 @@ export async function GET(request){
         catalog("search_catalog",{
           query:q+" "+slot,
           filters,context:{address_country:"US",...(region?{address_region:region}:{}),...(postal?{postal_code:postal}:{}),currency:"USD"},
-          pagination:{limit:32}
+          pagination:{limit:process.env.VERCEL_ENV==='preview'?10:32}
         }),
         // Reads only RLS-published, joined + verified + fresh Awin feed rows.
         // Awin feed downloads never run in a shopper's request.
@@ -150,7 +136,8 @@ export async function GET(request){
         throw new Error("CATALOG_ALL_PROVIDERS_UNAVAILABLE");
       }
       const byProduct=new Map();
-      if(shopify)for(const p of collect(shopify,size,color)){
+      const normalized=shopify?(process.env.VERCEL_ENV==='preview'?collectShopify(shopify,{...discoveryIntent,legacySlot:slot}).items:collect(shopify,size,color)):[];
+      for(const p of normalized){
         if(p.price<=max&&!byProduct.has(p.productId))byProduct.set(p.productId,p);
       }
       for(const item of awin){
@@ -202,7 +189,7 @@ export async function GET(request){
         id,filters:{ships_to:destination,available:true},
         context:{address_country:"US",...(region?{address_region:region}:{}),...(postal?{postal_code:postal}:{})}
       });
-      const item=collect(data,size,color).find(x=>x.variantId===variantId&&x.price<=max);
+      const item=(process.env.VERCEL_ENV==='preview'?collectShopify(data,{size,color,maxCents:Math.floor(max*100)}).items:collect(data,size,color)).find(x=>x.variantId===variantId&&x.price<=max);
       if(!item)return reply({error:"Item is no longer confirmed available in this size and budget. Choose another."},409);
       return reply({item,checkedAt:new Date().toISOString()});
     }

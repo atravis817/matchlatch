@@ -1,3 +1,4 @@
+import {STUDIO_PERMISSIONS} from '../lib/shopify-discovery.mjs';
 import {allowRequest} from '../lib/request-limits.mjs';
 import {json,session,staffAccess,retrieveCatalog,database,clean,SLOTS} from '../lib/catalog-server.mjs';
 import {intentFromText,constrainIntent,rankCandidates,groundedLook,modelJSON,catalogEmptyMessage} from '../lib/styling-engine.mjs';
@@ -12,6 +13,7 @@ export async function POST(request){
   const account=await session(request);if(!account)return json({error:'Sign in to personalize or save a look.'},401);
   const raw=await request.text();if(raw.length>2250000)return json({error:'Request too large.'},413);
   let input;try{input=JSON.parse(raw);}catch{return json({error:'Invalid request.'},400);}
+  if(input.source==='shopify'||input.provider==='shopify_catalog'||input.source==='fixture'||input.provider==='fixture'||input.demo===true)return json({error:STUDIO_PERMISSIONS.reason,permissionStatus:STUDIO_PERMISSIONS,model:null,aiSkipped:'permission_unverified'},403);
   if(input.consent!==true)return json({error:'Choose whether to use your style preferences for this request.'},400);
   const privateInventory=input.private===true;if(privateInventory&&!await staffAccess(account))return json({error:'Staff access required.'},403);
   let profile={};

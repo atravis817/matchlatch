@@ -8,7 +8,7 @@ export async function GET(request){
   if(u.searchParams.get('mode')==='capabilities'){
    const aiConfigured=process.env.VERCEL_ENV==='preview'&&Boolean(process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY);
    const publicProducts=await retrieveCatalog();
-   return json({staff:await staffAccess(account),aiReady:aiConfigured,aiConfigured,aiConnectionVerified:false,catalogAvailable:publicProducts.length>0,catalogStatus:publicProducts.length?'available':'empty'});
+   return json({staff:await staffAccess(account),aiReady:aiConfigured,aiConfigured,aiConnectionVerified:false,catalogAvailable:publicProducts.length>0,catalogStatus:publicProducts.length?'available':'empty',studioDemoAvailable:process.env.VERCEL_ENV==='preview',studioLiveDiscovery:false});
   }
   if(u.searchParams.get('needBy'))return json({items:[],message:'Feed catalog delivery dates are not verified. Clear the deadline or use participating retailer search.',deliveryFilter:{withheld:null}});
   const max=Number(u.searchParams.get('max')||10000),slot=clean(u.searchParams.get('slot'),20),size=clean(u.searchParams.get('size'),40),q=clean(u.searchParams.get('q'),500),privateInventory=u.searchParams.get('private')==='1';

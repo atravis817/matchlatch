@@ -13,7 +13,7 @@ test('canonical taxonomy covers fashion synonyms without classifying by a brand 
 });
 test('watch accessories, unsupported legacy categories and multiple types require review',()=>{
  const strap=classifyProduct({title:'Black watch strap'});assert.equal(strap.productType,'watch_strap');assert.equal(strap.reviewRequired,true);
- assert.equal(classifyProduct({title:'Watch and shirt bundle'}).productType,null);assert.equal(classifyProduct({title:'Black dress'}).reasons[0],'legacy_category_not_supported');
+ assert.equal(classifyProduct({title:'Watch and shirt bundle'}).productType,null);assert.equal(classifyProduct({title:'Black dress'}).reviewRequired,false);assert.equal(classifyProduct({title:'Black skirt'}).reasons[0],'legacy_category_not_supported');
  const dressWatch=classifyProduct({title:"Emporio Armani AR11104 Dress Quartz Men's Watch",slot:'shirt'});assert.equal(dressWatch.productType,'watch');assert.ok(dressWatch.contextRules.includes('dress_watch_modifier_disambiguation'));assert.ok(dressWatch.reviewRequired);
 });
 test('composite color evidence does not invent primary color or claim exact solid black',()=>{

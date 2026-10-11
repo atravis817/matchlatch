@@ -300,7 +300,7 @@ check(shop.includes('if(mode==="capabilities")')
   &&shop.includes('merchantId:clip(seller.id,120)'),
   "Catalog reports observed shops without fabricating a global retailer directory");
 check(shop.includes('ships_to:destination')
-  &&shop.includes('const item=collect(data,size,color)')
+  &&shop.includes('collectShopify(data,{size,color,maxCents:')&&shop.includes(':collect(data,size,color)')
   &&shop.includes('shippingCost:null,deliveryEstimate:null')
   &&shop.includes('lowStock:v.availability?.running_low===true'),
   "Retailer filter checks variant price, stock, size, color and US shipping eligibility");
