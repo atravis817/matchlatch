@@ -25,7 +25,7 @@ test('authenticated empty or filtered catalog skips model and budget reservation
    const calls=[];
    globalThis.fetch=async url=>{calls.push(String(url));if(String(url).endsWith('/auth/v1/user'))return Response.json({id:'fixture-account',is_anonymous:false});if(String(url).includes('/rest/v1/matchlatch_awin_products?'))return Response.json(rows);throw Error('Unexpected external call');};
    const response=await POST(new Request('https://fixture.test/api/style',{method:'POST',headers:{authorization:'Bearer '+'a'.repeat(60),'x-forwarded-for':'empty-fixture-'+index},body:JSON.stringify({ai:true,query:'watch under $100',consent:true,image:'data:image/jpeg;base64,/9j/AA=='})}));
-   assert.equal(response.status,200);const body=await response.json();assert.equal(body.aiSkipped,'no_eligible_catalog');assert.equal(body.model,null);assert.equal(body.visionUsed,false);assert.deepEqual(body.products,[]);assert.match(body.message,/No eligible/);assert.equal(calls.length,2);assert.ok(calls.every(url=>!url.includes('/rpc/')&&!url.includes('openai')));
+   assert.equal(response.status,200);const body=await response.json();assert.equal(body.aiSkipped,'no_eligible_catalog');assert.equal(body.model,null);assert.equal(body.visionUsed,false);assert.deepEqual(body.products,[]);assert.match(body.message,/No matching qualified public Awin/);assert.equal(body.retailerSearchIncluded,false);assert.equal(calls.length,2);assert.ok(calls.every(url=>!url.includes('/rpc/')&&!url.includes('openai')));
   }
  }finally{process.env=env;globalThis.fetch=originalFetch;}
 });

@@ -523,7 +523,7 @@ function renderStore(){
  const view=requestedView==="search"&&storeState.searched&&!initialStoreQuery?
   "results":requestedView;
  if(initialStoreQuery){
-  status.textContent="Your mood is ready to shop. Choose a category and search.";
+  status.textContent="Your request is ready. Confirm the source and category, then search.";
   initialStoreQuery="";
  }else if(storeState.searched){
   status.textContent="Previous results · prices and availability may have changed. Search again to refresh.";
@@ -803,6 +803,14 @@ window.addEventListener("matchlatch:auth-user",()=>{
  if(location.hash.startsWith("#store"))renderStore();
 });
 window.addEventListener("matchlatch:page",event=>renderDestination(event.detail?.page));
+window.addEventListener("matchlatch:retailer-search",event=>{
+ const d=event.detail||{};const q=String(d.query||"").slice(0,170),max=Number(d.max);
+ searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.criteria=null;storeState.searched=false;
+ storeState.query=q;storeState.provider="retailer";storeState.exactSize=String(d.size||"").slice(0,40);storeState.brand="";storeState.needBy="";
+ storeState.slot=supportedSlots.some(([slot])=>slot===d.slot)?d.slot:"shirt";
+ storeState.max=Number.isFinite(max)&&max>=1&&max<=10000?max:200;
+ initialStoreQuery=q;initialStoreSlot=storeState.slot;showPage("store");renderStore();
+});
 window.addEventListener("matchlatch:library",()=>{
  const current=(location.hash||"#studio").slice(1);
  if(current==="studio"||current==="mood"||current==="closet"||current==="styles")renderDestination(current);

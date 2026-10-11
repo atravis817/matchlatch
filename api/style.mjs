@@ -1,6 +1,6 @@
 import {allowRequest} from '../lib/request-limits.mjs';
 import {json,session,staffAccess,retrieveCatalog,database,clean,SLOTS} from '../lib/catalog-server.mjs';
-import {intentFromText,constrainIntent,rankCandidates,groundedLook,modelJSON} from '../lib/styling-engine.mjs';
+import {intentFromText,constrainIntent,rankCandidates,groundedLook,modelJSON,catalogEmptyMessage} from '../lib/styling-engine.mjs';
 import {rpc} from '../scripts/awin-bulk.mjs';
 export async function POST(request){
  if(!allowRequest(request,'style',20))return json({error:'Too many styling requests. Retry shortly.'},429);
@@ -29,7 +29,7 @@ export async function POST(request){
   // Establish usable, authenticated catalog coverage before reserving money or
   // sending preferences/photos to a model. This endpoint recommends products;
   // general styling conversation continues through its existing separate path.
-  const retrieve=()=>retrieveCatalog({max:intent.budget,slot:intent.slots.length===1?intent.slots[0]:'',size:intent.size,brand:intent.hardBrands&&intent.brands.length===1?intent.brands[0]:'',privateInventory,account});
+  const retrieve=()=>retrieveCatalog({max:intent.budget,slot:intent.slots.length===1?intent.slots[0]:'',size:intent.size,brand:intent.hardBrands&&intent.brands.length===1?intent.brands[0]:'',colors:intent.hardColors?intent.colors:[],productType:!intent.outfit&&/\bsneaker\b/.test(intent.query)?'sneaker':'',privateInventory,account});
   let candidates=rankCandidates(await retrieve(),intent).slice(0,20);
   const aiSkipped=input.ai===true&&!candidates.length?'no_eligible_catalog':null;
   if(input.ai===true&&candidates.length){
@@ -42,6 +42,7 @@ export async function POST(request){
   let order=[];
   if(model&&candidates.length){const result=await modelJSON({query:intent.query,profile,candidates});order=result.result.ids;usage.input_tokens+=result.usage?.input_tokens||0;usage.output_tokens+=result.usage?.output_tokens||0;}
   let look=groundedLook(candidates,intent,order);
+  if(!look.products.length)look.message=catalogEmptyMessage(intent,{privateInventory});
   if(input.save===true){
    if(!Array.isArray(input.ids)||!input.ids.length||input.ids.length>6||new Set(input.ids).size!==input.ids.length||input.ids.some(id=>!candidates.some(p=>p.id===id)))return json({error:'Selected products must still meet your catalog constraints.'},409);
    const selected=input.ids.map(id=>candidates.find(p=>p.id===id));
@@ -54,7 +55,7 @@ export async function POST(request){
    look.savedId=id;
   }
   await meter('completed');
-  return json({...look,intent,private:privateInventory,mode:model?'ai':'catalog',model,visionUsed,aiSkipped,personalized:input.personalize===true});
+  return json({...look,intent,private:privateInventory,source:'qualified_awin_catalog',retailerSearchIncluded:false,noMatchReason:look.products.length?null:'no_eligible_catalog_matches',mode:model?'ai':'catalog',model,visionUsed,aiSkipped,personalized:input.personalize===true});
  }catch(e){await meter('failed');console.warn('Styling request failed:',e.name);return json({error:e.status===503?e.message:'Styling is temporarily unavailable. Try catalog search.'},e.status||502);}
 }
 export const GET=()=>json({error:'Method not allowed'},405);

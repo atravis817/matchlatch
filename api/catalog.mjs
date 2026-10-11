@@ -1,6 +1,6 @@
 import {allowRequest} from '../lib/request-limits.mjs';
 import {json,session,staffAccess,retrieveCatalog,clean,SLOTS} from '../lib/catalog-server.mjs';
-import {intentFromText,rankCandidates} from '../lib/styling-engine.mjs';
+import {intentFromText,rankCandidates,catalogEmptyMessage} from '../lib/styling-engine.mjs';
 export async function GET(request){
  if(!allowRequest(request,'catalog',60))return json({error:'Too many catalog requests. Retry shortly.'},429);
  try{
@@ -17,9 +17,9 @@ export async function GET(request){
   if(slot){if(intent.slots.length&&!intent.slots.includes(slot))return json({items:[],message:'The category conflicts with your request.',private:privateInventory});intent.slots=[slot];}
   const brand=clean(u.searchParams.get('brand')||(intent.hardBrands&&intent.brands.length===1?intent.brands[0]:''),60),offset=Number(u.searchParams.get('offset')||0);
   if(!Number.isInteger(offset)||offset<0||offset>50000)return json({error:'Invalid page.'},400);
-  const source=await retrieveCatalog({max:intent.budget,slot:intent.slots.length===1?intent.slots[0]:'',size,brand,offset,descending:u.searchParams.get('sort')==='price-desc',privateInventory,account});
+  const source=await retrieveCatalog({max:intent.budget,slot:intent.slots.length===1?intent.slots[0]:'',size,brand,colors:intent.hardColors?intent.colors:[],productType:!intent.outfit&&/\bsneaker\b/.test(intent.query)?'sneaker':'',offset,descending:u.searchParams.get('sort')==='price-desc',privateInventory,account});
   let items=rankCandidates(source,intent);if(brand)items=items.filter(p=>p.brand.toLowerCase()===brand.toLowerCase());
   const sort=u.searchParams.get('sort');if(sort==='price-asc')items.sort((a,b)=>a.price-b.price);else if(sort==='price-desc')items.sort((a,b)=>b.price-a.price);
-  return json({items,private:privateInventory,shown:items.length,limit:60,nextOffset:offset+60,hasMore:source.length===60,message:items.length?'Feed availability; confirm current fit, price and stock at the retailer.':'No verified public products meet these filters. Private development inventory is excluded.'});
+  return json({items,source:'qualified_awin_catalog',retailerSearchIncluded:false,noMatchReason:items.length?null:'no_eligible_catalog_matches',private:privateInventory,shown:items.length,limit:60,nextOffset:offset+60,hasMore:source.length===60,message:items.length?'Feed availability; confirm current fit, price and stock at the retailer.':catalogEmptyMessage(intent,{privateInventory})});
  }catch(e){return json({error:e.status===403?'Staff access is required for private inventory.':'Catalog search is temporarily unavailable.'},e.status||503);}
 }
