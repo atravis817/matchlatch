@@ -615,6 +615,7 @@ function renderProfileLinks(){
   card.append(info,el("span","profile-shortcut-arrow","↗"));
   root.append(card);
  }
+ window.MatchlatchOwnerNavigation?.mount(root);
 }
 function renderAppearance(){
  const root=$("me-appearance");if(!root)return;
@@ -755,6 +756,14 @@ function initThemeToggle(){
  update();
 }
 initThemeToggle();
+void import("./owner-navigation.mjs").then(({createOwnerNavigation})=>{
+ window.MatchlatchOwnerNavigation=createOwnerNavigation({
+  getUserId:()=>lib()?.getUserId?.()||null,
+  getSession:()=>window.MatchlatchAuth?.client?.auth.getSession()||Promise.resolve({data:{session:null}}),
+  onAuthChange:callback=>window.addEventListener("matchlatch:auth-user",callback)
+ });
+ renderProfileLinks();
+}).catch(()=>{});
 window.addEventListener("matchlatch:page",event=>renderDestination(event.detail?.page));
 window.addEventListener("matchlatch:library",()=>{
  const current=(location.hash||"#studio").slice(1);

@@ -38,4 +38,6 @@ jobs:
           node scripts/test-commerce.mjs
 
       - name: Owner KPI authorization, calculations and export tests
-        run: node scripts/test-admin-dashboard.mjs
+        run: |
+          node scripts/test-admin-dashboard.mjs
+          node scripts/test-owner-navigation.mjs

@@ -326,3 +326,6 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
 /* Delivery deadline stays an optional, native mobile-calendar search constraint. */
 .v12-date-field input[type="date"]{min-height:44px;width:100%;max-width:300px;background:var(--surface,#fff);color:var(--ink,#173e30);border:1px solid var(--line,#dfe7df);border-radius:10px;padding:10px;margin-top:8px}
 .v12-date-field .v12-delivery-note{display:block;margin-top:7px;max-width:42ch}
+
+/* Owner shortcut inherits the existing GreenGlass account-card styling. */
+a.owner-command-center{text-decoration:none;color:inherit}
