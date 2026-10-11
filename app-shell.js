@@ -796,7 +796,9 @@ void import("./owner-navigation.mjs").then(({createOwnerNavigation})=>{
  });
  renderProfileLinks();
 }).catch(()=>{});
+let storeAccountId=lib()?.getUserId?.()||null;
 window.addEventListener("matchlatch:auth-user",()=>{
+ const nextAccountId=lib()?.getUserId?.()||null;if(nextAccountId===storeAccountId)return;storeAccountId=nextAccountId;
  searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.retailers=[];storeState.searched=false;storeState.criteria=null;
  if(location.hash.startsWith("#store"))renderStore();
 });
