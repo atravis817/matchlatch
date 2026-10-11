@@ -120,8 +120,8 @@ function launch(){
       pendingAddresses=null;
     }
     if(accountData?.user?.id&&answered.length){const styleQuiz={version:1,answers:Object.fromEntries(answered),completedAt:new Date().toISOString()};
-      try{const old=JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1")||"null");
-        localStorage.setItem("matchlatch-style-quiz-v1",JSON.stringify(styleQuiz));
+      try{
+        localStorage.setItem("matchlatch-style-quiz-v1-"+accountData.user.id,JSON.stringify(styleQuiz));
         window.dispatchEvent(new CustomEvent("matchlatch:style-quiz",{detail:styleQuiz}));
       }catch{}}
     mode="account";drawForm();if(!status.textContent.includes("not configured"))setStatus("Email verified. Welcome to MATCHLATCH!");
