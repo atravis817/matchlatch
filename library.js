@@ -11,13 +11,8 @@
   const money = value => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-"+Math.random().toString(36).slice(2);
   const empty = () => ({inspirations:[],looks:[],favorites:[],cart:[],purchases:[],collections:[]});
+  // Keep legacy device data for explicit opt-in import, not active guest state.
   let dbState = empty();
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (raw && typeof raw === "object") {
-      for (const key of Object.keys(dbState)) if (Array.isArray(raw[key])) dbState[key] = raw[key];
-    }
-  } catch {}
   let activePage="studio";
   let guestStudioLanding=false;
   let pendingProtectedAction=null;
@@ -1393,7 +1388,6 @@
     };
   }
   function openCollectionFromStudio(id){
-    if(!requireAccount(()=>openCollectionFromStudio(id)))return;
     if(!requireAccount(()=>openCollectionFromStudio(id)))return;
     if(id!=="__unfiled__"&&!collectionFor(id))return;
     selectedTab="collections";selectedCollectionId=id;selectedLookDetail=null;showPage("closet");
