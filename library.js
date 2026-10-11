@@ -1405,6 +1405,6 @@
     chooseShopItem,favoriteShopItem,cartShopItem,
     discoverySnapshot,attachInspirationPhoto:attachPhoto,
     openLook:lookId=>void reopenTree(lookId),
-    openCollection:openCollectionFromStudio,openClosetTab,startFreshStudio,requireAccount,isSignedIn:loggedIn};
+    openCollection:openCollectionFromStudio,openClosetTab,startFreshStudio,requireAccount,isSignedIn:loggedIn,getUserId:()=>activeUser?.id||null};
   void initAuth();
 })();
