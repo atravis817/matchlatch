@@ -81,7 +81,8 @@ function buildSearchPrompt(c){
 export async function POST(request){
  const u=new URL(request.url),origin=request.headers.get("origin");
  if(origin&&origin!==u.origin)return response({error:"Cross-origin search denied."},403);
- const key=String(process.env.OPENAI_API_KEY||"");
+ if(process.env.VERCEL_ENV!=="preview")return response({error:"Web research is Preview-only."},503);
+ const key=String(process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY||"");
  const code=String(process.env.MATCHLATCH_BETA_CODE||"");
  if(!key||code.length<16)return response({enabled:false,error:"WEB_DISCOVERY_NOT_CONFIGURED"},503);
  let body;
