@@ -69,7 +69,7 @@ function renderWorkspace(){
  const target=$("studio-workspace");if(!target)return;
  target.replaceChildren();
  const state=snapshot();
- const heading=sectionTitle("Your studio","Studio","Start a new look or continue a saved project.","h1");
+ const heading=sectionTitle("Your studio","Studio","Your style. Your budget. One simpler way to shop.","h1");
  target.append(heading);
  const p=profile();
  const context=el("section","v12-context");
