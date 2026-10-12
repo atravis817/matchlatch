@@ -170,6 +170,7 @@ export async function GET(request){
         note:"Matching is personalized before savings. Awin inventory is a merchant-feed snapshot, not guaranteed stock. Tax and final delivery rates are retailer-confirmed."});
     }
     if(mode==="verify"){
+      if(process.env.VERCEL_ENV==="preview")return reply({error:"Purchases and retailer checkout handoffs are disabled during the usability beta.",code:"BETA_PURCHASES_DISABLED"},403);
       const id=clip(u.searchParams.get("id"),250);
       const variantId=clip(u.searchParams.get("variant"),250);
       if(id.startsWith("awin:")){
