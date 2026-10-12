@@ -21,6 +21,7 @@ export async function POST(request){
    const rows=await database('matchlatch_records?select=payload&kind=eq.profile&record_id=eq.preferences&is_deleted=eq.false&user_id=eq.'+encodeURIComponent(account.user.id),{token:account.token});
    const saved=rows[0]?.payload||{};for(const key of ['aesthetic','palette','fit','occasion','climate','budget','notes','topSize','bottomSize','shoeSize','preferredBrands'])profile[key]=clean(saved[key],key==='notes'?210:80);
   }
+  if(input.preferences&&typeof input.preferences==='object'&&!Array.isArray(input.preferences)){for(const key of ['topSize','bottomSize','shoeSize','fit','climate','aesthetic','palette','coordination'])if(typeof input.preferences[key]==='string')profile[key]=clean(input.preferences[key],80);}
   // These are request constraints, not persistent profile updates.
   if(input.max!==undefined){const n=Number(input.max);if(!Number.isFinite(n)||n<1||n>10000)return json({error:'Invalid budget.'},400);profile.budget=n;}
   if(input.size)profile.size=clean(input.size,40);
