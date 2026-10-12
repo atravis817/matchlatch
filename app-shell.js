@@ -338,7 +338,7 @@ function renderProduct(){
  if(!item.fixture)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
  actions.append(button("View shortlist ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
  const retailerLink=(()=>{try{const url=new URL(item.url);return url.protocol==="https:"?url.href:"";}catch{return "";}})();
- if(retailerLink){
+ if(retailerLink&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
   const link=el("a","store-product-retailer","View at retailer ↗");
   link.href=retailerLink;link.target="_blank";link.rel=item.source==="awin"?"sponsored nofollow noopener noreferrer":"noopener noreferrer";
   actions.append(link);
