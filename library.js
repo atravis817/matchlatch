@@ -1004,6 +1004,11 @@
       feedOnly:awin,price:amount,checkedAt:Date.now()};
   }
   function verifiedCheckoutAction(item){
+    if(document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"){
+      const blocked=node("div","commerce-checkout-actions");
+      const disabled=btn("Purchases disabled in usability beta",()=>{},"commerce-primary");disabled.disabled=true;
+      blocked.append(disabled,node("p","commerce-checkout-status","Review your shortlist and send feedback. This beta does not offer retailer checkout handoffs."));return blocked;
+    }
     const actions=node("div","commerce-checkout-actions");
     const status=node("p","commerce-checkout-status");
     status.setAttribute("role","status");
@@ -1066,7 +1071,7 @@
     }
     const introduction=node("div","commerce-checkout-intro");
     introduction.append(node("h3",null,"Ready when you are"),
-      node("p",null,"Review your pieces, then complete purchase at each retailer."));
+      node("p",null,document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"?"Usability beta: review your saved pieces. Purchases and retailer checkout handoffs are disabled.":"Review your pieces, then complete purchase at each retailer."));
     shell.append(introduction);
     const grid=node("div","commerce-checkout-grid");
     const items=node("div","commerce-checkout-items");
@@ -1141,7 +1146,7 @@
     totals.append(node("span",null,"Estimated total · excludes tax and shipping"),node("strong",null,money(total)));
     target.append(totals);
     const checkout=node("div","commerce-cart-footer");
-    checkout.append(btn("Checkout →",()=>openClosetTab("checkout"),"commerce-primary"));
+    checkout.append(btn(document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"?"Review shortlist →":"Checkout →",()=>openClosetTab("checkout"),"commerce-primary"));
     checkout.append(btn("Keep shopping",()=>showPage("store"),"commerce-secondary"));
     target.append(checkout);
   }
