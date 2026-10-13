@@ -146,7 +146,7 @@ check(file("app-shell.css").includes("repeat(5,minmax(0,1fr))")
   &&file("app-shell.css").includes("safe-area-inset-bottom"),
   "Five destinations remain usable above iPhone home indicator");
 check(appShell.includes('function openProduct(item)')
-  &&appShell.includes('lib()?.addRetailProduct?.({...item,slot:storeState.slot})')
+  &&appShell.includes('lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot})')
   &&library.includes("function addRetailProduct(item)"),
   "Store real product selections feed the existing MATCHLATCH cart");
 check(!/vision engine|Vercel Production environment variables|incognito browser/i.test(html),

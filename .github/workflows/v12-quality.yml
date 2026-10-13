@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - design/v1.2-studio-first-100926
+      - integration/v1.2-global-discovery-20261013
       - staging/v1.1-tile-cleanup-100926
   pull_request:
     branches:
+      - main
       - staging/v1.1-tile-cleanup-100926
   workflow_dispatch:
 jobs:
@@ -22,6 +24,8 @@ jobs:
           find . -path './.git' -prune -o \( -name '*.js' -o -name '*.mjs' \) -type f -print0 | xargs -0 -n1 node --check
       - name: Regression audit
         run: node scripts/audit.mjs
+      - name: Complete isolated regression suite
+        run: node --test scripts/test-*.mjs
       - name: Public catalog policy tests
         run: node scripts/test-public-catalog.mjs
       - name: Delivery intelligence tests

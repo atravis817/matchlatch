@@ -3,6 +3,8 @@ import {discoveryFixtureTransport} from '../lib/discovery-fixtures.mjs';
 import {allowRequest} from '../lib/request-limits.mjs';
 import {searchAwin,verifyAwin,postgrestConfig} from "../lib/awin-public-catalog.mjs";
 import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
+import {authorizeOwner} from '../lib/owner-authorization.mjs';
+import {globalDiscoveryPolicy,boundedGlobalDiscovery} from '../lib/global-discovery.mjs';
 // MATCHLATCH Private Shop: live Shopify Global Catalog UCP interface.
 // No server-side catalog-result caching. A listing is displayed only when a
 // purchasable variant is explicitly reported available at a valid USD price.
@@ -87,6 +89,7 @@ export async function GET(request){
         catalog:"Shopify Global Catalog + approved Awin feeds",
         access:"Shopify live catalog and approved, verified Awin merchant-feed snapshots; no website crawling",
         studioDiscovery:STUDIO_PERMISSIONS,
+        automaticDiscovery:{enabled:globalDiscoveryPolicy().enabled,ownerOnly:true,publicEnabled:false},
         studioDemoAvailable:process.env.VERCEL_ENV==='preview',
         retailerDirectoryAvailable:false,
         retailerNames:[],
@@ -168,6 +171,16 @@ export async function GET(request){
           awinConfigured:provider[1].status==="fulfilled"&&Boolean(postgrestConfig()),
           awinListings:awin.length},
         note:"Matching is personalized before savings. Awin inventory is a merchant-feed snapshot, not guaranteed stock. Tax and final delivery rates are retailer-confirmed."});
+    }
+    if(mode==="discover"){
+      if(process.env.VERCEL_ENV!=='preview')return reply({error:'Not found'},404);
+      const gate=await authorizeOwner(request);if(gate.response)return gate.response;
+      if(!allowRequest(request,'global-discover',6))return reply({error:'Please wait before another discovery request.'},429);
+      const policy=globalDiscoveryPolicy();if(!policy.enabled)return reply({error:policy.reason,items:[],permissionStatus:'unverified',publicEnabled:false},403);
+      const categories=(u.searchParams.get('categories')||u.searchParams.get('slot')||'shirt,pants,shoes').split(',');
+      let found;try{found=await boundedGlobalDiscovery({query:u.searchParams.get('q')||'',max,categories,size,color},{profileUrl:policy.profileUrl});}catch{return reply({error:'Choose up to three categories and a valid merchandise budget.'},400);}
+      if(!found.providerSucceeded)return reply({error:'Discovery provider is temporarily unavailable.',items:[]},503);
+      return reply(found);
     }
     if(mode==="verify"){
       if(process.env.VERCEL_ENV==="preview")return reply({error:"Purchases and retailer checkout handoffs are disabled during the usability beta.",code:"BETA_PURCHASES_DISABLED"},403);
