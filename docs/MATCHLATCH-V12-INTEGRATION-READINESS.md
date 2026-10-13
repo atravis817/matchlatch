@@ -37,7 +37,11 @@ These configuration fields record an operator decision; their presence does not 
 - Authentication security coverage is mocked and is **not** proof of real customer-account isolation.
 - No Global Catalog live product search, new cart creation, checkout, payment or order was executed in this integration task.
 - Owner-reported BASALT availability and shipping observations from the previous milestone are historical, not fresh agent-executed verification.
-- Browser and deployment evidence will be recorded after Preview validation.
+- Code commit `74cd93f9d89368b7beaafe2a24bf960d2d283a26` deployed READY to https://matchlatch-jjtp5z4sa-matchlatch.vercel.app after copying the existing owner configuration to this branch. Vercel reports Preview (`target: null`), matching commit SHA; twelve API source functions remain.
+- Real browser attempt reached the Vercel protection login. Desktop/mobile application journeys, visual theme checks and real-account tests are therefore **BLOCKED**, not passed.
+- Automatic approval review rejected temporary share-link creation because it would expand deployment access beyond the requirement to preserve security controls. No link was created, protection disabled or alternate bypass attempted.
+- Git CLI push failed once because the workspace lacks push credentials. The connected GitHub API published the tested merge tree; its tree SHA exactly matched the local tested tree. The first branch-scoped environment write was rejected because the branch did not yet exist; it succeeded after GitHub branch publication. A fresh Preview loaded that configuration.
+- New Global discovery configuration remains unset. No fresh authenticated BASALT or shipping execution was possible without an owner session.
 
 ## Release blockers and next actions
 
