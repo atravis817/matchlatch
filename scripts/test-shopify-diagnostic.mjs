@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {POST,GET,PRODUCT_ID,VARIANT_ID} from '../api/shopify-diagnostic.mjs';
+import {POST} from '../api/admin-summary.mjs';
+import {PRODUCT_ID,VARIANT_ID} from '../lib/shopify-diagnostic.mjs';
 const owner='11111111-1111-4111-8111-111111111111';
 const fixture=()=>({data:{product:{id:PRODUCT_ID,title:'Fixture crop top',vendor:'Love to Kleep',productType:'Tee',onlineStoreUrl:'https://pfcdgt-is.myshopify.com/products/fixture',variants:{nodes:[{id:VARIANT_ID,title:'S',price:{amount:'40.00',currencyCode:'USD'},selectedOptions:[{name:'Size',value:'S'}],availableForSale:true,currentlyNotInStock:false,quantityAvailable:4,image:{url:'https://cdn.shopify.com/fixture.jpg',altText:'Fixture'}}],pageInfo:{hasNextPage:false,endCursor:null}}}}});
 test('owner diagnostic fails closed and normalizes only sanitized fixed-product evidence',async()=>{
@@ -8,7 +9,7 @@ test('owner diagnostic fails closed and normalizes only sanitized fixed-product 
  try{
   Object.assign(process.env,{VERCEL_ENV:'preview',MATCHLATCH_ADMIN_USER_ID:owner,MATCHLATCH_SUPABASE_URL:'https://example.supabase.co',MATCHLATCH_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_mock',SHOPIFY_STORE_DOMAIN:'pfcdgt-is.myshopify.com',SHOPIFY_STOREFRONT_API_VERSION:'2026-10',SHOPIFY_STOREFRONT_PRIVATE_TOKEN:'FIXTURE_SECRET_DO_NOT_RETURN'});
   globalThis.fetch=async(url,options)=>{if(url.endsWith('/auth/v1/user'))return new Response(JSON.stringify(user));calls++;assert.equal(url,'https://pfcdgt-is.myshopify.com/api/2026-10/graphql.json');assert.equal(options.headers['Shopify-Storefront-Private-Token'],'FIXTURE_SECRET_DO_NOT_RETURN');assert.equal(options.cache,'no-store');assert.equal(options.redirect,'error');assert.ok(options.signal);const body=JSON.parse(options.body);assert.equal(body.variables.id,PRODUCT_ID);assert.ok(!body.query.includes('mutation'));return reply();};
-  const request=(auth=true,origin='https://example.test')=>new Request('https://example.test/api/shopify-diagnostic',{method:'POST',headers:{origin,'x-forwarded-for':'fixture-'+ip++,...(auth?{authorization:'Bearer '+'a'.repeat(60)}:{})}});
+  const request=(auth=true,origin='https://example.test')=>new Request('https://example.test/api/admin-summary?action=shopify-diagnostic',{method:'POST',headers:{origin,'x-forwarded-for':'fixture-'+ip++,...(auth?{authorization:'Bearer '+'a'.repeat(60)}:{})}});
   process.env.VERCEL_ENV='production';assert.equal((await POST(request())).status,404);process.env.VERCEL_ENV='preview';
   assert.equal((await POST(request(false))).status,403);user.id='22222222-2222-4222-8222-222222222222';assert.equal((await POST(request())).status,403);user.id=owner;user.email_confirmed_at=null;assert.equal((await POST(request())).status,403);user.email_confirmed_at='2026-01-01';assert.equal((await POST(request(true,'https://evil.test'))).status,403);assert.equal(calls,0);
   delete process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN;assert.equal((await POST(request())).status,503);assert.equal(calls,0);process.env.SHOPIFY_STOREFRONT_PRIVATE_TOKEN='FIXTURE_SECRET_DO_NOT_RETURN';
@@ -21,6 +22,6 @@ test('owner diagnostic fails closed and normalizes only sanitized fixed-product 
   reply=()=>{const f=fixture();f.data.product.variants.nodes[0].availableForSale=false;f.data.product.variants.nodes[0].quantityAvailable=0;return new Response(JSON.stringify(f));};const unavailable=await (await POST(request())).json();assert.equal(unavailable.availableForSale,false);assert.equal(unavailable.adapter.liveEligible,false);
   reply=()=>new Response('x'.repeat(128001));assert.equal((await (await POST(request())).json()).category,'invalid_response');
   reply=()=>new Response(JSON.stringify(fixture()));const limited=request();for(let i=0;i<3;i++)assert.equal((await POST(limited)).status,200);const before=calls;assert.equal((await POST(limited)).status,429);assert.equal(calls,before);
-  assert.equal(GET().status,405);assert.ok(!JSON.stringify(body).includes('FIXTURE_SECRET_DO_NOT_RETURN'));
+  assert.equal((await POST(new Request('https://example.test/api/admin-summary?action=unknown',{method:'POST'}))).status,404);assert.ok(!JSON.stringify(body).includes('FIXTURE_SECRET_DO_NOT_RETURN'));
  }finally{globalThis.fetch=originalFetch;for(const key of Object.keys(process.env))if(!(key in saved))delete process.env[key];Object.assign(process.env,saved);}
 });
