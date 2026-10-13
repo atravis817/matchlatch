@@ -216,3 +216,7 @@ For future updates, make a small edit to **this file** and commit it whenever a 
 5. Keep the codebase lean. Use `node scripts/audit.mjs` after changes, and add live integration tests for any external-provider-dependent feature.
 
 **What we are NOT doing today:** Declaring V1/V1.5 launched before verification, claiming virtual try-on exists, inventing product availability or delivery dates, or starting payment processing just because V3's data models already exist.
+
+### WO-ML-012 — Awin affiliate commerce Preview
+
+Implemented bounded advertiser/domain eligibility, optional official long-link preparation, stricter Savings Check, private manual performance/feed-metadata reporting and conservative cross-provider variant deduplication. Existing coupon-estimator bug fixed: unredeemed promotions cannot lower totals or budget qualification. 151 automated tests pass. Live plugin confirms four joined advertisers and long-link support; deployed Preview token, full merchant promotional terms and real product/feed/browser verification remain release blockers. See `docs/WO-ML-012-AWIN-COMMERCE.md`. No Production release authorized.

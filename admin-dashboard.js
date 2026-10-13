@@ -2,6 +2,7 @@ import {exportCSV,exportJSON} from './admin-export.mjs';
 import {connectShopifyDiagnostic} from './admin-shopify-diagnostic.mjs';
 const $=id=>document.getElementById(id),status=$('status'),titles={overview:'Overview',catalog:'Catalog',accounts:'Accounts',saved:'Saved looks & records',ai:'AI & spending',imports:'Feed operations'};
 const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;};
+let awinGeneration=0;
 let client=null,snapshot=null,view='overview',generation=0,busy=false;
 const shopifyDiagnostic=connectShopifyDiagnostic({button:$('shopify-test'),output:$('shopify-result'),getSession:()=>client.auth.getSession(),isOwnerView:()=>Boolean(snapshot)&&!$('dashboard').hidden});
 const shippingDiagnostic=connectShopifyDiagnostic({button:$('shipping-test'),output:$('shipping-result'),getSession:()=>client.auth.getSession(),isOwnerView:()=>Boolean(snapshot)&&!$('dashboard').hidden,mode:'shipping'});
@@ -20,10 +21,30 @@ function render(){if(!snapshot)return;const content=$('content');content.replace
  $('snapshot').textContent='Snapshot '+new Date(snapshot.generatedAt).toLocaleString()+' · '+snapshot.period.days+' rolling days · compared with preceding equal period · source cache up to 45s';const alerts=$('alerts');alerts.replaceChildren();const catalog=snapshot.sections.catalog,ai=snapshot.sections.ai;if(catalog.status==='ok'&&catalog.metrics.find(m=>m.id==='priceFresh').current===0)alerts.append(el('p','Catalog price evidence is stale. Product counts do not establish current shopping eligibility.','alert'));if(ai.budget?.alertReached)alerts.append(el('p','Development spending alert: '+format(ai.budget.held,'usd')+' held against the $5 cap.','alert'));
  const limitations=$('limitations');limitations.replaceChildren(el('h2','Not collected yet'));const list=el('div','','definition-list');snapshot.unavailable.forEach(u=>{const p=el('p');p.append(el('strong',u.label),document.createTextNode(u.reason));list.append(p);});limitations.append(list,el('p',snapshot.note,'muted'));
 }
-function clear(){generation++;snapshot=null;shopifyDiagnostic.reset();shippingDiagnostic.reset();$('dashboard').hidden=true;$('login').hidden=false;$('content').replaceChildren();if($('detail').open)$('detail').close();}
+function clear(){awinGeneration++;$("awin-result").textContent="";$("awin-result").hidden=true;generation++;snapshot=null;shopifyDiagnostic.reset();shippingDiagnostic.reset();$('dashboard').hidden=true;$('login').hidden=false;$('content').replaceChildren();if($('detail').open)$('detail').close();}
 async function load(){if(!client||busy)return;const ticket=++generation;busy=true;['refresh','period','csv','json'].forEach(id=>$(id).disabled=true);status.textContent='Verifying owner and reading operating data…';try{const {data}=await client.auth.getSession();if(!data?.session){clear();status.textContent='Sign in to view the Command Center.';return;}const r=await fetch('/api/admin-summary?days='+$('period').value,{headers:{Authorization:'Bearer '+data.session.access_token},cache:'no-store'}),d=await r.json();if(ticket!==generation)return;if(!r.ok)throw Error(d.error||'Dashboard unavailable');snapshot=d;$('dashboard').hidden=false;$('login').hidden=true;render();status.textContent=Object.values(d.sections).every(s=>s.status==='ok')?'Connected · Preview metrics':'Connected · Some sources unavailable';}catch(e){if(ticket===generation){clear();status.textContent=e.message==='Forbidden'?'This account is not authorized for Command Center access.':e.message;}}finally{busy=false;['refresh','period','csv','json'].forEach(id=>$(id).disabled=false);}}
+
+async function loadAwin(action){
+ const output=$('awin-result');if(!snapshot||!client||$('dashboard').hidden)return;
+ const ticket=++awinGeneration;output.hidden=false;output.textContent='Reading Awin account data…';
+ $('awin-report').disabled=true;$('awin-feeds').disabled=true;
+ try{const {data}=await client.auth.getSession();if(!data?.session)return;
+  const account=data.session.user.id,r=await fetch('/api/admin-summary?action='+action,{headers:{Authorization:'Bearer '+data.session.access_token},cache:'no-store',signal:AbortSignal.timeout(35000)}),d=await r.json();
+  const current=await client.auth.getSession();if(ticket!==awinGeneration||current.data?.session?.user.id!==account||!snapshot)return;
+  if(!r.ok)throw Error('Awin report unavailable.');
+  if(d.status==='not_configured'){output.textContent=d.message||'Awin Preview configuration is incomplete.';return;}
+  if(action==='awin-feed-status'){output.textContent=[d.note,...(d.rows||[]).map(row=>row.merchant+' · Feed '+row.feedId+' · Public eligible: No')].join('\n');return;}
+  const rows=['Awin report: '+d.window.start+'–'+d.window.end+' · UTC · US',d.note];
+  if(d.empty)rows.push('No report rows returned for this window.');
+  for(const row of d.rows||[])rows.push(row.merchant+' ('+(row.currency||'currency unknown')+') · Clicks: '+(row.clicks??'Unknown')+' · Sales pending/approved/declined: '+[row.pendingSales,row.approvedSales,row.declinedSales].map(v=>v??'Unknown').join('/')+' · Commission pending/approved/declined: '+[row.pendingCommission,row.approvedCommission,row.declinedCommission].map(v=>v??'Unknown').join('/'));
+  output.textContent=rows.join('\n');
+ }catch{if(ticket===awinGeneration)output.textContent='Awin report is unavailable. No activity or commission was verified.';}
+ finally{if(ticket===awinGeneration){$('awin-report').disabled=false;$('awin-feeds').disabled=false;}}
+}
+$('awin-report').onclick=()=>loadAwin('awin-report');$('awin-feeds').onclick=()=>loadAwin('awin-feed-status');
+
 function download(kind){if(!snapshot)return;const body=kind==='csv'?exportCSV(snapshot,view):exportJSON(snapshot,view),blob=new Blob([body],{type:kind==='csv'?'text/csv;charset=utf-8':'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='MATCHLATCH-'+view+'-'+snapshot.period.days+'d-'+snapshot.generatedAt.slice(0,10)+'.'+kind;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 for(const [name,title] of Object.entries(titles)){const b=el('button',title);b.dataset.view=name;b.onclick=()=>{view=name;render();};$('views').append(b);}
 setInterval(()=>{if(snapshot&&$('auto-refresh').checked&&document.visibilityState==='visible'&&!busy)void load();},60000);
 $('period').onchange=load;$('display').onchange=render;$('refresh').onclick=load;$('csv').onclick=()=>download('csv');$('json').onclick=()=>download('json');$('print').onclick=()=>window.print();$('close-detail').onclick=()=>$('detail').close();$('sign-out').onclick=async()=>{clear();await client?.auth.signOut();status.textContent='Signed out.';};
-try{const response=await fetch('/api/auth-config',{cache:'no-store'}),cfg=await response.json();if(!cfg.enabled)throw Error('Authentication unavailable');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');client=createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='USER_UPDATED'){shopifyDiagnostic.reset();shippingDiagnostic.reset();}if(event==='SIGNED_OUT'){clear();status.textContent='Signed out.';}});await load();}catch{status.textContent='Unable to initialize authentication. Reload to retry.';}
+try{const response=await fetch('/api/auth-config',{cache:'no-store'}),cfg=await response.json();if(!cfg.enabled)throw Error('Authentication unavailable');const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');client=createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'||event==='USER_UPDATED'){awinGeneration++;$('awin-result').textContent='';$('awin-result').hidden=true;shopifyDiagnostic.reset();shippingDiagnostic.reset();}if(event==='SIGNED_OUT'){clear();status.textContent='Signed out.';}});await load();}catch{status.textContent='Unable to initialize authentication. Reload to retry.';}

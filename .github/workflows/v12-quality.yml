@@ -4,6 +4,7 @@ on:
     branches:
       - design/v1.2-studio-first-100926
       - integration/v1.2-global-discovery-20261013
+      - feature/v1.2-awin-commerce-20261013
       - staging/v1.1-tile-cleanup-100926
   pull_request:
     branches:

@@ -41,12 +41,12 @@
    container.append(make("p","savings-note","Couldn't check for discounts. Try again later. Product prices haven't changed."));
    return;
   }
-  const coupons=Array.isArray(data.offers)?data.offers.filter(c=>c?.verification==="provider_listed"):[],
+  const coupons=Array.isArray(data.offers)?data.offers.filter(c=>c?.verification==="provider_listed"&&Number.isFinite(Date.parse(c.expiresAt))&&Date.parse(c.expiresAt)>=Date.now()):[],
    count=coupons.length;
-  summary.textContent=count?"Savings Check · "+count+" listed code"+(count===1?"":"s"):"Savings Check · No listed codes";
+  summary.textContent=count?"Savings Check · "+count+" listed offer"+(count===1?"":"s"):"Savings Check · No listed offers";
   container.append(summary);
   if(!count){
-   container.append(make("p","savings-note","No current discount codes found for this store."));
+   container.append(make("p","savings-note","No current offers found for this store."));
    return;
   }
   const info=make("p","savings-note",
@@ -55,7 +55,8 @@
   for(const offer of coupons.slice(0,3)){
    const row=make("div","savings-offer");
    const main=make("div","savings-offer-copy");
-   main.append(make("strong",null,offer.code));
+   main.append(make("strong",null,offer.code||"Retailer promotion"));
+   main.append(make("small",null,(offer.audience==="publisher_exclusive"?"Publisher-exclusive offer":offer.audience==="public"?"Public offer":"Provider-listed offer")+(offer.restricted?" · Restrictions apply":"")));
    if(offer.title)main.append(make("small",null,offer.title));
    if(offer.terms)main.append(make("small",null,offer.terms));
    if(offer.expiresAt){
@@ -85,7 +86,13 @@
      temporary?.remove();
     }
    });
-   row.append(main,copy);container.append(row);
+   row.append(main);
+   if(offer.code)row.append(copy);
+   const offerUrl=(()=>{try{const u=new URL(offer.offerUrl);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null;}})();
+   if(offerUrl&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
+    const a=make('a','savings-copy','Offer terms at retailer ↗');a.href=offerUrl;a.target='_blank';a.rel='noopener noreferrer';row.append(a);
+   }
+   container.append(row);
   }
  };
  const fanOut=(domain,data)=>{
@@ -120,6 +127,21 @@
   const wrapper=make("details","savings-check");
   wrapper.setAttribute("aria-label","Savings Check for "+d);
   parent.append(wrapper);
+  if(item?.source==='awin'&&item.affiliateTracked)parent.append(make('small','savings-note','MATCHLATCH may earn a commission through eligible affiliate links. Your price is unchanged.'));
+  // Never replace a Shopify cart/checkout action or remove the ordinary link.
+  if(!item?.fixture&&item?.source!=='awin'&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
+   const handoff=make('details','savings-check'),summary=make('summary','savings-summary','Retailer link options');
+   const note=make('p','savings-note','You can choose an affiliate link. MATCHLATCH may earn a commission; your price stays the same.');
+   const prepare=make('button','savings-copy','Prepare affiliate retailer link');prepare.type='button';
+   prepare.addEventListener('click',async()=>{
+    if(prepare.disabled)return;prepare.disabled=true;note.textContent='Checking retailer eligibility…';
+    try{const r=await fetch('/api/savings',{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',signal:AbortSignal.timeout(15000),body:JSON.stringify({destination:item.url,intent:'retailer_handoff',affiliateConsent:true})}),data=await r.json();
+     if(!r.ok||!data.affiliate){note.textContent='Affiliate linking is unavailable. Use the ordinary retailer link.';return;}
+     const url=new URL(data.trackingUrl);if(url.protocol!=='https:'||!['www.awin1.com','awin1.com','www.awin2.com','awin2.com'].includes(url.hostname))throw Error('Unsafe link');
+     note.textContent=data.disclosure;const link=make('a','savings-copy','Continue to retailer ↗');link.href=url.href;link.target='_blank';link.rel='sponsored nofollow noopener noreferrer';prepare.replaceWith(link);
+    }catch{note.textContent='Could not prepare an affiliate link. Use the ordinary retailer link.';}finally{prepare.disabled=false;}
+   });handoff.append(summary,note,prepare);parent.append(handoff);
+  }
   const existing=cache.get(d);
   if(existing&&Date.now()-existing.time<CACHE_MS){update(wrapper,d);return;}
   wrapper.append(make("summary","savings-summary","Savings Check · Looking for codes…"));

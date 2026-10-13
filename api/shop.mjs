@@ -5,6 +5,7 @@ import {searchAwin,verifyAwin,postgrestConfig} from "../lib/awin-public-catalog.
 import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
 import {globalDiscoveryPolicy,boundedGlobalDiscovery} from '../lib/global-discovery.mjs';
+import {deduplicateMerchantVariants} from '../lib/merchant-offer-identity.mjs';
 // MATCHLATCH Private Shop: live Shopify Global Catalog UCP interface.
 // No server-side catalog-result caching. A listing is displayed only when a
 // purchasable variant is explicitly reported available at a valid USD price.
@@ -147,7 +148,7 @@ export async function GET(request){
         if(!byProduct.has(item.variantId))byProduct.set(item.variantId,item);
       }
       // The client performs user-first style ranking over both real providers.
-      const inventory=[...byProduct.values()].slice(0,36);
+      const inventory=(process.env.VERCEL_ENV==='preview'?deduplicateMerchantVariants([...byProduct.values()]):[...byProduct.values()]).slice(0,36);
       // Trusted provider response only: never promote caller-authored evidence.
       const evaluated=inventory.map(item=>({...item,
         delivery:evaluateDelivery(item,{zip:postal,needBy,today})}));

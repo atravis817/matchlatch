@@ -66,3 +66,9 @@ For additional providers later, retain the normalized response shape, merchant m
 - [ ] Test on iPhone and desktop with real selected Private Shop products.
 - [ ] Before inviting broad users, add centralized caching/rate limiting and handle full-pagination feed coverage.
 - [ ] Before advertising "verified working" codes, integrate actual merchant-cart validation for supported retailers.
+
+## V1.2 WO-ML-012 Preview update — October 13, 2026
+
+See [Awin commerce verification and blockers](docs/WO-ML-012-AWIN-COMMERCE.md). The existing endpoint now checks exact/wildcard advertiser domains, active joined membership, explicit US applicability, valid start/end dates and source audience/terms. Non-code promotions are supported; known no-coupon-site restrictions are withheld. Five-minute in-memory snapshots and per-runtime provider limits replace the earlier thirty-minute offer snapshot. Cached expiry is checked again before display.
+
+Listed coupons do not reduce any merchandise subtotal, budget eligibility or total. Product sale prices and coupon redemption remain separate. Optional Preview-only long-link generation and private manual Awin reporting are implemented, but publisher API credentials are currently missing from Preview. Production credentials were not retrieved or modified. Existing beta purchase restrictions remain intact. Joined advertisers and a single official long-link generation were verified through the connected Awin plugin, not the deployed endpoint.
