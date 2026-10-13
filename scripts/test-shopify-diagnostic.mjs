@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {POST} from '../api/admin-summary.mjs';
-import {PRODUCT_ID,VARIANT_ID} from '../lib/shopify-diagnostic.mjs';
+import {PRODUCT_ID,VARIANT_ID,QUERY,sanitizedGraphqlErrors} from '../lib/shopify-diagnostic.mjs';
 const owner='11111111-1111-4111-8111-111111111111';
 const fixture=()=>({data:{product:{id:PRODUCT_ID,title:'Fixture crop top',vendor:'Love to Kleep',productType:'Tee',onlineStoreUrl:'https://pfcdgt-is.myshopify.com/products/fixture',variants:{nodes:[{id:VARIANT_ID,title:'S',price:{amount:'40.00',currencyCode:'USD'},selectedOptions:[{name:'Size',value:'S'}],availableForSale:true,currentlyNotInStock:false,quantityAvailable:4,image:{url:'https://cdn.shopify.com/fixture.jpg',altText:'Fixture'}}],pageInfo:{hasNextPage:false,endCursor:null}}}}});
 test('owner diagnostic fails closed and normalizes only sanitized fixed-product evidence',async()=>{
@@ -19,9 +19,15 @@ test('owner diagnostic fails closed and normalizes only sanitized fixed-product 
   reply=()=>new Response('not json');assert.equal((await POST(request())).status,502);
   reply=()=>{throw Error('FIXTURE_SECRET_DO_NOT_RETURN')};assert.equal((await POST(request())).status,502);
   reply=()=>new Response(JSON.stringify({data:{product:null}}));assert.equal((await (await POST(request())).json()).category,'product_not_visible_or_not_found');
+  reply=()=>{const f=fixture();delete f.data.product.variants.nodes[0].quantityAvailable;return new Response(JSON.stringify(f));};const noQuantity=await (await POST(request())).json();assert.equal(noQuantity.authentication,'pass');assert.equal(noQuantity.queryValidity,'pass');assert.equal(noQuantity.availableForSale,true);assert.equal(noQuantity.quantityAvailable,null);assert.equal(noQuantity.adapter.normalized,true);assert.equal(noQuantity.adapter.liveEligible,false);
   reply=()=>{const f=fixture();f.data.product.variants.nodes[0].availableForSale=false;f.data.product.variants.nodes[0].quantityAvailable=0;return new Response(JSON.stringify(f));};const unavailable=await (await POST(request())).json();assert.equal(unavailable.availableForSale,false);assert.equal(unavailable.adapter.liveEligible,false);
   reply=()=>new Response('x'.repeat(128001));assert.equal((await (await POST(request())).json()).category,'invalid_response');
   reply=()=>new Response(JSON.stringify(fixture()));const limited=request();for(let i=0;i<3;i++)assert.equal((await POST(limited)).status,200);const before=calls;assert.equal((await POST(limited)).status,429);assert.equal(calls,before);
   assert.equal((await POST(new Request('https://example.test/api/admin-summary?action=unknown',{method:'POST'}))).status,404);assert.ok(!JSON.stringify(body).includes('FIXTURE_SECRET_DO_NOT_RETURN'));
  }finally{globalThis.fetch=originalFetch;for(const key of Object.keys(process.env))if(!(key in saved))delete process.env[key];Object.assign(process.env,saved);}
+});
+test('reduced query excludes quantity and error projection only exposes known codes, fields and scope names',()=>{
+ assert.ok(!QUERY.includes('quantityAvailable'));assert.ok(QUERY.includes('availableForSale'));
+ const errors=sanitizedGraphqlErrors([{message:'SECRET requires unauthenticated_read_product_inventory',extensions:{code:'ACCESS_DENIED'},path:['product','variants',0,'quantityAvailable','SECRET']},{message:'SECRET',extensions:{code:'SECRET',fieldName:'SECRET'}}]);
+ assert.deepEqual(errors[0],{code:'ACCESS_DENIED',fields:['product','variants','quantityAvailable'],missingScopes:['unauthenticated_read_product_inventory']});assert.equal(errors[1].code,'UNCLASSIFIED');assert.ok(!JSON.stringify(errors).includes('SECRET'));
 });
