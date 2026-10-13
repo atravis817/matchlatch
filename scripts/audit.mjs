@@ -77,7 +77,7 @@ check(library.includes("inspirationId:cart.inspirationId")&&library.includes("in
 check(!library.includes('let activeTab='),"Obsolete navigation state removed");
 const savings=file("savings.js");
 const savingsApi=file("api/savings.mjs");
-for(const [label,code] of [["savings.js",savings],["api/savings.mjs",savingsApi.replace(/^export\s+/gm,"")]]){
+for(const [label,code] of [["savings.js",savings],["api/savings.mjs",savingsApi.replace(/^import .*;\n/gm,"").replace(/^export\s+/gm,"")]]){
   try{new vm.Script(code,{filename:label});check(true,label+" parses");}
   catch(error){console.error(error.message);check(false,label+" parses");}
 }

@@ -5,6 +5,7 @@ import {privateCatalogFixtures} from '../lib/catalog-fixtures.mjs';
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
 import {runShopifyDiagnostic} from '../lib/shopify-diagnostic.mjs';
 import {runShippingDiagnostic} from '../lib/shopify-shipping-diagnostic.mjs';
+import {awinOwnerReport} from '../lib/awin-owner-report.mjs';
 const cache=new Map(),pending=new Map();
 export async function POST(request){
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
@@ -16,6 +17,8 @@ export async function GET(request){
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
  if(!allowRequest(request,'admin-summary',30))return json({error:'Rate limited'},429);
  const gate=await authorizeOwner(request);if(gate.response)return gate.response;
+ const action=new URL(request.url).searchParams.get('action');
+ if(['awin-report','awin-feed-status'].includes(action))return awinOwnerReport(request,action);
  if(new URL(request.url).searchParams.get('fixtures')==='1')return json(privateCatalogFixtures());
  // Capability mode never loads metrics or uses a service-role credential.
  if(new URL(request.url).searchParams.get('capability')==='1')return json({commandCenter:true});

@@ -1,8 +1,10 @@
+import {affiliateConfig,awinRequest,activeJoined,advertiserDomains,domainMatches,merchantDestination,generateAffiliateLink} from '../lib/awin-commerce.mjs';
+import {allowRequest} from '../lib/request-limits.mjs';
 // MATCHLATCH Savings Check · Awin publisher integration (server only).
 // An Awin-listed voucher is not proof that it works for a particular item.
 // Do not change merchandise prices or promise checkout savings.
 const BASE="https://api.awin.com";
-const CACHE_MS=30*60*1000;
+const CACHE_MS=5*60*1000;
 const ERROR_COOLDOWN_MS=60*1000;
 const MAX_DOMAINS=15;
 const PAGE_SIZE=200;
@@ -24,10 +26,11 @@ const websiteDomain=value=>{
   return ["https:","http:"].includes(url.protocol)?domain(url.hostname):"";
  }catch{return ""}
 };
-const matches=(host,target)=>host===target||host.endsWith("."+target)||target.endsWith("."+host);
+const matches=(host,target)=>host.startsWith("*.")?target.endsWith("."+host.slice(2)):host===target;
 const isUs=row=>{
  const regions=row?.regions;
- if(!regions||regions.all===true)return true;
+ if(regions?.all===true)return true;
+ if(!regions)return false;
  if(!Array.isArray(regions.list))return false;
  return regions.list.some(r=>(r?.countryCode||r)?.toString?.().toUpperCase()==="US");
 };
@@ -35,7 +38,9 @@ const parseDate=(value,isEnd)=>{
  if(!value)return null;
  const s=short(value,45);
  const isoDate=/^\d{4}-\d{2}-\d{2}$/.test(s);
- const n=Date.parse(isoDate?s+(isEnd?"T23:59:59.999Z":"T00:00:00Z"):s);
+ if(isoDate){const d=new Date(s+'T00:00:00Z');if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==s)return NaN;}
+ const utc=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?$/.test(s)?s+'Z':s;
+ const n=Date.parse(isoDate?s+(isEnd?"T23:59:59.999Z":"T00:00:00Z"):utc);
  return Number.isFinite(n)?n:NaN;
 };
 const arrayFrom=(data,fields)=>{
@@ -47,60 +52,41 @@ const arrayFrom=(data,fields)=>{
 const credentials=()=>{
  const token=String(process.env.AWIN_API_TOKEN||"").trim();
  const publisher=String(process.env.AWIN_PUBLISHER_ID||"").trim();
- return token&&/^[1-9][0-9]{0,17}$/.test(publisher)?{token,publisher}:null;
+ return token&&publisher==='3118944'?{token,publisher}:null;
 };
 async function awinFetch(path,{method="GET",body,token}){
- const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),11000);
- try{
-  const res=await fetch(BASE+path,{
-   method,signal:controller.signal,redirect:"error",cache:"no-store",
-   headers:{"authorization":"Bearer "+token,"accept":"application/json",
-    ...(body?{"content-type":"application/json"}:{})},
-   ...(body?{body:JSON.stringify(body)}:{})
-  });
-  if(!res.ok)throw Error("AWIN_HTTP_"+res.status);
-  if(Number(res.headers?.get?.("content-length")||0)>MAX_BYTES)throw Error("AWIN_RESPONSE_TOO_BIG");
-  const raw=await res.text();
-  if(raw.length>MAX_BYTES)throw Error("AWIN_RESPONSE_TOO_BIG");
-  return JSON.parse(raw);
- }finally{clearTimeout(timeout)}
+ return awinRequest(path,{method,body,config:{token,publisher:process.env.AWIN_PUBLISHER_ID}});
 }
 const blockedDomain=host=>!host||host==="awin.com"||host.endsWith(".awin.com")
  ||host==="awin1.com"||host.endsWith(".awin1.com")
  ||host==="awin2.com"||host.endsWith(".awin2.com");
 function domainsForProgramme(programme){
- const urls=[programme?.displayUrl];
- for(const value of programme?.validDomains||[])urls.push(typeof value==="string"?value:value?.domain);
- const result=new Set();
- for(const value of urls){
-  const candidate=websiteDomain(value)||domain(value);
-  if(candidate&&!blockedDomain(candidate))result.add(candidate);
- }
- return [...result];
+ return advertiserDomains(programme).map(d=>(d.wildcard?'*.':'')+d.base);
 }
 function normalizeOffers(rows,programmes){
  const now=Date.now(),all=[];
  for(const offer of rows){
-  if(!offer||offer.type!=="voucher"||!offer.advertiser?.joined)continue;
+  if(!offer||!["voucher","promotion"].includes(offer.type)||offer.advertiser?.joined!==true)continue;
   const merchant=programmes.get(String(offer.advertiser.id));
   if(!merchant)continue; // Only publishers with an active advertiser membership.
-  if(!isUs(offer))continue;
+  if(!isUs(offer)||String(merchant.description||"").toLowerCase().includes("no coupon sites"))continue;
   const code=short(offer.voucher?.code,60);
-  if(!/^[A-Za-z0-9][A-Za-z0-9_-]{2,49}$/.test(code))continue;
+  if(offer.type==="voucher"&&(!/^[A-Za-z0-9][A-Za-z0-9_-]{2,49}$/.test(code)||typeof offer.voucher?.exclusive!=="boolean"))continue;
   const start=parseDate(offer.startDate,false);
   const end=parseDate(offer.endDate,true);
-  if(Number.isNaN(start)||Number.isNaN(end))continue;
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<start)continue;
   if((start!==null&&start>now)||(end!==null&&end<now))continue;
-  const landing=websiteDomain(offer.url);
-  // Retain programme domains even if the offer uses Awin's tracking URL.
+  const offerUrl=merchantDestination(offer.url)?.href;
+  if(!offerUrl||!domainMatches(offerUrl,merchant))continue;
   const hosts=domainsForProgramme(merchant);
-  if(landing&&!blockedDomain(landing)&&hosts.some(d=>matches(d,landing)))
-   hosts.unshift(landing);
-  if(!hosts.length)continue;
+  const terms=short(offer.terms||offer.description,600);
+  if(!terms)continue;
+  const restricted=/first order|new customer|minimum|selected|members? only|students? only|excluding|excludes/i.test(terms);
   const normalized={
-   code,title:short(offer.title||offer.description||"Awin retailer promotion",160),
-   terms:short(offer.terms||offer.description,320),
+   offerId:short(offer.promotionId,30),kind:offer.type,code:offer.type==="voucher"?code:null,offerUrl,
+   audience:offer.voucher?.exclusive===true?"publisher_exclusive":offer.type==="voucher"?"public":"source_terms",
+   restricted,checkoutVerified:false,title:short(offer.title||offer.description||"Awin retailer promotion",160),
+   terms,
    expiresAt:end!==null?new Date(end).toISOString():null,
    source:"Awin",verification:"provider_listed",
    advertiserId:String(offer.advertiser.id)
@@ -122,16 +108,17 @@ async function loadAwin(){
    // Awin's joined programmes supply stable merchant domains/advertiser IDs.
    const joined=await awinFetch("/publishers/"+creds.publisher+"/programmes?relationship=joined",
     {token:creds.token});
-   const programmes=new Map();
-   for(const p of arrayFrom(joined,["programmes","data","results"])||[]){
-    if(!p?.id||!domainsForProgramme(p).length||String(p.linkStatus||"").toLowerCase()==="offline")continue;
+   const programmes=new Map(),joinedRows=arrayFrom(joined,["programmes","data","results"]);
+   if(!joinedRows)throw Error("AWIN_UNKNOWN_RESPONSE");
+   for(const p of joinedRows){
+    if(!activeJoined(p))continue;
     programmes.set(String(p.id),p);
    }
    const offers=[];
    for(let page=1;page<=MAX_PAGES;page++){
     const result=await awinFetch("/publisher/"+creds.publisher+"/promotions",{
      method:"POST",token:creds.token,
-     body:{filters:{membership:"joined",regionCodes:["US"],status:"active",type:"voucher"},
+     body:{filters:{membership:"joined",regionCodes:["US"],status:"active",type:"all"},
       pagination:{page,pageSize:PAGE_SIZE}}
     });
     const current=arrayFrom(result,["promotions","offers","data","results","items"]);
@@ -153,6 +140,7 @@ async function loadAwin(){
 }
 export async function GET(request){
  const u=new URL(request.url);
+ if(!allowRequest(request,"awin-savings",20))return output({error:"Please try again later."},429);
  const origin=request.headers?.get?.("origin");
  if(origin&&origin!==u.origin)return output({error:"Cross-origin request rejected."},403);
  const raw=(u.searchParams.get("domains")||u.searchParams.get("domain")||"").split(",");
@@ -170,17 +158,19 @@ export async function GET(request){
   for(const d of domains){
    const matched=new Map();
    for(const offer of listed||[]){
+    if(!offer.expiresAt||Date.parse(offer.expiresAt)<Date.now())continue;
     if(!offer.domains.some(host=>matches(host,d)))continue;
-    if(!matched.has(offer.code)){
+    const key=offer.code||offer.offerId+offer.title;
+    if(!matched.has(key)){
      // Never send internal matching domains or unrelated merchant entries.
      const {domains:_,...view}=offer;
-     matched.set(offer.code,view);
+     matched.set(key,view);
     }
    }
    found[d]=[...matched.values()].slice(0,5);
   }
   return output({enabled:true,status:"listed_not_checkout_verified",offers:found,source:"Awin",
-   checkedAt:new Date().toISOString(),
+   checkedAt:new Date(cacheExpires-CACHE_MS).toISOString(),
    limitedScan:true,
    message:"Awin-listed vouchers for joined advertisers. Code acceptance at retailer checkout is not verified."});
  }catch(err){
@@ -189,4 +179,19 @@ export async function GET(request){
   return output({enabled:true,status:"provider_unavailable",offers:{},
    message:"Awin promotions are temporarily unavailable; no codes were verified."},503);
  }
+}
+
+// Explicit user action only. Never redirects or changes a Shopify checkout URL.
+export async function POST(request){
+ if(process.env.VERCEL_ENV!=='preview')return output({error:'Not found'},404);
+ const url=new URL(request.url);
+ if(request.headers.get('origin')!==url.origin||request.headers.get('content-type')?.split(';')[0]!=='application/json')return output({error:'Request rejected.'},403);
+ if(!allowRequest(request,'awin-link',4))return output({error:'Please try again later.'},429);
+ if(Number(request.headers.get('content-length')||0)>4096)return output({error:'Request too large.'},413);
+ let body;try{const raw=await request.text();if(raw.length>4096)return output({error:'Request too large.'},413);body=JSON.parse(raw);}catch{return output({error:'Invalid request.'},400);}
+ const destination=merchantDestination(body?.destination);
+ if(!destination||body?.intent!=='retailer_handoff'||body?.affiliateConsent!==true)return output({error:'Choose a valid retailer link.'},400);
+ const fallback={status:'ordinary_retailer_link',affiliate:false,retailerUrl:destination.href};
+ if(process.env.MATCHLATCH_AWIN_HANDOFF_ENABLED!=='true'||!affiliateConfig())return output({...fallback,reason:'not_configured'});
+ try{return output(await generateAffiliateLink(destination.href));}catch{return output({...fallback,reason:'affiliate_unavailable'});}
 }
