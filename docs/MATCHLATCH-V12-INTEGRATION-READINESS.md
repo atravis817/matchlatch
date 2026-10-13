@@ -38,8 +38,8 @@ These configuration fields record an operator decision; their presence does not 
 - No Global Catalog live product search, new cart creation, checkout, payment or order was executed in this integration task.
 - Owner-reported BASALT availability and shipping observations from the previous milestone are historical, not fresh agent-executed verification.
 - Code commit `74cd93f9d89368b7beaafe2a24bf960d2d283a26` deployed READY to https://matchlatch-jjtp5z4sa-matchlatch.vercel.app after copying the existing owner configuration to this branch. Vercel reports Preview (`target: null`), matching commit SHA; twelve API source functions remain.
-- Real browser attempt reached the Vercel protection login. Desktop/mobile application journeys, visual theme checks and real-account tests are therefore **BLOCKED**, not passed.
-- Automatic approval review rejected temporary share-link creation because it would expand deployment access beyond the requirement to preserve security controls. No link was created, protection disabled or alternate bypass attempted.
+- Initial browser attempt reached Vercel protection. After explicit owner approval on October 13, a temporary deployment-scoped share link allowed actual Preview browser QA. Application authentication and owner privileges were not changed. The tested application commit is `15410ffa5a68c5d39ebaab7866eceb9e639414fc`; subsequent QA documentation changes do not change application code.
+- Automatic review initially rejected a temporary share link. The owner explicitly approved it in the following turn; one expiring link was then created. It is not committed to GitHub. Deployment protection remains configured.
 - Git CLI push failed once because the workspace lacks push credentials. The connected GitHub API published the tested merge tree; its tree SHA exactly matched the local tested tree. The first branch-scoped environment write was rejected because the branch did not yet exist; it succeeded after GitHub branch publication. A fresh Preview loaded that configuration.
 - New Global discovery configuration remains unset. No fresh authenticated BASALT or shipping execution was possible without an owner session.
 
@@ -56,3 +56,27 @@ These configuration fields record an operator decision; their presence does not 
 Leave new discovery variables unset to keep the feature disabled. Revert the integration Preview to the prior Studio commit if required; do not promote or merge to main. No database migration, inventory write, catalog publication, supplier permission change, paid service, token rotation or Production change is part of this work.
 
 Official references: https://shopify.dev/docs/agents/catalog ; https://shopify.dev/docs/agents/catalog/quickstart ; https://www.shopify.com/legal/api-terms . Recheck the applicable current terms before enabling commercial usage.
+
+## Actual browser QA after approved Preview access
+
+Tested in cloud Chromium. The 390px and 430px checks use the existing `preview-qa.html` same-origin frames; this is responsive layout evidence, **not physical iPhone/Safari or touch certification**.
+
+| Check | Observed result |
+| --- | --- |
+| Studio form | One primary Find my outfit action, required Occasion/Style, total USD budget and optional notes visible. |
+| Required/invalid budget | Native required-select validation; zero budget rejected with minimum $1. |
+| Preferences | More preferences expands/collapses. Work, Business casual, $150, notes and shoe size 11.5 retained across same-page Store/Studio navigation. Unsupported photo styling disabled. |
+| Guest submission/navigation | Styling submission, Mood, My Closet, Me and cart entry show sign-in. Store and fictional demo accessible; Studio/Store return navigation works. |
+| Loading | Store loading text observed; fictional search disables its submit button and clears prior results while checking. |
+| Reviewed Store empty state | A jeans/Bottoms search returned no qualified public Awin products, explicitly excluded private inventory and generated no AI recommendation. No Global Catalog search was requested. |
+| Six fictional journeys | Sneakers $79, jeans $89, jacket $95, boots $99, dress $69 and watch $85 rendered as FICTIONAL TEST PRODUCT, with supplied sizes/units (or no size supplied for watch). These are synthetic test values, not real offers. |
+| Details / empty state | Boot detail displays original synthetic size US 10 and a non-clickable fixture reference; no save/model/checkout actions. Size 99 returned an honest no-match state. |
+| Imagery | Rendered fictional sneaker image decoded in 390px and 430px frames; Studio logo images decoded. Merchant imagery remains unverified. |
+| Responsive measurements | Studio 390px, 430px and 1363px frames: no horizontal overflow. Demo 390px and 430px: no horizontal overflow. Studio light/dark themes visually inspected. |
+| Guest live server checks | Public capabilities 200 (`staff=false`, Studio live discovery false); private catalog 403; owner fixture 403; demo save 403; fixture styling/save 401. These were actual deployment requests from the existing read-only QA controls. |
+| New manual discovery control | Hidden to guest while new Global discovery configuration remains unset. |
+| Real customer/owner sessions | **UNVERIFIED**. No signed-in sessions or new accounts were available; no authentication bypass attempted. |
+
+Screenshots: [390px light Studio](qa/v12-20261013/matchlatch-390px-studio-20261013.jpg) and [430px dark Studio](qa/v12-20261013/matchlatch-430px-studio-20261013.jpg).
+
+Browser automation encountered locator timing/name mismatches during fast asynchronous interactions; state-based waits then verified the intended results. No critical application defect was established in the bounded journeys. Full signed-in saved-product behavior, real isolation and provider network-failure visual states are still unverified. Browser QA made no purchases, orders, cart mutations, model calls, account creation, inventory writes or database changes. Recommendation remains NO-GO for public live commerce.
