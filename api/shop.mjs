@@ -94,6 +94,33 @@ export async function GET(request){
       return reply({items,source:"Shopify Global Catalog",checkedAt:new Date().toISOString(),
         note:"Retailer availability is checked when fetched, not guaranteed at checkout. Prices exclude tax and possible shipping."});
     }
+    if(mode==="discover"){
+      // A bounded, live cross-merchant discovery sweep. Never persist catalog results.
+      const q=clip(u.searchParams.get("q"),110);
+      if(q.length<2||!/^[A-Za-z0-9]/.test(q)||!Number.isFinite(max)||max<1||max>10000)
+        return reply({error:"Invalid discovery preferences."},400);
+      const slots=["shirt","jacket","shoes"];
+      const filters={available:true,ships_to:{country:"US"},condition:["new"],price:{max:Math.floor(max*100)}};
+      const found=await Promise.allSettled(slots.map(async slot=>{
+        const data=await catalog("search_catalog",{
+          query:q+" "+slot,filters,context:{address_country:"US",currency:"USD"},
+          pagination:{limit:12}
+        });
+        return collect(data).filter(item=>item.price<=max).slice(0,4).map(item=>({...item,slot}));
+      }));
+      const items=[],seen=new Set();
+      for(const result of found){
+        if(result.status!=="fulfilled")continue;
+        for(const item of result.value){
+          const key=item.productId+"|"+item.variantId;
+          if(!seen.has(key)){seen.add(key);items.push(item);}
+        }
+      }
+      if(!found.some(result=>result.status==="fulfilled"))
+        return reply({error:"Live retailer discovery is temporarily unavailable."},503);
+      return reply({items,source:"Shopify Global Catalog",checkedAt:new Date().toISOString(),
+        note:"Live discovery across participating Shopify retailers. Prices and availability can change before checkout; shipping and taxes are not included."});
+    }
     if(mode==="verify"){
       const id=clip(u.searchParams.get("id"),120);
       const variantId=clip(u.searchParams.get("variant"),120);

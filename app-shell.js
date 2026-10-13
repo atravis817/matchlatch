@@ -215,7 +215,7 @@ function storeCard(item){
  info.append(el("strong","store-price",USD(item.price)));
  if(item.size)info.append(el("span","store-size","Size "+item.size));
  const actions=el("div","store-card-actions store-card-shopping");
- actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
+ actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
  actions.append(button("Details ↗",()=>openProduct(item),"store-view-details"));
  info.append(actions);
  card.append(info);return card;
@@ -266,7 +266,7 @@ function renderProduct(){
  details.append(specifics);
  details.append(el("p","store-product-disclaimer","Price and availability are checked when listed and may change before checkout."));
  const actions=el("div","store-product-actions");
- actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
+ actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
  actions.append(button("View cart ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
  const retailerLink=(()=>{try{const url=new URL(item.url);return url.protocol==="https:"?url.href:"";}catch{return "";}})();
  if(retailerLink){
@@ -341,6 +341,8 @@ function renderStore(){
  for(const hint of suggestions)quick.append(button(hint.name,()=>{
   query.value=hint.query;select.value=hint.slot;query.focus();
  },"store-chip"));
+ const discover=button("Discover for me ✦",()=>discoverForMe(),"store-chip");
+ quick.append(discover);
  box.append(quick);
  target.append(box);
  const results=el("div","store-results");
@@ -368,6 +370,43 @@ function renderStore(){
  else {
   if(view!=="search"&&location.hash.startsWith("#store/"))history.replaceState(null,"","#store");
   showStoreView("search",false);
+ }
+ async function discoverForMe(){
+  const cues=[p.aesthetic,p.fit,p.palette].filter(value=>typeof value==="string"&&value.trim()).join(" ");
+  const q=(cues||"minimal neutral everyday").slice(0,110);
+  const max=Number(budget.value);
+  if(!Number.isFinite(max)||max<1||max>10000){
+   status.textContent="Choose a maximum price between $1 and $10,000.";
+   return;
+  }
+  if(controller)controller.abort();
+  controller=new AbortController();
+  const run=++searchId;
+  storeState.items=[];storeState.searched=true;storeState.query=q;storeState.max=max;
+  list.replaceChildren();showStoreView("results");
+  status.textContent="Discovering real products across Shopify retailers…";
+  discover.disabled=true;
+  try{
+   const params=new URLSearchParams({mode:"discover",q,max:String(max)});
+   const response=await fetch("/api/shop?"+params,{signal:controller.signal,cache:"no-store"});
+   const data=await response.json();
+   if(run!==searchId)return;
+   if(!response.ok)throw Error(data.error||"Discovery unavailable");
+   const items=Array.isArray(data.items)?data.items.filter(item=>item?.available&&Number(item.price)<=max):[];
+   storeState.items=items;storeState.checkedAt=Date.now();
+   status.textContent=items.length?
+    items.length+" live products discovered for your style. Availability and prices may change.":
+    "No available matches yet. Try a different style or budget.";
+   list.replaceChildren(...items.map(storeCard));
+  }catch(error){
+   if(run!==searchId)return;
+   if(error?.name!=="AbortError")status.textContent="Live discovery is temporarily unavailable. Try searching instead.";
+  }finally{if(run===searchId)discover.disabled=false;}
+ }
+ // Populate the Store with fresh merchant results when a visitor opens it directly.
+ // Existing searches and prefilled mood queries stay untouched.
+ if(location.hash==="#store"&&!storeState.searched&&!query.value.trim()){
+  discoverForMe();
  }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
