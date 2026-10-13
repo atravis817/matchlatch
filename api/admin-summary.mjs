@@ -4,9 +4,11 @@ import {collectMetrics} from '../lib/admin-data.mjs';
 import {privateCatalogFixtures} from '../lib/catalog-fixtures.mjs';
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
 import {runShopifyDiagnostic} from '../lib/shopify-diagnostic.mjs';
+import {runShippingDiagnostic} from '../lib/shopify-shipping-diagnostic.mjs';
 const cache=new Map(),pending=new Map();
 export async function POST(request){
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
+ if(new URL(request.url).searchParams.get('action')==='shopify-shipping')return runShippingDiagnostic(request);
  if(new URL(request.url).searchParams.get('action')!=='shopify-diagnostic')return json({error:'Unknown action'},404);
  return runShopifyDiagnostic(request);
 }
