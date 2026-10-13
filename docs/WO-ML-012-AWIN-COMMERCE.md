@@ -32,7 +32,7 @@ ZazzMode's current programme description says "no coupon sites." Its promotions 
 - Returned tracking URLs must be official Awin HTTPS long links with matching publisher, advertiser and the exact canonical product destination. Unexpected hosts, duplicate/conflicting identifiers, changed products or unknown parameters fail closed.
 - New affiliate handoff requires `MATCHLATCH_AWIN_HANDOFF_ENABLED=true` in Preview. It remains unset. The existing purchases-disabled usability beta also suppresses shopper outbound/affiliate actions. Do not remove that protection as a side effect of Awin setup.
 - `GET /api/savings`: existing Savings Check enhanced for vouchers and non-code promotions. It excludes non-joined/offline/inactive partners, expired/missing/invalid dates, unknown region/audience, unsafe/unrelated landing pages and the documented no-coupon-site restriction. It preserves terms, expiry and public/publisher-exclusive/restricted labels. Code acceptance is never claimed. Expiry is rechecked when cached results are returned and rendered.
-- `savings.js`: existing understated detail/copy UI, promotion labels and merchant offer links where beta policy permits; disclosure next to affiliate actions; explicit preparation followed by user-selected retailer continuation. Existing ordinary links remain available. No affiliate navigation or generation on page load, and no affiliate first-party click/personal telemetry.
+- `savings.js`: existing understated detail/copy UI, promotion labels and merchant offer links where beta policy permits; disclosure next to affiliate actions; explicit preparation followed by user-selected retailer continuation. Existing ordinary links remain available. Existing Awin feed records use their original merchant product destination as the ordinary fallback, rather than relying on a previously generated tracking link. Fresh affiliate preparation uses that merchant destination for either source and never wraps an Awin URL again. No affiliate navigation or generation on page load, and no affiliate first-party click/personal telemetry.
 - `lib/commerce-intelligence.mjs`: corrected an existing defect that deducted a listed coupon without verified merchant checkout redemption. Promotions now leave subtotal, budget eligibility and total unchanged. Advertiser-supplied actual product sale prices remain distinct from coupon claims.
 - `lib/merchant-offer-identity.mjs`: Preview deduplication only where the merchant product URL and original size/color/system/unit match. Marketing parameters are ignored for identity only; returned links and first-source evidence remain intact. Unknown variant identity stays separate. No commission-based sorting or blending of permissions/inventory from different providers.
 
@@ -50,7 +50,7 @@ The existing `lib/awin-feed-normalize.mjs`, `lib/awin-public-catalog.mjs`, priva
 
 Vercel metadata confirms `AWIN_API_TOKEN` and `AWIN_PUBLISHER_ID` are currently Production-only. The feed key exists in Preview. Production token values were not retrieved, copied, rotated or rescaled.
 
-Owner must configure an appropriately authorized publisher `AWIN_API_TOKEN` directly in Vercel **Preview**, scoped to this branch. Do not paste it into chat or GitHub. `AWIN_PUBLISHER_ID=3118944` is non-secret Preview configuration. Existing verified-owner identity must be preserved on this branch; no customer privileges change. A new Preview deployment is needed after the token is added.
+Owner must configure an appropriately authorized publisher `AWIN_API_TOKEN` directly in Vercel **Preview**, scoped to this branch. Do not paste it into chat or GitHub. `AWIN_PUBLISHER_ID=3118944` and the existing verified-owner identity have been configured for this Preview branch. No customer privileges changed. Only the publisher API token remains missing. A new Preview deployment is needed after the token is added.
 
 After credentials and merchant method restrictions are reviewed, use the manual owner report/feed checks and one legitimate product-specific long-link preparation. Keep public handoffs disabled while beta purchases remain disabled. Provider success is not a conversion or proof of checkout attribution. Awin attribution through integrated Shopify checkout is unverified; this implementation only supports optional retailer handoff.
 
@@ -75,3 +75,25 @@ Per-runtime caches, rate limits (conservative 20 provider calls/minute) and 429 
 - https://help.awin.com/developers/docs/product-feed-list-download
 - https://help.awin.com/apidocs/retail-publisher-productapidocumentation-1
 - https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking
+
+
+## Executed Preview verification
+
+Application checkpoint `3589dc6a08ca57b75ed2fed6019623db1d9725cb` deployed **READY** at https://matchlatch-206atvob4-matchlatch.vercel.app with the latest branch-scoped owner/publisher configuration. A temporary deployment-only access link was used under the existing owner approval; it is not committed.
+
+Actual deployed HTTP checks:
+
+- Savings Check for saltedavenue.com: HTTP 200, `enabled=false`, `status=not_configured`, empty offers, `cache-control=no-store`. No fabricated promotions or credentials returned.
+- Unauthenticated `action=awin-report`: HTTP 403, sanitized Forbidden.
+- Unauthenticated `action=awin-feed-status`: HTTP 403, sanitized Forbidden.
+
+Actual cloud Chromium checks:
+
+- Studio form and five destinations rendered; guest Store navigation and reviewed Awin jeans/Bottoms search worked and returned an honest qualified-public-catalog empty state. No hidden private records or model recommendations appeared.
+- Studio 390px and 430px same-origin frames had no horizontal overflow; two rendered logo images decoded. Light and dark visual states checked. A transient unstyled frame during reload/theme switching settled to the expected layout; physical iPhone Safari/touch behavior is unverified.
+- Command Center showed its normal secure-owner login boundary. Dashboard and both new Awin controls were hidden to a guest.
+- Live Savings Check code/offer rendering, signed-in owner Awin controls, affiliate product navigation, copied live codes, conversions and merchant checkout attribution remain **UNVERIFIED**. Credentials, qualifying public product data and an owner session were not bypassed to test them.
+
+Follow-up changes retain ordinary merchant destinations for existing Awin records (including saved details), clear Awin output/button state on session changes, and register the integration-base PR quality check. They do not alter customer authentication, product data or Shopify checkout. The final deployment/check results are provided in the completion report.
+
+[430px responsive regression screenshot](qa/wo-ml-012/matchlatch-awin-430px-20261013.jpg).

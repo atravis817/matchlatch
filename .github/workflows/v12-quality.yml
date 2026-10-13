@@ -8,6 +8,7 @@ on:
       - staging/v1.1-tile-cleanup-100926
   pull_request:
     branches:
+      - integration/v1.2-global-discovery-20261013
       - main
       - staging/v1.1-tile-cleanup-100926
   workflow_dispatch:

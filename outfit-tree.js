@@ -353,7 +353,7 @@ function renderDrawer(){
   actions.append(button(state.selected?.variantId===item.variantId?"Selected ✓":"Select this",()=>{
     select(id,i);window.MatchlatchLibrary?.chooseShopItem?.(id,item);
   }));
-  const shop=document.createElement("a");shop.href=item.url;shop.target="_blank";shop.rel="noopener noreferrer";shop.textContent="Retailer ↗";
+  const shop=document.createElement("a");shop.href=item.merchantProductUrl||item.url;shop.target="_blank";shop.rel="noopener noreferrer";shop.textContent="Retailer ↗";
   actions.append(shop);
   actions.append(button("♡ Save",()=>window.MatchlatchLibrary?.favoriteShopItem?.(id,item),"tree-shop-help"));
   actions.append(button("＋ Cart",()=>window.MatchlatchLibrary?.cartShopItem?.(id,item),"tree-shop-help"));

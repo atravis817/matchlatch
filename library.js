@@ -841,7 +841,7 @@
       status.remove();
       if(response.ok && payload.item?.available && payload.item?.url){
         const a=node("a",null,money(payload.item.price)+" · Open retailer ↗");
-        a.href=payload.item.url;a.target="_blank";a.rel="noopener noreferrer";
+        a.href=payload.item.merchantProductUrl||payload.item.url;a.target="_blank";a.rel="noopener noreferrer";
         actions.append(a);
         window.MatchlatchSavings?.attach?.(actions,payload.item);
       } else {

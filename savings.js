@@ -17,7 +17,7 @@
  };
  const getDomain=item=>{
   try{
-   const u=new URL(item?.url||"");
+   const u=new URL(item?.merchantProductUrl||item?.url||"");
    if(u.protocol!=="https:")return "";
    const d=u.hostname.toLowerCase().replace(/^www\./,"");
    return /^(?:[a-z0-9-]+\.)+[a-z]{2,24}$/.test(d)?d:"";
@@ -129,13 +129,13 @@
   parent.append(wrapper);
   if(item?.source==='awin'&&item.affiliateTracked)parent.append(make('small','savings-note','MATCHLATCH may earn a commission through eligible affiliate links. Your price is unchanged.'));
   // Never replace a Shopify cart/checkout action or remove the ordinary link.
-  if(!item?.fixture&&item?.source!=='awin'&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
+  if(!item?.fixture&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
    const handoff=make('details','savings-check'),summary=make('summary','savings-summary','Retailer link options');
    const note=make('p','savings-note','You can choose an affiliate link. MATCHLATCH may earn a commission; your price stays the same.');
    const prepare=make('button','savings-copy','Prepare affiliate retailer link');prepare.type='button';
    prepare.addEventListener('click',async()=>{
     if(prepare.disabled)return;prepare.disabled=true;note.textContent='Checking retailer eligibility…';
-    try{const r=await fetch('/api/savings',{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',signal:AbortSignal.timeout(15000),body:JSON.stringify({destination:item.url,intent:'retailer_handoff',affiliateConsent:true})}),data=await r.json();
+    try{const r=await fetch('/api/savings',{method:'POST',headers:{'content-type':'application/json'},cache:'no-store',signal:AbortSignal.timeout(15000),body:JSON.stringify({destination:item.merchantProductUrl||item.url,intent:'retailer_handoff',affiliateConsent:true})}),data=await r.json();
      if(!r.ok||!data.affiliate){note.textContent='Affiliate linking is unavailable. Use the ordinary retailer link.';return;}
      const url=new URL(data.trackingUrl);if(url.protocol!=='https:'||!['www.awin1.com','awin1.com','www.awin2.com','awin2.com'].includes(url.hostname))throw Error('Unsafe link');
      note.textContent=data.disclosure;const link=make('a','savings-copy','Continue to retailer ↗');link.href=url.href;link.target='_blank';link.rel='sponsored nofollow noopener noreferrer';prepare.replaceWith(link);
