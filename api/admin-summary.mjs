@@ -3,7 +3,13 @@ import {allowRequest} from '../lib/request-limits.mjs';
 import {collectMetrics} from '../lib/admin-data.mjs';
 import {privateCatalogFixtures} from '../lib/catalog-fixtures.mjs';
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
+import {runShopifyDiagnostic} from '../lib/shopify-diagnostic.mjs';
 const cache=new Map(),pending=new Map();
+export async function POST(request){
+ if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
+ if(new URL(request.url).searchParams.get('action')!=='shopify-diagnostic')return json({error:'Unknown action'},404);
+ return runShopifyDiagnostic(request);
+}
 export async function GET(request){
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
  if(!allowRequest(request,'admin-summary',30))return json({error:'Rate limited'},429);
