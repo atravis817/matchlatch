@@ -266,7 +266,7 @@ function renderProduct(){
  details.append(specifics);
  details.append(el("p","store-product-disclaimer","Price and availability are checked when listed and may change before checkout."));
  const actions=el("div","store-product-actions");
- actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
+ actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
  actions.append(button("View cart ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
  const retailerLink=(()=>{try{const url=new URL(item.url);return url.protocol==="https:"?url.href:"";}catch{return "";}})();
  if(retailerLink){
@@ -402,6 +402,11 @@ function renderStore(){
    if(run!==searchId)return;
    if(error?.name!=="AbortError")status.textContent="Live discovery is temporarily unavailable. Try searching instead.";
   }finally{if(run===searchId)discover.disabled=false;}
+ }
+ // Populate the Store with fresh merchant results when a visitor opens it directly.
+ // Existing searches and prefilled mood queries stay untouched.
+ if(location.hash==="#store"&&!storeState.searched&&!query.value.trim()){
+  discoverForMe();
  }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
