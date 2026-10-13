@@ -11,14 +11,23 @@
   const money = value => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
   const uid = () => crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-"+Math.random().toString(36).slice(2);
   const empty = () => ({inspirations:[],looks:[],favorites:[],cart:[],purchases:[],collections:[]});
+  // Keep legacy device data for explicit opt-in import, not active guest state.
   let dbState = empty();
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (raw && typeof raw === "object") {
-      for (const key of Object.keys(dbState)) if (Array.isArray(raw[key])) dbState[key] = raw[key];
-    }
-  } catch {}
   let activePage="studio";
+  let guestStudioLanding=false;
+  let pendingProtectedAction=null;
+  const loggedIn=()=>Boolean(activeUser?.id);
+  function requireAccount(action){
+    if(loggedIn())return true;
+    if(typeof action==="function")pendingProtectedAction=action;
+    window.dispatchEvent(new CustomEvent("matchlatch:account-required",{detail:{reason:"Sign in or create an account to save your looks, cart, preferences, favorites, folders and history."}}));
+    return false;
+  }
+  function resumeProtectedAction(){
+    if(!loggedIn()||!pendingProtectedAction)return;
+    const action=pendingProtectedAction;pendingProtectedAction=null;
+    queueMicrotask(()=>action());
+  }
   let selectedTab="overview";
   let currentLookId=null;
   let selectedInspiration=null;
@@ -53,8 +62,8 @@
   };
   const setGuest=()=>{
     activeUser=null;
-    setState(guestState());
-    window.MatchlatchStyleProfile?.restoreGuest?.();
+    setState(empty()); // Never restore legacy personal library into a signed-out session.
+    window.MatchlatchStyleProfile?.apply?.({}); // Neutral defaults after sign-out, not legacy guest preferences.
     if(activePage==="account")renderAccount();
   };
 
@@ -76,7 +85,7 @@
   function persist() {
     try {
       if(activeUser&&cloudAdapter)cloudAdapter.queueState(dbState);
-      else localStorage.setItem(STORAGE_KEY,JSON.stringify(dbState));
+      else {requireAccount();return false;}
       refreshCounts();
       window.dispatchEvent(new Event("matchlatch:library"));
       return true;
@@ -316,7 +325,7 @@
     if(c)c.textContent=dbState.cart.length?String(dbState.cart.length):"";
   }
 
-  function showPage(page,updateHash=true) {
+  function showPage(page,updateHash=true,initialLanding=false) {
     // Keep old links valid while allowing focused, shareable Closet subpages.
     const path=(location.hash||"").slice(1).split("/");
     const closetPages=["overview","collections","wants","favorites","shortlist","checkout","outfits","purchases","inspirations"];
@@ -326,6 +335,11 @@
     if(page==="closet")page="styles";
     if(page==="me")page="account";
     if(!["mood","studio","store","styles","account"].includes(page))page="studio";
+    if(!["store","studio"].includes(page)&&!loggedIn()) {
+      requireAccount(()=>showPage(page,updateHash));
+      return false;
+    }
+    guestStudioLanding=page==="studio"&&!loggedIn();
     activePage=page;
     document.querySelectorAll(".app-screen").forEach(section=>section.hidden=section.id!=="screen-"+page);
     document.querySelectorAll(".bottom-nav button").forEach(button=>{
@@ -341,12 +355,15 @@
     if(page==="account")renderAccount();
     window.dispatchEvent(new CustomEvent("matchlatch:page",{detail:{page}}));
     window.scrollTo({top:0,behavior:"auto"});
+    return true;
   }
   function readLocation() {
     const hash=(location.hash||"").replace("#","").split("?")[0].split("/")[0].toLowerCase();
     if(["mood","closet","studio","store","me","styles","cart","account"].includes(hash))return hash;
     return "studio";
   }
+  window.addEventListener("matchlatch:account-ui-ready",()=>{if(!loggedIn()&&pendingProtectedAction)requireAccount(pendingProtectedAction);});
+  window.addEventListener("matchlatch:account-dismissed",()=>{if(!loggedIn())pendingProtectedAction=null;});
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>{
     if(b.dataset.page==="closet"){selectedTab="overview";selectedLookDetail=null;selectedCollectionId=null;}
     showPage(b.dataset.page);
@@ -354,10 +371,31 @@
   document.querySelectorAll("[data-nav-page]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.navPage)));
   window.addEventListener("hashchange",()=>showPage(readLocation(),false));
   window.addEventListener("popstate",()=>showPage(readLocation(),false));
+  // The Studio landing is public, but photo intake starts a private look.
+  // Gate before requesting camera access or opening a file picker.
+  const guardedStudioInputs="#open-camera,#drop,#photo,#camera-fallback,#change,#retake-camera";
+  function guardStudioIntake(event){
+    if(loggedIn()||!event.target?.closest?.(guardedStudioInputs))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    requireAccount(()=>showPage("studio"));
+  }
+  document.addEventListener("click",guardStudioIntake,true);
+  document.addEventListener("drop",guardStudioIntake,true);
+  document.addEventListener("change",guardStudioIntake,true);
+  document.addEventListener("keydown",event=>{
+    if(!loggedIn()&&["Enter"," "].includes(event.key)&&event.target?.matches?.("#drop"))guardStudioIntake(event);
+  },true);
   refreshCounts();
-  showPage(readLocation(),false);
+  const initialDestination=readLocation();
+  if(["studio","store"].includes(initialDestination))showPage(initialDestination,false,!location.hash);
+  else{
+    showPage("studio",false,true);
+    pendingProtectedAction=()=>showPage(initialDestination,false);
+  }
 
   function captureLook(input,photoData,profile) {
+    if(!requireAccount(()=>showPage("studio")))return;
     if(!input||!input.item||!Array.isArray(input.pieces))return;
     const now=new Date().toISOString();
     const inspirationId=uid();
@@ -395,6 +433,7 @@
     return dbState.cart.some(x=>x.lookId===lookId&&x.pieceIndex===index);
   }
   function toggleFavorite(lookId,index) {
+    if(!requireAccount(()=>toggleFavorite(lookId,index)))return;
     const existing=dbState.favorites.find(x=>x.lookId===lookId&&x.pieceIndex===index);
     if(existing)dbState.favorites=dbState.favorites.filter(x=>x.id!==existing.id);
     else {
@@ -412,6 +451,7 @@
     else feedback("Saved to favorites.");
   }
   function addToCart(lookId,index) {
+    if(!requireAccount(()=>addToCart(lookId,index)))return;
     const look=lookFor(lookId),piece=look?.pieces[index];
     if(!piece)return;
     const existing=cartExists(lookId,index);
@@ -560,6 +600,7 @@
   }
 
   function openClosetTab(tab){
+    if(!requireAccount(()=>openClosetTab(tab)))return;
     const allowed=["overview","collections","wants","favorites","shortlist","checkout","outfits","purchases","inspirations"];
     selectedTab=allowed.includes(tab)?tab:"overview";
     selectedLookDetail=null;
@@ -867,10 +908,16 @@
   };
   const moneyAmount=x=>Number.isFinite(Number(x))&&Number(x)>=0?Number(x):null;
   function addRetailProduct(item){
+    if(!requireAccount(()=>addRetailProduct(item)))return;
     const price=moneyAmount(item?.price),url=secureProductUrl(item?.url);
     const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
+    const shopify=/^gid:\/\/shopify\//.test(productId)&&/^gid:\/\/shopify\//.test(variantId);
+    const awin=item?.source==="awin"&&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(productId)
+      &&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(variantId)
+      &&productId.split(":")[1]===variantId.split(":")[1]
+      &&item.requiresMerchantVerification===true&&item.stockVerifiedLive===false;
     if(!item||item.available!==true||item.currency!=="USD"||!price||!url||
-       !/^gid:\/\/shopify\//.test(productId)||!/^gid:\/\/shopify\//.test(variantId)){
+       (!shopify&&!awin)){
       feedback("This item is not available to add right now.");
       return false;
     }
@@ -887,7 +934,7 @@
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||title).slice(0,150),
       size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
       checkedAt:String(item.checkedAt||""),
-      shopRef:{productId,variantId,slot:String(item.slot||"shirt")},
+      shopRef:{productId,variantId,slot:String(item.slot||"shirt"),provider:awin?"awin":"shopify"},
       createdAt:new Date().toISOString()
     });
     persist();
@@ -916,6 +963,102 @@
       persist();if(activePage==="styles")renderStyles();else if(activePage==="cart")renderCart();
     });
   }
+  // Proof of concept: resolve a fresh variant-specific checkout permalink.
+  // Checkout uses Shopify's catalog-verified checkout_url when supplied.
+  // Never construct merchant cart URLs or imply a MATCHLATCH payment.
+  async function verifyCheckoutItem(cartItem){
+    const id=String(cartItem?.shopRef?.productId||"");
+    const variant=String(cartItem?.shopRef?.variantId||"");
+    const shopify=/^gid:\/\/shopify\/p\/[A-Za-z0-9_-]+$/.test(id)
+      &&/^gid:\/\/shopify\/ProductVariant\/[A-Za-z0-9_-]+$/.test(variant);
+    const awin=/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(id)
+      &&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(variant)
+      &&id.split(":")[1]===variant.split(":")[1];
+    if(!shopify&&!awin){
+      throw new Error("This item needs a fresh Store selection.");
+    }
+    const qs=new URLSearchParams({mode:"verify",id,variant,max:"10000"});
+    if(cartItem.size)qs.set("size",String(cartItem.size).slice(0,36));
+    let response,body;
+    try{
+      response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
+      body=await response.json();
+    }catch{
+      throw new Error("We couldn't check this item right now. Please try again.");
+    }
+    if(!response.ok||!body?.item){
+      throw new Error(response.status===409
+        ?"This size or variant is no longer confirmed available. Please choose another."
+        :"We couldn't confirm this item right now. Please try again.");
+    }
+    const live=body.item;
+    const amount=moneyAmount(live.price);
+    if(live.available!==true||live.currency!=="USD"||amount===null
+      ||live.productId!==id||live.variantId!==variant){
+      throw new Error("The retailer listing has changed. Please choose the item again.");
+    }
+    const checkout=secureProductUrl(live.checkoutUrl);
+    const product=secureProductUrl(live.url);
+    if(!checkout&&!product)throw new Error("This retailer isn't accepting a handoff for this item right now.");
+    return {url:checkout||product,directCheckout:shopify&&Boolean(checkout),
+      feedOnly:awin,price:amount,checkedAt:Date.now()};
+  }
+  function verifiedCheckoutAction(item){
+    if(document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"){
+      const blocked=node("div","commerce-checkout-actions");
+      const disabled=btn("Purchases disabled in usability beta",()=>{},"commerce-primary");disabled.disabled=true;
+      blocked.append(disabled,node("p","commerce-checkout-status","Review your shortlist and send feedback. This beta does not offer retailer checkout handoffs."));return blocked;
+    }
+    const actions=node("div","commerce-checkout-actions");
+    const status=node("p","commerce-checkout-status");
+    status.setAttribute("role","status");
+    status.setAttribute("aria-live","polite");
+    const retailer=String(item.retailer||"retailer");
+    let confirmed=null;
+    const button=btn(item.shopRef?.provider==="awin"?"Review at "+retailer+" ↗":"Checkout at "+retailer+" ↗",async()=>{
+      // Explicitly confirmed changed price or product-page fallback; short TTL.
+      if(confirmed&&Date.now()-confirmed.checkedAt<45000){
+        window.location.assign(confirmed.url);
+        return;
+      }
+      confirmed=null;
+      button.disabled=true;button.textContent="Checking availability…";
+      status.textContent=item.shopRef?.provider==="awin"
+        ?"Checking the latest published retailer listing…"
+        :"Checking the latest price and availability.";
+      try{
+        const checked=await verifyCheckoutItem(item);
+        if(!button.isConnected)return;
+        if(!checked.directCheckout){
+          confirmed=checked;
+          button.textContent="View item at "+retailer+" ↗";
+          status.textContent=checked.feedOnly
+            ? (Math.abs(checked.price-Number(item.target))>.005
+               ? "Feed price is now "+money(checked.price)+". Confirm price, size and stock on the retailer's site before buying."
+               : "Retailer feed listing confirmed. Check current price, size and stock on the retailer's site before buying.")
+            : (Math.abs(checked.price-Number(item.target))>.005
+               ? "Price is now "+money(checked.price)+". Direct checkout isn't offered; continue on the retailer's product page."
+               : "Direct checkout isn't offered for this listing. Continue on the retailer's product page.");
+        }else if(Math.abs(checked.price-Number(item.target))>.005){
+          confirmed=checked;
+          button.textContent="Continue at "+money(checked.price)+" ↗";
+          status.textContent="Price changed since you added this item. Confirm to continue.";
+        }else{
+          // The merchant's catalog returned a checkout permalink for this exact variant.
+          window.location.assign(checked.url);
+          return;
+        }
+      }catch(error){
+        if(!button.isConnected)return;
+        button.textContent="Try checkout again ↗";
+        status.textContent=error instanceof Error?error.message:"Unable to check availability.";
+      }finally{
+        button.disabled=false;
+      }
+    },"commerce-primary");
+    actions.append(button,status);
+    return actions;
+  }
   function renderCheckout(target){
     target.replaceChildren();
     const shell=node("section","commerce-checkout");
@@ -928,7 +1071,7 @@
     }
     const introduction=node("div","commerce-checkout-intro");
     introduction.append(node("h3",null,"Ready when you are"),
-      node("p",null,"Review your pieces, then complete purchase at each retailer."));
+      node("p",null,document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"?"Usability beta: review your saved pieces. Purchases and retailer checkout handoffs are disabled.":"Review your pieces, then complete purchase at each retailer."));
     shell.append(introduction);
     const grid=node("div","commerce-checkout-grid");
     const items=node("div","commerce-checkout-items");
@@ -940,13 +1083,10 @@
       details.append(node("h4",null,item.description));
       if(item.size)details.append(node("small",null,"Size "+item.size));
       details.append(node("strong","commerce-checkout-price",money(item.target)));
-      const actions=node("div","commerce-checkout-actions");
-      const link=secureProductUrl(item.productUrl);
-      if(item.source==="retailer"&&link){
-        const a=node("a","commerce-primary","Continue to "+(item.retailer||"retailer")+" ↗");
-        a.href=link;a.target="_blank";a.rel="noopener noreferrer";
-        actions.append(a);
-      }else{
+      const actions=item.shopRef&&secureProductUrl(item.productUrl)
+        ? verifiedCheckoutAction(item)
+        : node("div","commerce-checkout-actions");
+      if(!item.shopRef||!secureProductUrl(item.productUrl)){
         actions.append(btn("Find your piece ↗",()=>showPage("store"),"commerce-primary"));
       }
       details.append(actions);
@@ -959,9 +1099,12 @@
     const estimate=node("div","commerce-checkout-total");
     estimate.append(node("span",null,"Estimated item total"),node("strong",null,money(total)));
     aside.append(estimate);
-    aside.append(node("p",null,"Final prices, taxes, delivery and payment are confirmed on the retailer's site."));
+    aside.append(node("p",null,"Each retailer handles payment and delivery. Final prices, taxes and shipping are shown there."));
     aside.append(node("p","commerce-checkout-trust",
       "MATCHLATCH does not collect payment or place orders yet."));
+    if(dbState.cart.some(x=>x.shopRef?.provider==="awin"))
+      aside.append(node("p","commerce-checkout-trust",
+        "Some retailer links may earn MATCHLATCH a commission. Product choices are based on your style, not commissions."));
     aside.append(btn("← Back to cart",()=>openClosetTab("shortlist"),"commerce-secondary"));
     grid.append(items,aside);shell.append(grid);target.append(shell);
   }
@@ -1003,7 +1146,7 @@
     totals.append(node("span",null,"Estimated total · excludes tax and shipping"),node("strong",null,money(total)));
     target.append(totals);
     const checkout=node("div","commerce-cart-footer");
-    checkout.append(btn("Checkout →",()=>openClosetTab("checkout"),"commerce-primary"));
+    checkout.append(btn(document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"?"Review shortlist →":"Checkout →",()=>openClosetTab("checkout"),"commerce-primary"));
     checkout.append(btn("Keep shopping",()=>showPage("store"),"commerce-secondary"));
     target.append(checkout);
   }
@@ -1060,27 +1203,16 @@
   }
 
   function renderAccount() {
-    const status=$("account-status"),submit=$("send-login"),form=$("login-form"),
-      logout=$("logout-button"),guest=$("account-guest"),importBox=$("account-import"),
-      clear=$("clear-library");
-    if(activeUser&&supabase&&cloudAdapter){
-      status.textContent=cloudAdapter.getStatus();
-      form.hidden=true;logout.hidden=false;guest.hidden=true;
-      const guestCount=Object.values(guestState()).reduce((sum,a)=>sum+a.length,0)+
-        (window.MatchlatchStyleProfile?.getGuest?.()?1:0);
-      importBox.hidden=guestCount===0;
-      $("import-guest").disabled=!cloudAdapter.isReady();
-      clear.textContent="Delete guest data on this device";
-    } else if(supabase) {
-      status.textContent="Secure sign-in is ready. Use email to save your styles across devices.";
-      form.hidden=false;submit.disabled=false;logout.hidden=true;guest.hidden=false;
-      importBox.hidden=true;
-      clear.textContent="Delete guest library";
-    } else {
-      status.textContent="Continue as a guest until the secure account connection is configured.";
-      form.hidden=true;logout.hidden=true;guest.hidden=false;
-      importBox.hidden=true;clear.textContent="Delete guest library";
-    }
+    const status=$("account-status"),form=$("login-form"),logout=$("logout-button"),
+      guest=$("account-guest"),importBox=$("account-import"),clear=$("clear-library");
+    form.hidden=true;guest.hidden=true;
+    const priorDeviceItems=Object.values(guestState()).reduce((n,a)=>n+a.length,0)+(window.MatchlatchStyleProfile?.getGuest?.()?1:0);
+    importBox.hidden=!(activeUser&&cloudAdapter?.isReady?.()&&priorDeviceItems>0);
+    logout.hidden=!activeUser;
+    clear.textContent="Delete previous device-only library";
+    status.textContent=activeUser
+      ? (cloudAdapter?.getStatus?.()||"Your account is connected.")
+      : "Sign in or create an account to save your looks, favorites, cart and preferences.";
   }
 
   $("login-form").addEventListener("submit",async event=>{
@@ -1107,7 +1239,7 @@
       const {error}=await supabase.auth.signOut();
       if(error)throw error;
       await applyAuth(null);
-      feedback("Signed out. Guest library restored.");
+      feedback("Signed out securely.");
     }catch(error){feedback(error?.message||"Couldn't sign out. Try again.");}
     finally{button.disabled=false;}
   });
@@ -1154,6 +1286,12 @@
     } else if(cloudAdapter) {
       await cloudAdapter.setUser(activeUser);
     }
+    window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
+    if(activeUser)resumeProtectedAction();
+    else {
+      if(!["store","studio"].includes(activePage))showPage("studio");
+      if(pendingProtectedAction)requireAccount(pendingProtectedAction);
+    }
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
@@ -1167,8 +1305,10 @@
         import("/cloud-sync.js")
       ]);
       supabase=module.createClient(cfg.url,cfg.publishableKey,{
-        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,...(cfg.passkeysEnabled?{experimental:{passkey:true}}:{})}
       });
+      window.MatchlatchAuth={client:supabase,getUser:()=>supabase.auth.getUser(),passkeysEnabled:cfg.passkeysEnabled===true};
+      window.dispatchEvent(new Event("matchlatch:auth-ready"));
       cloudAdapter=cloudModule.createCloudSync(supabase,{
         setState, setGuest,getGuestState:guestState,
         onStatus:()=>{if(activePage==="account")renderAccount();},
@@ -1207,7 +1347,7 @@
       searchQuery:String(item.title||slot).slice(0,165),
       target:Number(item.price)||0,
       priceAtSelection:Number(item.price)||0,
-      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot},
+      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot,provider:item.source==="awin"?"awin":"shopify"},
       retailer:String(item.merchant||"Retailer").slice(0,90),
       productUrl:secureProductUrl(item.url),
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||item.title||slot).slice(0,150),
@@ -1218,6 +1358,7 @@
     return index;
   }
   function chooseShopItem(slot,item){
+    if(!requireAccount(()=>chooseShopItem(slot,item)))return;
     const look=currentLook();
     if(!look||!item?.variantId||!item?.productId)return;
     if(!look.shopSelections)look.shopSelections={};
@@ -1228,12 +1369,14 @@
     persist();
   }
   function favoriteShopItem(slot,item){
+    if(!requireAccount(()=>favoriteShopItem(slot,item)))return;
     const index=shopPiece(slot,item);
     if(index<0)return;
     if(!favoriteExists(currentLookId,index))toggleFavorite(currentLookId,index);
     else feedback("This item is already in your favorites.");
   }
   function cartShopItem(slot,item){
+    if(!requireAccount(()=>cartShopItem(slot,item)))return;
     const index=shopPiece(slot,item);
     if(index>=0)addToCart(currentLookId,index);
   }
@@ -1251,10 +1394,12 @@
     };
   }
   function openCollectionFromStudio(id){
+    if(!requireAccount(()=>openCollectionFromStudio(id)))return;
     if(id!=="__unfiled__"&&!collectionFor(id))return;
     selectedTab="collections";selectedCollectionId=id;selectedLookDetail=null;showPage("closet");
   }
   function startFreshStudio(){
+    if(!requireAccount(startFreshStudio))return;
     window.MatchlatchResetStudio?.();
     currentLookId=null;
     showPage("studio");
@@ -1265,6 +1410,6 @@
     chooseShopItem,favoriteShopItem,cartShopItem,
     discoverySnapshot,attachInspirationPhoto:attachPhoto,
     openLook:lookId=>void reopenTree(lookId),
-    openCollection:openCollectionFromStudio,openClosetTab,startFreshStudio};
+    openCollection:openCollectionFromStudio,openClosetTab,startFreshStudio,requireAccount,isSignedIn:loggedIn,getUserId:()=>activeUser?.id||null};
   void initAuth();
 })();

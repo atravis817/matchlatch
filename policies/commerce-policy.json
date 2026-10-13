@@ -1,0 +1,27 @@
+{
+  "version": "2.0.0",
+  "reviewOwner": "atravis817",
+  "reviewRequired": true,
+  "productionEnabled": false,
+  "model": "gpt-5.4-mini",
+  "webSearchLiveFetch": false,
+  "maxSources": 6,
+  "maxToolCalls": 1,
+  "maxOutputTokens": 300,
+  "timeoutMs": 18000,
+  "cacheSeconds": 300,
+  "cacheEntries": 128,
+  "monthlyBudgetUsd": 5,
+  "alertUsd": 3,
+  "searchReservationUsd": 0.1,
+  "searchCallsPerDay": 5,
+  "searchCallsPerUserDay": 2,
+  "researchRetailers": [
+    {"id":"gap","name":"Gap","hosts":["gap.com","www.gap.com"],"scope":"research_reference_only"},
+    {"id":"nordstrom","name":"Nordstrom","hosts":["nordstrom.com","www.nordstrom.com"],"scope":"research_reference_only"}
+  ],
+  "approvedRetailerAdapters": [],
+  "excludedRetailers": ["uniqlo.com"],
+  "fieldFreshnessSeconds": {"price":3600,"stock":86400,"variants":86400,"shipping":86400,"promotions":3600,"returnPolicy":604800,"reference":300},
+  "prohibitedActions": ["checkout","coupon_redemption","order","login_scraping","captcha_bypass","robots_bypass","production_credential_reuse","automatic_publication"]
+}

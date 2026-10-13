@@ -289,3 +289,56 @@ html{scroll-padding-bottom:calc(var(--dock-height) + 25px)}
  .profile-shortcut-copy small{font-size:10px}
  .feedback-toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 }
+
+
+/* V1.2 shared journey context — uses existing MATCHLATCH tokenized surfaces. */
+.v12-context,.v12-action-strip,.v12-closet-bridge{border:1px solid var(--line,#dce4dd);border-radius:18px;padding:17px 20px;margin:18px 0;background:var(--surface,#fff)}
+.v12-context-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.v12-context-tag{font-size:12px;border-radius:999px;background:var(--subtle,#ebf2ed);padding:8px 11px;color:var(--ink,#173e30)}
+.v12-action-strip,.v12-closet-bridge{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.v12-action-strip p{margin:0;max-width:40ch}
+.v12-closet-count,.v12-me-context,.v12-store-context{font-size:13px;line-height:1.6;color:var(--muted,#607269)}
+.v12-closet-bridge strong{font-size:16px;color:var(--ink,#173e30)}
+.v12-context .destination-link,.v12-action-strip .destination-link,.v12-closet-bridge .destination-link{min-height:44px}
+@media(max-width:580px){.v12-context,.v12-action-strip,.v12-closet-bridge{padding:15px}.v12-action-strip .destination-link,.v12-closet-bridge .destination-link{width:100%;text-align:center}}
+
+
+/* V1.2 Store result contract: photo > source > merchant > name > price/size > freshness > actions. */
+.v12-product-card{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.v12-product-card .store-card-cover{aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.v12-product-card .store-card-cover img{width:100%;height:100%;object-fit:contain}
+.v12-product-card .store-card-info{display:flex;flex:1;flex-direction:column;align-items:stretch;gap:9px}
+.v12-product-card .store-card-info h3{margin:0;overflow-wrap:anywhere;line-height:1.35}
+.v12-product-source{align-self:flex-start;font-weight:750;font-size:10px;line-height:1.5;letter-spacing:.07em;color:var(--ink,#173e30);border:1px solid var(--line,#dfe7df);border-radius:6px;padding:4px 7px}
+.v12-product-meta{display:flex;gap:9px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.v12-product-card .store-data-note{font-size:11px;line-height:1.45;color:var(--muted,#66746b)}
+.v12-product-card .store-card-actions{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px}
+.v12-product-card .store-card-actions button{min-height:44px;flex:1 1 138px;white-space:normal}
+@media(max-width:580px){.v12-product-card .store-card-info{gap:8px}.v12-product-card .store-card-actions button{flex-basis:100%}}
+
+/* V1.2 optional destination shipping forecast: only retailer-evidenced dates. */
+.v12-delivery-note{font-size:12px;line-height:1.5;color:var(--muted,#627268);display:block}
+.v12-shipping-preference{border:1px solid var(--line,#dfe7df);border-radius:18px;margin:20px 0;padding:20px;background:var(--surface,#fff)}
+.v12-shipping-preference h3{margin:0 0 8px}
+.v12-shipping-preference input{max-width:165px;display:block;padding:10px;margin:8px 0 14px;border:1px solid var(--line,#dfe7df);border-radius:8px;background:var(--surface,#fff);color:var(--ink,#173e30)}
+.v12-shipping-preference .destination-link{min-height:44px}
+
+/* Delivery deadline stays an optional, native mobile-calendar search constraint. */
+.v12-date-field input[type="date"]{min-height:44px;width:100%;max-width:300px;background:var(--surface,#fff);color:var(--ink,#173e30);border:1px solid var(--line,#dfe7df);border-radius:10px;padding:10px;margin-top:8px}
+.v12-date-field .v12-delivery-note{display:block;margin-top:7px;max-width:42ch}
+
+/* Owner shortcut inherits the existing GreenGlass account-card styling. */
+a.owner-command-center{text-decoration:none;color:inherit}
+
+/* One Store form, comfortable controls on iPhone widths. */
+.store-search-form{grid-template-columns:repeat(4,minmax(0,1fr));align-items:start}
+.store-query-field{grid-column:1/-1}
+.store-field input,.store-field select{font-size:16px;min-height:46px}
+.store-submit{min-height:46px;align-self:end;background:#303C31}
+.store-card-actions button,.store-product-actions button,.store-product-retailer{min-height:44px}
+.store-card-info,.store-search-status{overflow-wrap:anywhere}
+@media(max-width:700px){.store-search-form{grid-template-columns:repeat(2,minmax(0,1fr))}.store-submit{grid-column:1/-1}.store-product-layout{grid-template-columns:1fr}}
+@media(max-width:430px){.store-grid{grid-template-columns:1fr}.store-card-info h3{min-height:0}.store-card-cover{height:220px}}
+
+.store-field small{text-transform:none;letter-spacing:normal;font-size:11px;line-height:1.5}
+@media(max-width:700px){.store-source-field{grid-column:1/-1}}

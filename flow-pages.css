@@ -1,6 +1,6 @@
 /* MATCHLATCH focused destinations: dedicated screens without duplicate application state. */
-#screen-studio:not([data-studio-view]) > :not(#studio-workspace),
-#screen-studio[data-studio-view="home"] > :not(#studio-workspace){display:none!important}
+#screen-studio:not([data-studio-view]) > :not(#studio-workspace):not(#catalog-studio),
+#screen-studio[data-studio-view="home"] > :not(#studio-workspace):not(#catalog-studio){display:none!important}
 #screen-studio[data-studio-view] > .intro,
 #screen-studio[data-studio-view] > .sequence{display:none!important}
 #screen-studio[data-studio-view="home"] #studio-workspace{display:block}
@@ -129,3 +129,8 @@
 #screen-account[data-me-view="appearance"] #me-appearance .destination-section-title h2,
 #screen-account[data-me-view="account"] #me-account-panel > h2,
 #screen-account[data-me-view="privacy"] #me-privacy-panel > h2{display:none}
+
+/* Catalog AI is the home entry; focused photo/guided steps keep their layout. */
+#screen-studio[data-studio-view="piece"] > #catalog-studio,
+#screen-studio[data-studio-view="style"] > #catalog-studio,
+#screen-studio[data-studio-view="look"] > #catalog-studio{display:none!important}

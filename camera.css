@@ -1,0 +1,173 @@
+/*
+ * MATCHLATCH v1.2 — native-permission Studio viewfinder
+ * Minimal photo-source choices and a private, foreground-only camera.
+ * Brand colors intentionally reuse the existing deep forest-green palette.
+ */
+.studio-photo-sources{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+  margin:0 0 10px
+}
+.studio-photo-sources[hidden],.studio-camera-dialog [hidden]{display:none!important}
+.studio-camera-launch,
+#screen-studio .studio-photo-sources .drop{
+  display:flex;min-width:0;min-height:186px;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;border-radius:13px;padding:19px 12px;
+  font-family:var(--ml-font-ui);text-align:center;cursor:pointer;
+  transition:border-color .2s ease,background .2s ease,transform .2s ease
+}
+.studio-camera-launch{
+  border:1px solid #455848;background:#303c31;color:#f8fff8
+}
+.studio-camera-launch:hover{
+  background:#3e5041;border-color:#819584
+}
+.studio-camera-launch:active{transform:scale(.985)}
+#screen-studio .studio-photo-sources .drop{
+  border:1px solid var(--line);background:var(--surface);color:var(--ink)
+}
+#screen-studio .studio-photo-sources .drop:hover,
+#screen-studio .studio-photo-sources .drop.drag{
+  background:#f4f7f3;border-color:#78917b
+}
+.studio-photo-sources :is(.studio-camera-launch,.drop):focus-visible{
+  outline:3px solid #87a88d;outline-offset:3px
+}
+.studio-photo-source-icon{
+  display:grid;place-items:center;
+  width:50px;height:50px;border:1px solid currentColor;border-radius:15px;
+  opacity:.92;margin-bottom:3px
+}
+.studio-photo-source-icon svg{width:25px;height:25px}
+.studio-photo-sources :is(.studio-camera-launch,.drop) strong{
+  color:inherit;font-weight:670;font-size:15px;letter-spacing:-.025em;line-height:1.35
+}
+.studio-photo-sources :is(.studio-camera-launch,.drop) small{
+  color:inherit;font-size:11px;line-height:1.4;opacity:.75
+}
+#camera-fallback{
+  position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none
+}
+.studio-photo-edit{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.studio-photo-edit .change{padding-top:13px;min-height:44px;text-decoration:none}
+.studio-photo-edit .change:hover{text-decoration:underline;text-underline-offset:4px}
+.studio-photo-edit .change:focus-visible{outline:2px solid #87a88d;outline-offset:3px}
+.studio-camera-dialog{
+  width:min(475px,calc(100% - 24px));max-width:475px;
+  max-height:calc(100dvh - 22px);margin:auto;padding:0;
+  overflow:auto;overscroll-behavior:contain;
+  border:1px solid rgba(228,240,229,.35);border-radius:22px;
+  background:var(--surface);color:var(--ink);
+  box-shadow:0 25px 100px rgba(5,17,9,.46);
+  font-family:var(--ml-font-ui)
+}
+.studio-camera-dialog::backdrop{
+  background:rgba(7,15,9,.77);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)
+}
+.studio-camera-panel{padding:22px 22px 20px}
+.studio-camera-top{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.studio-camera-top .micro-title{color:var(--muted);font-size:10px}
+.studio-camera-top h2{
+  font-size:clamp(24px,4.8vw,29px);letter-spacing:-.05em;
+  line-height:1.13;font-weight:625;margin:8px 0 0
+}
+.studio-camera-close{
+  min-width:43px;min-height:43px;padding:0;border:1px solid var(--line);
+  border-radius:14px;background:transparent;color:var(--ink);
+  font-size:16px;font-weight:600;cursor:pointer
+}
+.studio-camera-close:hover{background:rgba(115,145,120,.13)}
+.studio-camera-description{
+  font-size:12px;line-height:1.55;color:var(--muted);margin:11px 0 15px
+}
+.studio-camera-viewfinder{
+  position:relative;display:grid;place-items:center;overflow:hidden;
+  aspect-ratio:3/4;max-height:min(57dvh,530px);width:100%;
+  border-radius:17px;background:#0c120d;color:#cbd8cd
+}
+.studio-camera-viewfinder video,
+.studio-camera-viewfinder img{
+  display:block;position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;background:#101811
+}
+.studio-camera-corners{
+  position:absolute;pointer-events:none;inset:13px;
+  border:1px solid rgba(255,255,255,.16);border-radius:9px;
+  box-shadow:inset 0 0 32px rgba(0,0,0,.08)
+}
+.studio-camera-status{
+  min-height:24px;display:flex;align-items:center;justify-content:center;
+  margin:10px 0;font-size:11px;line-height:1.5;color:var(--muted);
+  text-align:center
+}
+.studio-camera-controls{
+  display:grid;grid-template-columns:minmax(0,1fr) 74px minmax(0,1fr);
+  gap:9px;align-items:center;min-height:69px
+}
+.studio-camera-secondary{
+  grid-column:1;min-height:44px;background:transparent;color:var(--ink);
+  border:1px solid var(--line);border-radius:13px;padding:9px 11px;
+  font-size:11px;font-weight:720;cursor:pointer
+}
+.studio-camera-shutter{
+  grid-column:2;display:grid;place-items:center;justify-self:center;
+  width:67px;height:67px;padding:5px;border:3px solid #f4faf2;
+  border-radius:50%;background:#303c31;cursor:pointer;
+  box-shadow:0 0 0 1px rgba(35,52,39,.75);
+  transition:transform .18s ease,opacity .18s ease
+}
+.studio-camera-shutter span{
+  display:block;width:49px;height:49px;border-radius:50%;
+  background:#eef7ea;box-shadow:inset 0 0 0 1px rgba(18,33,22,.14)
+}
+.studio-camera-shutter:not(:disabled):active{transform:scale(.93)}
+.studio-camera-shutter:disabled{opacity:.48;cursor:not-allowed}
+.studio-camera-use{
+  grid-column:2/4;min-height:48px;padding:12px 14px;
+  background:#303c31;border:1px solid #405746;border-radius:13px;
+  color:#fff;font-size:13px;font-weight:730;cursor:pointer
+}
+.studio-camera-use:disabled{opacity:.6;cursor:progress}
+.studio-camera-gallery{
+  display:block;min-height:44px;width:100%;padding:11px 12px;margin-top:10px;
+  border:0;background:transparent;color:var(--ink);
+  font-size:11px;font-weight:700;cursor:pointer
+}
+.studio-camera-gallery:hover{text-decoration:underline;text-underline-offset:4px}
+.studio-camera-dialog button:focus-visible{
+  outline:2px solid #87a88d;outline-offset:3px
+}
+:root[data-theme="dark"] .studio-camera-launch{background:#303c31;border-color:#526953;color:#f5fff2}
+:root[data-theme="dark"] #screen-studio .studio-photo-sources .drop{
+  background:var(--surface);border-color:var(--line);color:var(--ink)
+}
+:root[data-theme="dark"] #screen-studio .studio-photo-sources .drop:hover,
+:root[data-theme="dark"] #screen-studio .studio-photo-sources .drop.drag{
+  background:#364238;border-color:#99b09d
+}
+:root[data-theme="dark"] .studio-camera-dialog{
+  background:#1e2920;border-color:rgba(185,212,185,.24);color:#f0f7ef
+}
+:root[data-theme="dark"] .studio-camera-close,
+:root[data-theme="dark"] .studio-camera-secondary,
+:root[data-theme="dark"] .studio-camera-gallery{color:#edf7eb}
+:root[data-theme="dark"] .studio-camera-status,
+:root[data-theme="dark"] .studio-camera-description{color:#c0d0c0}
+@media(max-width:520px){
+  .studio-photo-sources{gap:9px}
+  .studio-camera-launch,
+  #screen-studio .studio-photo-sources .drop{min-height:153px;padding:17px 8px;border-radius:12px}
+  .studio-photo-source-icon{width:45px;height:45px;border-radius:13px}
+  .studio-photo-sources :is(.studio-camera-launch,.drop) strong{font-size:13px}
+  .studio-photo-sources :is(.studio-camera-launch,.drop) small{font-size:10px}
+  .studio-camera-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px);border-radius:20px}
+  .studio-camera-panel{padding:18px 16px calc(14px + env(safe-area-inset-bottom,0px))}
+  .studio-camera-viewfinder{max-height:54dvh}
+}
+@media(max-width:350px){
+  .studio-photo-sources{gap:7px}
+  .studio-camera-launch,#screen-studio .studio-photo-sources .drop{padding:14px 6px;min-height:145px}
+}
+@media(prefers-reduced-motion:reduce){
+  .studio-camera-launch,.studio-camera-shutter{transition:none}
+}

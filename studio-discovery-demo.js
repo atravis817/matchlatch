@@ -1,0 +1,19 @@
+(()=>{'use strict';
+const form=document.querySelector('#demo-search'),results=document.querySelector('#demo-results'),status=document.querySelector('#demo-status'),detail=document.querySelector('#demo-detail');let generation=0;
+const el=(tag,text,attrs={})=>{const n=document.createElement(tag);if(text)n.textContent=text;for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);return n;};
+const images={sneaker:'M18 71l14-30 25 16 23 4 14 20H18zm20-23l14 12m-18-3l14 12',jeans:'M30 20h50l-5 75H56l-1-45-8 45H28zm0 14h49M54 20v29',jacket:'M40 21l-25 23 15 18 9-11v43h36V51l9 11 15-18-25-23-17 14zm17 14v59',boot:'M32 15h31v43l20 16 9 5v14H23V77l9-12zm-8 71h65',dress:'M43 18h26l7 25-10 11 23 42H24l23-42-10-11zm4 36h19',watch:'M43 8h27v27H43zm0 69h27v27H43zM56 37a19 19 0 1 0 0 38 19 19 0 1 0 0-38zm0 8v12l9 7'};
+function illustration(type){const path=images[type]||images.watch;return 'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 112"><rect width="112" height="112" rx="16" fill="#e9eee7"/><path d="'+path+'" fill="#244a3a" stroke="#0f2c22" stroke-width="3" stroke-linejoin="round"/></svg>');}
+function open(p){detail.replaceChildren(el('h2',p.title),el('p','Fictional product · '+p.merchant),el('p','Illustrative price: $'+p.price.toFixed(2)),el('p','Type: '+p.classification.productType+' · Color: '+p.colorEvidence.status));
+ for(const o of p.options)detail.append(el('p',o.name+': '+o.label+(o.unit?' '+o.unit:'')+(o.sizeSystem?' · '+o.sizeSystem:'')));
+ detail.append(el('p','No actual stock or shipping evidence. Original synthetic variant reference:'),el('code',p.url),el('p','This reference is not a retailer link. Saving, model calls and checkout are disabled.'));
+ const close=el('button','Close',{type:'button'});close.onclick=()=>detail.close();detail.append(close);detail.showModal();}
+async function search(){const ticket=++generation;results.replaceChildren();status.textContent='Checking fictional variants and exact constraints…';const button=form.querySelector('[type=submit]');button.disabled=true;
+ try{const params=new URLSearchParams(new FormData(form));if(form.elements.mixed.checked)params.set('mixed','1');else params.delete('mixed');params.set('mode','studio-demo');
+ const r=await fetch('/api/shop?'+params,{cache:'no-store',signal:AbortSignal.timeout(12000)}),data=await r.json();if(ticket!==generation)return;if(!r.ok)throw Error(data.error||'Demonstration unavailable.');
+ status.textContent=data.items.length?data.items.length+' fictional matching variant'+(data.items.length===1?'':'s')+' · No live catalog or model call':'No fictional variants meet the exact constraints. Adjust type, size, color or budget. No model call.';
+ for(const p of data.items){const card=el('article',null,{class:'demo-card'});card.append(el('img',null,{src:illustration(p.classification.productType),alt:'Authored '+p.classification.productType+' illustration',width:'112',height:'112'}),el('small','FICTIONAL TEST PRODUCT'),el('h2',p.title),el('p',p.merchant),el('strong','$'+p.price.toFixed(2)+' · Illustrative USD price'),el('p',p.size?'Supplied size '+p.size+(p.sizeUnit?' '+p.sizeUnit:'')+(p.sizeSystem?' · '+p.sizeSystem:''):'Size not supplied'),el('p',p.color+' · '+(p.colorEvidence.exactSolid?'Solid color label':'Mixed or unknown color')));
+ const b=el('button','Product details',{type:'button'});b.onclick=()=>open(p);card.append(b);results.append(card);}
+ }catch(e){if(ticket===generation){results.replaceChildren();status.textContent=e.message;}}finally{button.disabled=false;}}
+form.onsubmit=e=>{e.preventDefault();void search();};document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{form.elements.q.value=b.dataset.query;form.elements.size.value='';void search();});
+window.addEventListener('matchlatch:auth-user',()=>{generation++;results.replaceChildren();status.textContent='Account changed. Run a new fictional search.';if(detail.open)detail.close();});
+})();

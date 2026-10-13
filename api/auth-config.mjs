@@ -23,5 +23,5 @@ export function GET() {
   if(!/^https:\/\/[A-Za-z0-9.-]+\.supabase\.co$/.test(url)||!isPublicKey(key)){
     return json({enabled:false});
   }
-  return json({enabled:true,url,publishableKey:key});
+  return json({enabled:true,url,publishableKey:key,passkeysEnabled:process.env.MATCHLATCH_PASSKEYS_ENABLED==="true"});
 }

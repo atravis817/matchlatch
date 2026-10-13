@@ -1,0 +1,124 @@
+/* MATCHLATCH Awin importer: trusted Node.js 20+, dry-run by default.
+ * Explicit --write only. New records stay private; updates preserve existing eligibility.
+ */
+import {resolve} from 'node:path';
+import {writeApproval,importBound} from './awin-bulk.mjs';
+import {feedFreshness} from '../lib/feed-freshness.mjs';
+import {fileURLToPath} from 'node:url';
+import {CANDIDATES,merchantLinkAllowed} from '../lib/awin-retailers.mjs';
+import {ACCESSIBLE_TEST_SOURCES} from './awin-test-sources.mjs';
+import {APPROVED_ADVERTISERS,PUBLISHER_ID,FEED_HOSTS,field,https,feedKey,discoverFeeds,fetchCSV,feedMetadata,safeError} from './awin-feed-utils.mjs';
+function slot(category){
+ const s=category.toLowerCase();
+ // Watch titles often contain "steel" or a model named "Top". Category words
+ // must be whole words; watch wins over ambiguous merchandising text.
+ if(/\b(?:watch|watches)\b/.test(s))return "watch";
+ const rules={shoes:/\b(?:sneakers?|shoes?|boots?|footwear|sandals?|heels?)\b/,pants:/\b(?:trousers?|pants?|jeans?|leggings?|shorts?|skirts?)\b/,jacket:/\b(?:coats?|jackets?|outerwear|blazers?)\b/,shirt:/\b(?:shirts?|tees?|tops?|blouses?|sweaters?|hoodies?|dress|dresses)\b/,belt:/\bbelts?\b/,socks:/\bsocks?\b/,scarf:/\b(?:scarf|scarves)\b/,hat:/\b(?:hats?|caps?|beanies?)\b/};
+ return Object.entries(rules).find(([,rule])=>rule.test(s))?.[0]||null;
+}
+
+export function affiliateAllowed(url,advertiserId) {
+ try {
+  const u=new URL(url);
+  if(!https(url,['www.awin1.com','awin1.com'])||!['/cread.php','/pclick.php','/awclick.php'].includes(u.pathname))return false;
+  const publisher=u.searchParams.get('awinaffid')||u.searchParams.get('a')||u.searchParams.get('id');
+  const merchant=u.searchParams.get('awinmid')||u.searchParams.get('m')||u.searchParams.get('mid');
+  return publisher===PUBLISHER_ID&&merchant===String(advertiserId);
+ }catch{return false;}
+}
+export function validateProduct(p,id,retailer,testSource=null) {
+ const productId=field(p,'merchant_product_id','aw_product_id','product_id');
+ const variantId=field(p,'aw_product_id','merchant_product_id','product_id');
+ const title=field(p,'product_name','title').slice(0,250);
+ const price=Number(field(p,'search_price','store_price','price'));
+ const category=field(p,'merchant_category','category_name','merchant_product_category_path','product_type');
+ const s=slot(category+' '+title);
+ const image=https(field(p,'aw_image_url','merchant_image_url','large_image'));
+ const url=https(field(p,'merchant_deep_link','product_url'));
+ const affiliate=https(field(p,'aw_deep_link'));
+ const currency=field(p,'currency').toUpperCase();
+ const stock=field(p,'in_stock','stock_status').toLowerCase();
+ const available=['1','yes','true','in stock','in_stock','instock','available'].includes(stock);
+ const sourceAdvertiser=field(p,'merchant_id','advertiser_id');
+ const authorizedTest=ACCESSIBLE_TEST_SOURCES.find(source=>source===testSource&&source.id===id);
+ const candidate=authorizedTest||CANDIDATES.find(c=>c.id===id);
+ const errors=[];
+ if(!APPROVED_ADVERTISERS.has(id)&&!authorizedTest)errors.push('unapproved_advertiser');
+ if(sourceAdvertiser&&Number(sourceAdvertiser)!==id)errors.push('advertiser_mismatch');
+ if(!productId||productId.length>200||!variantId||variantId.length>200)errors.push('invalid_identifier');
+ if(title.length<3)errors.push('invalid_title');
+ if(!Number.isFinite(price)||price<=0||price>100000||Math.abs(price*100-Math.round(price*100))>0.000001)errors.push('invalid_price');
+ if(!s)errors.push('unsupported_category');
+ if(!image)errors.push('invalid_image_url');
+ if(!url||!merchantLinkAllowed(candidate,url))errors.push('invalid_merchant_url');
+ if(!affiliate||!affiliateAllowed(affiliate,id))errors.push('invalid_affiliate_attribution');
+ if(currency!=='USD')errors.push('non_USD_currency');
+ if(errors.length)return {product:null,errors};
+ return {errors:[],product:{
+  advertiser_id:id,source_variant_id:variantId,source_product_id:productId,slot:s,title,
+  description:field(p,'description','product_short_description').slice(0,10000),
+  brand:field(p,'brand_name').slice(0,150),material:field(p,'material','Fashion:material').slice(0,150),fit:field(p,'fit','Fashion:size_type').slice(0,100),
+  size:field(p,'size','Fashion:size').slice(0,100),color:field(p,'colour','color','Fashion:color').slice(0,100),
+  image_url:image,product_url:url,affiliate_url:affiliate,merchant_name:retailer,
+  merchant_host:new URL(url).hostname.replace(/^www\./,''),price_usd:price,original_price_usd:null,currency:'USD',size_system:field(p,'size_system','Fashion:size_system').slice(0,100),
+  available,stock_status:stock||'unknown',shipping_us_eligible:false,
+  feed_imported_at:new Date().toISOString(),valid_until:new Date(Date.now()+36*3600*1000).toISOString(),is_public:false
+ }};
+}
+export const mapProduct=(p,id,retailer)=>validateProduct(p,id,retailer).product;
+export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds'),full=process.argv.includes('--full'),resumeId=process.argv.find(a=>a.startsWith('--resume='))?.slice(9)||null}={}) {
+ if(write)writeApproval();
+ const signal=AbortSignal.timeout(240000);
+ if(accessibleTestFeeds&&process.env.VERCEL_ENV!=='preview')throw Error('Accessible test feeds require the Preview environment');
+ if(full&&process.env.VERCEL_ENV!=='preview')throw Error('Full ingestion requires Preview');
+ const key=feedKey();const maxItems=importBound(full?process.env.AWIN_BULK_LIMIT:process.env.AWIN_IMPORT_LIMIT,full?899:25);
+ const list=await discoverFeeds(key,{signal});
+ const testSourceFor=row=>ACCESSIBLE_TEST_SOURCES.find(source=>source.id===Number(field(row,'advertiser_id','merchant_id'))&&source.feedId===field(row,'feed_id'));
+ const approved=list.rows.filter(row=>accessibleTestFeeds?Boolean(testSourceFor(row)):APPROVED_ADVERTISERS.has(Number(field(row,'advertiser_id','merchant_id'))));
+ const matchingFeeds=approved.filter(row=>accessibleTestFeeds?['joined','not joined'].includes(field(row,'membership_status').toLowerCase()):!field(row,'membership_status')||field(row,'membership_status').toLowerCase()==='joined');
+ const feeds=[...new Map(matchingFeeds.map(row=>[field(row,'advertiser_id','merchant_id')+':'+field(row,'feed_id'),row])).values()];
+ if(feeds.length>10)throw Error('Feed count exceeds controlled request bound');
+ console.log(JSON.stringify({stage:'feed-list',http_status:list.http_status,rows:list.rows.length,headers:list.headers,matched_feeds:approved.map(feedMetadata),eligible_feeds:feeds.length,membership_conflicts:approved.length-feeds.length}));
+ if(!feeds.length)throw Error('No eligible feeds for approved advertisers; no database writes performed');
+ const all=[],seen=new Set(),report=[];
+ for(const feed of feeds) {
+  const metadata=feedMetadata(feed);const id=metadata.advertiser_id;
+  const testSource=accessibleTestFeeds?testSourceFor(feed):null;
+  if(testSource){
+   const imported=Date.parse(field(feed,'last_imported').replace(' ','T')+'Z');
+   if(!Number.isFinite(imported)||imported>Date.now()+5*60000||Date.now()-imported>testSource.maxAgeHours*3600000){report.push({...metadata,error:'missing_or_stale_feed_timestamp'});continue;}
+  }
+  const src=https(field(feed,'url','download_url','feed_url','datafeed_url'),FEED_HOSTS);
+  if(!src){report.push({...metadata,error:'missing_supported_feed_url'});continue;}
+  try {
+   const products=await fetchCSV(src,{signal});
+   const checkedAt=new Date().toISOString();
+   const timestamp=metadata.last_imported?.replace(' ','T')+'Z';
+   const freshness=accessibleTestFeeds?feedFreshness(timestamp,checkedAt):null;
+   let accepted=0,selected=0,duplicates=0;const rejected={};
+   for(const row of products.rows) {
+    const {product,errors}=validateProduct(row,id,field(feed,'advertiser_name','merchant_name')||'Retailer',testSource);
+    if(!product){for(const error of errors)rejected[error]=(rejected[error]||0)+1;continue;}
+    const identity=id+':'+product.source_variant_id;
+    if(seen.has(identity)){duplicates++;continue;}seen.add(identity);accepted++;
+    if(all.length<maxItems){if(freshness){product.feed_imported_at=checkedAt;product.valid_until=freshness.valid_until;}all.push(product);selected++;}
+   }
+   report.push({...metadata,source_checked_at:checkedAt,freshness,http_status:products.http_status,headers:products.headers,compression:products.compression,download_bytes:products.download_bytes,decoded_bytes:products.decoded_bytes,rows:products.rows.length,eligible:accepted,selected,duplicates,rejected});
+  }catch(error){report.push({...metadata,error:safeError(error)});}
+ }
+ const summary={mode:write?'private-import':'dry-run',feeds:report,eligible_products:all.length,limit:maxItems,public_products_created:0,sample_products:all.slice(0,5).map(p=>({advertiser_id:p.advertiser_id,title:p.title,price_usd:p.price_usd,size:p.size,stock_status:p.stock_status,available:p.available,image_host:new URL(p.image_url).hostname,affiliate_verified:affiliateAllowed(p.affiliate_url,p.advertiser_id)}))};
+ for(const feed of report)console.log(JSON.stringify({stage:'feed-validation',...feed}));
+ console.log(JSON.stringify({...summary,feeds:undefined}));
+ if(report.some(feed=>feed.error))throw Error('One or more eligible feed downloads failed; no database writes performed');
+ if(!all.length)throw Error('No valid products; no database writes performed');
+ if(full&&report.reduce((n,feed)=>n+feed.eligible,0)>maxItems)throw Error('Full feed exceeds configured bulk bound; no database writes performed');
+ if(write) {
+  // No REST upsert fallback and no partner writes. Existing qualification and
+  // publication decisions are preserved by the separately approved v2 RPCs.
+  const {bulkWrite}=await import('./awin-bulk.mjs');
+  summary.import_results=await bulkWrite(all,report,{resumeId,signal});
+ }
+
+ return summary;
+}
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1]))run().catch(error=>{console.error('Importer failed:',safeError(error));process.exitCode=1;});

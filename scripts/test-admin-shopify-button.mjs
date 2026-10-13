@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {connectShopifyDiagnostic} from '../admin-shopify-diagnostic.mjs';
+const session=async()=>({data:{session:{access_token:'fixture-user-session'}}});
+const response=(body,status=200)=>new Response(JSON.stringify(body),{status});
+test('button is click-only, uses same-origin owner session and displays an allowlisted report',async()=>{
+ const button={},output={},calls=[];const control=connectShopifyDiagnostic({button,output,getSession:session,isOwnerView:()=>true,fetcher:async(url,options)=>{calls.push({url,options});return response({authentication:'pass',productVisibility:'visible_through_token_channel',availableForSale:true,currentlyNotInStock:false,quantityAvailable:4,observedAt:"2026-10-13T19:00:00Z",variantId:"gid://shopify/ProductVariant/67768739332290",sizeS:true,price:{amount:40,currency:'USD'},adapter:{normalized:true},image:{present:true},apiVersionAccepted:true,raw:'DO_NOT_RENDER',token:'DO_NOT_RENDER'});}});
+ assert.equal(calls.length,0);await button.onclick();assert.equal(calls.length,1);assert.equal(calls[0].url,'/api/admin-summary?action=shopify-diagnostic');assert.equal(calls[0].options.method,'POST');assert.equal(calls[0].options.headers.Authorization,'Bearer fixture-user-session');assert.equal(calls[0].options.credentials,'same-origin');assert.equal(calls[0].options.cache,'no-store');assert.match(output.textContent,/\$40.00/);assert.match(output.textContent,/Authentication: Passed/);assert.match(output.textContent,/Storefront quantity: 4/);assert.match(output.textContent,/Backorder flag: No/);assert.match(output.textContent,/2026-10-13T19:00:00.000Z/);assert.match(output.textContent,/supplier linkage/);assert.ok(!output.textContent.includes('DO_NOT_RENDER'));assert.equal(button.disabled,false);control.reset();assert.equal(output.hidden,true);assert.equal(output.textContent,'');
+});
+test('denied views and missing sessions do not call the diagnostic; errors never render raw provider details',async()=>{
+ for(const authorized of [false,true]){let calls=0;const button={},output={};connectShopifyDiagnostic({button,output,getSession:async()=>({data:{}}),isOwnerView:()=>authorized,fetcher:async()=>{calls++;}});await button.onclick();assert.equal(calls,0);}
+ const button={},output={};connectShopifyDiagnostic({button,output,getSession:session,isOwnerView:()=>true,fetcher:async()=>response({category:'authorization_denied',error:'RAW_SECRET'},502)});await button.onclick();assert.equal(output.textContent,'Shopify denied authentication.');assert.ok(!output.textContent.includes('RAW_SECRET'));
+});
+test('duplicate clicks are suppressed and stale responses are discarded after logout or account switch',async()=>{
+ let resolve,calls=0;const button={},output={};const control=connectShopifyDiagnostic({button,output,getSession:session,isOwnerView:()=>true,fetcher:()=>{calls++;return new Promise(r=>resolve=r);}});const first=button.onclick();await new Promise(r=>setImmediate(r));assert.equal(button.disabled,true);await button.onclick();assert.equal(calls,1);control.reset();resolve(response({authentication:'pass'}));await first;assert.equal(output.hidden,true);assert.equal(output.textContent,'');assert.equal(button.disabled,false);
+});
+test('Command Center integration retains hidden owner container, explicit action and clear-on-session-change hooks',()=>{
+ const html=readFileSync(new URL('../admin.html',import.meta.url),'utf8'),js=readFileSync(new URL('../admin-dashboard.js',import.meta.url),'utf8');assert.equal((html.match(/id="shopify-test"/g)||[]).length,1);assert.ok(html.indexOf('id="shopify-test"')>html.indexOf('id="dashboard" hidden'));assert.ok(html.includes('aria-live="polite"'));assert.ok(js.includes('shopifyDiagnostic.reset()'));assert.ok(js.includes("event==='SIGNED_IN'||event==='USER_UPDATED'"));assert.ok(!js.includes('shopify-test\').click('));
+});
+test('shipping button is manual, uses the owner POST, prevents a second click and reports only quoted costs',async()=>{
+ let calls=0;const button={},output={};connectShopifyDiagnostic({button,output,getSession:session,isOwnerView:()=>true,mode:'shipping',fetcher:async(url,options)=>{calls++;assert.equal(url,'/api/admin-summary?action=shopify-shipping');assert.equal(options.method,'POST');return response({cartCreation:'pass',destinationAccepted:true,category:'rates_returned',shippingOptions:[{service:'Ground',amount:'7.50',currency:'USD',description:'3–5 days'}],cartId:'DO_NOT_RENDER'});}});assert.equal(calls,0);await button.onclick();assert.equal(calls,1);assert.equal(button.disabled,true);assert.match(output.textContent,/\$7.50 USD/);assert.ok(!output.textContent.includes('DO_NOT_RENDER'));
+});

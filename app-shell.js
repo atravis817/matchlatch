@@ -7,7 +7,27 @@
 const $=id=>document.getElementById(id);
 const lib=()=>window.MatchlatchLibrary;
 const snapshot=()=>lib()?.discoverySnapshot?.()||{collections:[],inspirations:[],looks:[],favorites:[],cartCount:0};
-const profile=()=>window.MatchlatchStyleProfile?.get?.()||{};
+const profile=()=>{
+ const base=window.MatchlatchStyleProfile?.get?.()||{};
+ try{
+  const accountId=window.MatchlatchLibrary?.getUserId?.();
+ const quiz=accountId?JSON.parse(localStorage.getItem("matchlatch-style-quiz-v1-"+accountId)||"null"):null;
+  if(quiz?.version!==1||!quiz.answers||typeof quiz.answers!=="object")return base;
+  const labels=["Everyday vibe","Silhouette","Palette","Pattern","Layering","Occasion","Footwear","Priority","Accessories","Fabric","Denim","Top","Jacket","Trends","Inspiration","Contrast","Season","Complexity","Brands","AI goal"];
+  const traits=Object.entries(quiz.answers).filter(([index,value])=>/^\d{1,2}$/.test(index)&&+index<20&&typeof value==="string"&&value.length<50).slice(0,12).map(([i,value])=>labels[+i]+": "+value);
+  return {...base,notes:[String(base.notes||""),traits.join("; ")].filter(Boolean).join(". ").slice(0,210)};
+ }catch{return base;}
+};
+const SHIPPING_KEY="matchlatch-shipping-region-v12";
+const shippingKey=()=>{const id=lib()?.getUserId?.();return id?SHIPPING_KEY+"-"+id:null;};
+const shippingZip=()=>{const key=shippingKey();if(!key)return "";try{const z=localStorage.getItem(key)||"";return /^\d{5}$/.test(z)?z:"";}catch{return "";}};
+const shippingInfo=item=>{
+ const zip=shippingZip(),label=zip?"Destination ZIP •••"+zip.slice(-2):"Destination not set";
+ const verified=item?.delivery?.tier==="retailer_confirmed"?item.delivery:null;
+ return verified?.earliest&&verified?.latest
+  ?label+" · Retailer estimated "+verified.earliest+" to "+verified.latest+" (subject to logistics)"
+  :label+" · Delivery estimate unavailable until retailer confirms transit times";
+};
 const el=(tag,cls,text)=>{
  const node=document.createElement(tag);
  if(cls)node.className=cls;
@@ -49,8 +69,23 @@ function renderWorkspace(){
  const target=$("studio-workspace");if(!target)return;
  target.replaceChildren();
  const state=snapshot();
- const heading=sectionTitle("Your studio","Studio","Start a new look or continue a saved project.","h1");
+ const heading=sectionTitle("Your studio","Studio","Your style. Your budget. One simpler way to shop.","h1");
  target.append(heading);
+ const p=profile();
+ const context=el("section","v12-context");
+ context.setAttribute("aria-label","Current styling preferences");
+ context.append(el("span","micro-title","YOUR CURRENT STYLE"));
+ const values=[["Style",pick(p.aesthetic,"Choose in Me")],["Fit",pick(p.fit,"Not set")],
+  ["Occasion",pick(p.occasion,"Everyday")],["Budget",p.budget&&Number(p.budget)>0?"$"+Number(p.budget).toFixed(0):"Set in Studio"]];
+ const tags=el("div","v12-context-tags");
+ for(const [label,value] of values)tags.append(el("span","v12-context-tag",label+" · "+value));
+ context.append(tags);
+ context.append(button("Edit style in Me ↗",()=>{
+  const openPreferences=()=>{if(lib()?.showPage?.("account")!==false)window.MatchlatchMeFlow?.open("preferences");};
+  if(!lib()?.requireAccount?.(openPreferences))return;
+  openPreferences();
+ },"destination-link quiet"));
+ target.append(context);
  const actions=el("div","studio-entry-grid");
  const newCard=el("article","studio-entry studio-entry-primary");
  newCard.append(el("span","studio-entry-eyebrow","Start fresh"));
@@ -144,8 +179,11 @@ function useMood(direction){
  $("studio")?.scrollIntoView({behavior:"smooth",block:"start"});
 }
 let initialStoreQuery="";
+let initialStoreSlot="";
 function sendMoodToStore(direction){
  initialStoreQuery=direction.query;
+ const category=String(direction.anchorType||"").split(":")[0];
+ initialStoreSlot=({top:"shirt",outerwear:"jacket",bottom:"pants",shoes:"shoes",accessory:"hat"})[category]||"shirt";
  showPage("store");
 }
 function renderMood(){
@@ -155,6 +193,10 @@ function renderMood(){
  const headline=sectionTitle("The daily edit","Curated for your taste",
   "Outfit ideas based on your saved preferences and collections. These are styling suggestions, not live products.");
  target.append(headline);
+ const jump=el("div","v12-action-strip");
+ jump.append(el("p",null,"Found your inspiration? Start from a photo or describe a favorite piece."));
+ jump.append(button("Create a look in Studio ↗",()=>lib()?.startFreshStudio?.(),"destination-link"));
+ target.append(jump);
  const meta=el("div","mood-signal");
  const collectionCount=state.collections.length;
  meta.append(el("span",null,"YOUR STYLE  /  "+pick(p.aesthetic,"MINIMALIST").toUpperCase()+" · "+pick(p.fit,"RELAXED").toUpperCase()));
@@ -188,37 +230,61 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:200,items:[],searched:false,source:"",checkedAt:0,selected:null};
+const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"catalog",exactSize:"",brand:"",sort:"relevance"};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
 ];
+// Respect saved category-specific sizes in every Store search.
+function storeSizeFor(slot,p){
+ switch(slot){
+  case "hat":return p.hatSize||"";
+  case "jacket":return p.suitJacketSize&&/formal|work|business|wedding|black tie|gala/i.test(p.occasion||"")
+   ?p.suitJacketSize:p.topSize||"";
+  case "shirt":return p.topSize||"";
+  case "pants":return p.waist||String(p.bottomSize||"").replace(/^(US|UK|EU)\s+/,"");
+  case "belt":return p.beltSize||"";
+  case "shoes":return p.shoeSize||"";
+  default:return "";
+ }
+}
 const USD=value=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
 let searchId=0,controller=null;
 function storeCard(item){
- const card=el("article","store-card");
+ const card=el("article","store-card v12-product-card");
  const cover=el("div","store-card-cover");
  if(item.image){
   try{
    const url=new URL(item.image);
    if(url.protocol==="https:"){
-    const img=el("img");img.src=url.href;img.alt=item.imageAlt||item.title||"Retailer item";img.loading="lazy";
+    const img=el("img");img.src=url.href;img.alt=item.imageAlt||item.title||"Retailer product";
+    img.loading="lazy";img.decoding="async";
+    img.addEventListener("error",()=>{cover.replaceChildren(el("span","store-no-photo","Image unavailable"));},{once:true});
     cover.append(img);
    }
   }catch{}
  }
- if(!cover.children.length)cover.append(el("span","store-no-photo","No image"));
- card.append(cover);
+ if(!cover.children.length)cover.append(el("span","store-no-photo","Image unavailable"));
  const info=el("div","store-card-info");
+ const source=el("span","v12-product-source",item.fixture?"PRIVATE UI FIXTURE · FICTIONAL":item.source==="awin"?"AWIN RETAILER FEED":"SHOPIFY RETAILER CATALOG");
+ info.append(source);
  info.append(el("span","micro-title",item.merchant||"Retailer"));
  info.append(el("h3",null,item.title||"Retailer product"));
- info.append(el("strong","store-price",USD(item.price)));
- if(item.size)info.append(el("span","store-size","Size "+item.size));
+ const meta=el("div","v12-product-meta");
+ meta.append(el("strong","store-price",USD(item.price)));
+ if(item.size)meta.append(el("span","store-size","Size "+item.size));
+ else meta.append(el("span","store-size","Size not specified"));
+ info.append(meta);
+ const time=Date.parse(String(item.checkedAt||""));
+ const timing=Number.isFinite(time)?(item.source==="awin"?"Feed snapshot ":"Provider snapshot ")+new Date(time).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):item.fixture?"Synthetic visual test":"Check latest price and stock";
+ info.append(el("small","store-data-note",timing+" · Confirm final price, size and shipping at retailer"));
+ info.append(el("small","v12-delivery-note",item.fixture?"Not a shopping offer. Stock, shipping and links are not supplied.":shippingInfo(item)));
  const actions=el("div","store-card-actions store-card-shopping");
- actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
- actions.append(button("Details ↗",()=>openProduct(item),"store-view-details"));
+ actions.append(button("View product details ↗",()=>openProduct(item),"store-view-details"));
+ if(!item.fixture)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
  info.append(actions);
- card.append(info);return card;
+ card.append(cover,info);
+ return card;
 }
 function showStoreView(view,push=true){
  const target=$("store-body");
@@ -258,20 +324,23 @@ function renderProduct(){
  const details=el("div","store-product-info");
  details.append(el("span","micro-title",item.merchant||"Retailer"));
  details.append(el("h2",null,item.title||"Retailer product"));
- details.append(el("strong","store-product-price",USD(item.price)));
+ details.append(el("strong","store-product-price",(item.fixture?"Illustrative ":"")+USD(item.price)));
  const specifics=el("div","store-product-specifics");
  if(item.size)specifics.append(el("span",null,"Size "+item.size));
  if(item.variant&&item.variant!==item.size)specifics.append(el("span",null,item.variant));
  if(!specifics.children.length)specifics.append(el("span",null,"Selected retailer listing"));
  details.append(specifics);
- details.append(el("p","store-product-disclaimer","Price and availability are checked when listed and may change before checkout."));
+ details.append(el("p","v12-delivery-note",item.fixture?"Private UI fixture. No real product or delivery information.":shippingInfo(item)));
+ details.append(el("p","store-product-disclaimer",item.fixture?"Fictional visual test; not a product offer.":item.source==="awin"
+  ?"Retailer-feed listing. Confirm size, stock, final price and shipping on the retailer’s website."
+  :"Price and availability are checked when listed and may change before checkout."));
  const actions=el("div","store-product-actions");
- actions.append(button("Add to cart",()=>lib()?.addRetailProduct?.({...item,slot:storeState.slot}),"store-add-to-cart"));
- actions.append(button("View cart ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
+ if(!item.fixture)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
+ actions.append(button("View shortlist ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
  const retailerLink=(()=>{try{const url=new URL(item.url);return url.protocol==="https:"?url.href:"";}catch{return "";}})();
- if(retailerLink){
+ if(retailerLink&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
   const link=el("a","store-product-retailer","View at retailer ↗");
-  link.href=retailerLink;link.target="_blank";link.rel="noopener noreferrer";
+  link.href=retailerLink;link.target="_blank";link.rel=item.source==="awin"?"sponsored nofollow noopener noreferrer":"noopener noreferrer";
   actions.append(link);
  }
  details.append(actions);
@@ -296,7 +365,7 @@ function renderProduct(){
   $("itemcolor")?.focus();
  },"store-product-style-link"));
  details.append(more);
- window.MatchlatchSavings?.attach?.(details,item);
+ if(!item.fixture)window.MatchlatchSavings?.attach?.(details,item);
  layout.append(visual,details);target.append(layout);
 }
 function openProduct(item){
@@ -313,24 +382,47 @@ function renderStore(){
  const p=profile();
  const box=el("section","store-search");
  box.append(sectionTitle("Find your next piece","Find something new",
-  "Search participating retailers for available products. Results don't cover every store."));
+  "Choose a source and filter your next piece. For an outfit or AI styling, start in Studio."));
  const form=el("form","store-search-form");
  const query=el("input");query.type="search";query.placeholder="e.g. charcoal oversized shirt";
- query.maxLength=170;query.required=true;query.minLength=2;
- query.setAttribute("aria-label","Search retailer products");
+ query.maxLength=170;query.required=storeState.provider!=="catalog";query.minLength=2;
+ query.setAttribute("aria-label","Search products");
  query.value=initialStoreQuery||storeState.query||"";
  const select=el("select");select.setAttribute("aria-label","Clothing category");
  for(const [value,label] of supportedSlots){const option=new Option(label,value);select.add(option);}
- select.value=storeState.slot;
- const budget=el("input");budget.type="number";budget.min="1";budget.max="10000";budget.step="5";
+ select.value=initialStoreSlot||storeState.slot;
+ initialStoreSlot="";
+ const budget=el("input");budget.type="number";budget.min="1";budget.max="10000";budget.step="0.01";
  budget.setAttribute("aria-label","Maximum price in USD");
  budget.value=String(storeState.max||p.budget||200);
  const submit=el("button","store-submit","Search store ↗");submit.type="submit";
  const queryLabel=el("label","store-field store-query-field");queryLabel.append(el("span",null,"WHAT ARE YOU LOOKING FOR?"),query);
  const categoryLabel=el("label","store-field");categoryLabel.append(el("span",null,"CATEGORY"),select);
  const budgetLabel=el("label","store-field");budgetLabel.append(el("span",null,"MAX PRICE · USD"),budget);
- form.append(queryLabel,categoryLabel,budgetLabel,submit);
+ const deadlineLabel=el("label","store-field v12-date-field");
+ deadlineLabel.append(el("span",null,"NEED IT BY · OPTIONAL"));
+ const deadline=el("input");deadline.type="date";deadline.setAttribute("aria-label","Need my items by date");
+ deadline.value=storeState.needBy;
+ // Native date input opens the device calendar picker.
+ const localToday=()=>{const d=new Date(),off=d.getTimezoneOffset()*60000;return new Date(d.getTime()-off).toISOString().slice(0,10);};
+ deadline.min=localToday();
+ const deadlineNote=el("small","v12-delivery-note","Only retailer forecasts confirming arrival on or before this date qualify. Shipping estimates are not guarantees.");
+ deadlineLabel.append(deadline,deadlineNote);
+ const provider=el("select");provider.setAttribute("aria-label","Product source");
+ provider.add(new Option("Reviewed feed catalog","catalog"));provider.add(new Option("Participating retailer search","retailer"));provider.value=storeState.provider;
+ const providerLabel=el("label","store-field store-source-field");providerLabel.append(el("span",null,"PRODUCT SOURCE"),provider);
+ const exactSize=el("input");exactSize.type="text";exactSize.maxLength=40;exactSize.value=storeState.exactSize;exactSize.placeholder="Use saved size";exactSize.setAttribute("aria-label","Exact size");
+ const sizeLabel=el("label","store-field");sizeLabel.append(el("span",null,"SIZE · OPTIONAL"),exactSize);
+ const brand=el("input");brand.type="text";brand.maxLength=60;brand.value=storeState.brand;brand.setAttribute("aria-label","Brand");
+ const brandLabel=el("label","store-field");brandLabel.append(el("span",null,"BRAND · OPTIONAL"),brand);
+ const sort=el("select");sort.setAttribute("aria-label","Sort products");for(const [v,t] of [["relevance","Relevance"],["price-asc","Price: low to high"],["price-desc","Price: high to low"]])sort.add(new Option(t,v));sort.value=storeState.sort;
+ const sortLabel=el("label","store-field");sortLabel.append(el("span",null,"SORT"),sort);
+ provider.onchange=()=>{query.required=provider.value!=="catalog";brand.disabled=provider.value!=="catalog";};provider.onchange();
+ form.append(queryLabel,providerLabel,categoryLabel,budgetLabel,sizeLabel,brandLabel,sortLabel,deadlineLabel,submit);
+ box.append(button("Build a look in Studio ↗",()=>showPage("studio"),"destination-link quiet"));
  box.append(form);
+ const context=el("p","v12-store-context","Personal style, size and budget determine eligible results. Web references remain research-only.");
+ box.append(context);
  const quick=el("div","store-suggestions");
  quick.append(el("span","micro-title","START WITH"));
  const suggestions=[
@@ -341,7 +433,16 @@ function renderStore(){
  for(const hint of suggestions)quick.append(button(hint.name,()=>{
   query.value=hint.query;select.value=hint.slot;query.focus();
  },"store-chip"));
+ const discover=button("Discover for me ✦",()=>discoverForMe(),"store-chip");
+ discover.hidden=true;
+ quick.append(discover);
+ fetch("/api/shop?mode=capabilities",{cache:"no-store",signal:AbortSignal.timeout(8000)}).then(r=>r.json()).then(async d=>{if(!d.automaticDiscovery?.enabled)return;const session=(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session;if(!session)return;const r=await fetch("/api/admin-summary?capability=1",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store",signal:AbortSignal.timeout(8000)});if(r.ok&&discover.isConnected)discover.hidden=false;}).catch(()=>{});
  box.append(quick);
+ box.append(el("p","store-curation-note",
+  "Chosen for your style and saved sizes. Savings are considered only after a good match."));
+ const readiness=el("p","v12-store-context","Checking reviewed catalog availability…");box.append(readiness);
+ const capabilityRun=searchId;
+ fetch("/api/catalog?mode=capabilities",{cache:"no-store",signal:AbortSignal.timeout(10000)}).then(async r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{if(capabilityRun===searchId&&readiness.isConnected)readiness.textContent=d.catalogAvailable?"Reviewed feed catalog has eligible public products.":"Reviewed feed catalog has no eligible public products. Private inventory is excluded. Participating retailer search is a separate source.";}).catch(()=>{if(readiness.isConnected)readiness.textContent="Reviewed catalog availability could not be checked. Retry your search.";});
  target.append(box);
  const results=el("div","store-results");
  const head=el("div","store-results-top");
@@ -352,16 +453,86 @@ function renderStore(){
  const status=el("p","store-search-status");
  status.setAttribute("role","status");status.setAttribute("aria-live","polite");
  results.append(status);
+ const retailerSummary=el("details","store-retailer-summary");
+ retailerSummary.hidden=true;
+ const summary=el("summary",null,"Retailers in these results");
+ const shops=el("div","store-retailer-names");
+ retailerSummary.append(summary,shops);
+ results.append(retailerSummary);
  const list=el("div","store-grid");results.append(list);
+ // Web references are opt-in styling research; never cart-ready products.
+ const webPanel=el("section","store-web-discovery");webPanel.hidden=true;
+ const webSummary=el("p","store-web-summary"),webSources=el("div","store-web-sources");
+ const retailReferences=el("section","store-public-research");retailReferences.hidden=true;
+ const webMessage=el("p","store-web-note","Web sources are not verified stock or checkout offers.");
+ const webCode=el("input");webCode.type="password";webCode.maxLength=256;
+ webCode.placeholder="Private beta code";webCode.autocomplete="off";
+ webCode.hidden=true;webCode.setAttribute("aria-label","Web research beta code");
+ const webButton=button("Explore wider web ↗",async()=>{
+  const c=storeState.criteria;
+  if(!c||webButton.disabled)return;
+  const code=($("beta-code")?.value||webCode.value||"").trim();
+  if(!code){webCode.hidden=false;webCode.focus();webMessage.textContent=
+   "Your private beta code is required for web research.";return;}
+  const run=searchId;
+  webButton.disabled=true;webSources.replaceChildren();retailReferences.replaceChildren();retailReferences.hidden=true;webSummary.textContent="";
+  webMessage.textContent="Finding source-backed style references…";
+  try{
+   const res=await fetch("/api/discover",{
+    method:"POST",cache:"no-store",headers:{"content-type":"application/json"},
+    body:JSON.stringify({betaCode:code,slot:c.slot,q:c.q,max:c.max,
+     size:c.size,color:c.color,profile:profile()})
+   });
+   const found=await res.json();
+   if(run!==searchId)return;
+   if(!res.ok)throw Error(found?.error==="BETA_ACCESS_DENIED"?
+    "That private beta code wasn't accepted.":"Web research is unavailable.");
+   webSummary.textContent=found.summary||"";
+   const references=Array.isArray(found.sources)?found.sources:[];
+   for(const source of references){
+    if(!/^https:\/\//i.test(source?.url||""))continue;
+    const card=el("div","store-web-source");
+    const link=el("a",null,source.title||source.domain||"Open source");
+    link.href=source.url;link.target="_blank";link.rel=item.source==="awin"?"sponsored nofollow noopener noreferrer":"noopener noreferrer";
+    card.append(link,el("small",null,(source.domain||"Source")+
+      (source.kind==="product_page_reference"?" · Product-page reference":" · Style research")));
+    webSources.append(card);
+   }
+   const approvedReferences=Array.isArray(found.retailResearch)?found.retailResearch:[];
+   if(approvedReferences.length){
+    retailReferences.hidden=false;
+    retailReferences.append(el("h3",null,"Retailer research references"));
+    retailReferences.append(el("p","store-web-note","Source-linked inspiration only. Prices, stock, sizes and delivery are not verified."));
+    for(const item of approvedReferences){
+     if(!/^https:\/\//i.test(item?.url||"")||item?.cartEligible!==false)continue;
+     const entry=el("div","store-public-reference");
+     const link=el("a",null,item.title||item.retailer||"Research source");
+     link.href=item.url;link.target="_blank";link.rel=item.source==="awin"?"sponsored nofollow noopener noreferrer":"noopener noreferrer";
+     entry.append(link,el("small",null,(item.retailer||"Retailer")+" · Research only · Not eligible for shortlist"));
+     retailReferences.append(entry);
+    }
+   }
+   webMessage.textContent=references.length
+    ?"Web research only · check current size, stock, price and delivery at the retailer."
+    :"No suitable source found. Refine your request without relaxing personal preferences.";
+  }catch(error){if(run===searchId)webMessage.textContent=error?.message||"Web search unavailable.";}
+  finally{webButton.disabled=false;}
+ },"store-web-launch");
+ webPanel.append(webButton,webCode,webSummary,retailReferences,webSources,webMessage);
+ results.append(webPanel);
  target.append(results);
  const product=el("section","store-product-shell");product.id="store-product";target.append(product);
- const view=(location.hash||"").slice(1).split("/")[1]||"search";
+ const requestedView=(location.hash||"").slice(1).split("/")[1]||"search";
+ // Returning from another tab restores the prior results page without implying fresh stock.
+ const view=requestedView==="search"&&storeState.searched&&!initialStoreQuery?
+  "results":requestedView;
  if(initialStoreQuery){
-  status.textContent="Your mood is ready to shop. Choose a category and search.";
+  status.textContent="Your request is ready. Confirm the source and category, then search.";
   initialStoreQuery="";
  }else if(storeState.searched){
-  status.textContent="Prices and availability may change. Search again to refresh.";
+  status.textContent="Previous results · prices and availability may have changed. Search again to refresh.";
   list.replaceChildren(...storeState.items.map(storeCard));
+  webPanel.hidden=false;
  }else status.textContent="Find your next piece.";
  if(view==="product"&&storeState.selected){renderProduct();showStoreView("product",false);}
  else if(view==="results"&&storeState.searched){showStoreView("results",false);}
@@ -369,36 +540,129 @@ function renderStore(){
   if(view!=="search"&&location.hash.startsWith("#store/"))history.replaceState(null,"","#store");
   showStoreView("search",false);
  }
+ // This unlinked QA mode uses the existing server UUID gate, never email.
+ if(new URLSearchParams(location.search).get("catalogQa")==="1"){
+  const qaStatus=el("p","v12-store-context");qaStatus.setAttribute("role","status");box.append(qaStatus);
+  const fixtures=button("Load private UI fixtures",async()=>{
+   const ticket=searchId,userId=lib()?.getUserId?.();if(!userId){qaStatus.textContent="Verified owner sign-in required for private fixtures.";return;}
+   fixtures.disabled=true;
+   try{const session=(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session;
+    if(session?.user?.id!==userId||!session.access_token)throw Error("Owner session unavailable.");
+    const r=await fetch("/api/admin-summary?fixtures=1",{headers:{Authorization:"Bearer "+session.access_token},cache:"no-store",signal:AbortSignal.timeout(8000)});
+    if(!r.ok)throw Error("Private fixtures require verified owner access.");const data=await r.json();
+    if(ticket!==searchId||lib()?.getUserId?.()!==userId||!fixtures.isConnected)return;
+    storeState.items=data.items;storeState.selected=null;storeState.searched=true;showStoreView("results");status.textContent=data.label;list.replaceChildren(...data.items.map(storeCard));webPanel.hidden=true;
+   }catch(e){if(ticket===searchId)qaStatus.textContent=e.message;}finally{fixtures.disabled=false;}
+  },"destination-link quiet");box.append(fixtures);
+ }
+ async function discoverForMe(){
+  if(discover.disabled||discover.hidden)return;
+  const cues=[p.aesthetic,p.fit,p.palette].filter(value=>typeof value==="string"&&value.trim()).join(" ");
+  const q=(cues||"minimal neutral everyday").slice(0,110);
+  const max=Number(budget.value);
+  if(!Number.isFinite(max)||max<1||max>10000){
+   status.textContent="Choose a maximum price between $1 and $10,000.";
+   return;
+  }
+  if(controller)controller.abort();
+  controller=new AbortController();
+  const run=++searchId,userId=lib()?.getUserId?.();
+  if(!userId){status.textContent="Verified owner sign-in required.";return;}
+  storeState.items=[];storeState.searched=true;storeState.query=q;storeState.max=max;
+  list.replaceChildren();showStoreView("results");
+  status.textContent="Discovering real products across Shopify retailers…";
+  discover.disabled=true;
+  try{
+   const params=new URLSearchParams({mode:"discover",q,max:String(max),categories:select.value,size:exactSize.value,color:""});
+   const session=(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session;if(!session)throw Error("Owner session unavailable");
+   const response=await fetch("/api/shop?"+params,{headers:{Authorization:"Bearer "+session.access_token},signal:controller.signal,cache:"no-store"});
+   const data=await response.json();
+   if(run!==searchId||lib()?.getUserId?.()!==userId)return;
+   if(!response.ok)throw Error(data.error||"Discovery unavailable");
+   const items=Array.isArray(data.items)?data.items.filter(item=>item?.available&&Number(item.price)<=max):[];
+   storeState.items=items;storeState.checkedAt=Date.now();
+   status.textContent=items.length?
+    items.length+" live products discovered for your style. Availability and prices may change.":
+    "No available matches yet. Try a different style or budget.";
+   list.replaceChildren(...items.map(storeCard));
+  }catch(error){
+   if(run!==searchId)return;
+   if(error?.name!=="AbortError")status.textContent="Live discovery is temporarily unavailable. Try searching instead.";
+  }finally{if(run===searchId)discover.disabled=false;}
+ }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
   const q=query.value.trim(),max=Number(budget.value);
-  if(q.length<2||!Number.isFinite(max)||max<1||max>10000){
+  if(deadline.value&&(!/^\d{4}-\d{2}-\d{2}$/.test(deadline.value)||deadline.value<localToday())){status.textContent="Choose today or a future delivery date.";return;}
+  if(deadline.value&&!shippingZip()){status.textContent="Save your destination ZIP in Me before using Need it by.";return;}
+  if((provider.value!=="catalog"&&q.length<2)||q.length>170||!Number.isFinite(max)||max<1||max>10000){
    status.textContent="Enter a search of at least 2 characters and a budget between $1 and $10,000.";
    return;
   }
+  const matcher=window.MatchlatchRetailerMatch;
+  if(!matcher?.criteria||!matcher?.rank){
+   status.textContent="Personalized search needs a refresh. Reload MATCHLATCH and try again.";
+   return;
+  }
+  const p=profile(),preferredSize=exactSize.value.trim()||storeSizeFor(select.value,p);
+  const criteria=matcher.criteria({
+   slot:select.value,profile:p,size:preferredSize,max,manualQuery:q
+  });
+  if(!criteria){status.textContent="Choose a supported clothing category.";return;}
+  storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
-  storeState.searched=true;storeState.items=[];
+  storeState.needBy=deadline.value;
+  storeState.searched=true;storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
   showStoreView("results");
-  list.replaceChildren();status.textContent="Searching available retailer products…";
+  list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
+  webPanel.hidden=true;webCode.hidden=true;webSummary.textContent="";
+  webSources.replaceChildren();
+  status.textContent="Finding pieces that match your style…";
   submit.disabled=true;
   if(controller)controller.abort();
   controller=new AbortController();
   const run=++searchId;
   try{
-   const params=new URLSearchParams({mode:"search",slot:select.value,q,max:String(max)});
-   const response=await fetch("/api/shop?"+params,{signal:controller.signal,cache:"no-store"});
+   const params=new URLSearchParams({mode:"search",slot:criteria.slot,q:criteria.q,max:String(criteria.max)});
+   if(criteria.size)params.set("size",criteria.size);
+   if(criteria.color)params.set("color",criteria.color);
+   if(shippingZip())params.set("postal",shippingZip());
+   if(storeState.needBy)params.set("needBy",storeState.needBy);
+   const catalogSource=provider.value==="catalog";
+   if(catalogSource){params.set("q",q);params.set("brand",brand.value.trim());params.set("sort",sort.value);}
+   const response=await fetch((catalogSource?"/api/catalog?":"/api/shop?")+params,{signal:controller.signal,cache:"no-store"});
    const data=await response.json();
    if(run!==searchId)return;
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
-   const items=Array.isArray(data.items)?data.items.filter(item=>item?.available&&Number(item.price)<=max):[];
+   // Hard preference/variant and suitability gates are mandatory for Store
+   // just as they are for AI-originated Outfit Tree recommendations.
+   const ranked=matcher.rank(Array.isArray(data.items)?data.items:[],criteria);
+   const items=catalogSource&&storeState.needBy?[]:ranked;
+   if(sort.value==="price-asc")items.sort((a,b)=>a.price-b.price);else if(sort.value==="price-desc")items.sort((a,b)=>b.price-a.price); // Server already enforces deadline eligibility against trusted provider data.
    storeState.items=items;storeState.checkedAt=Date.now();
-   status.textContent=items.length?
-    items.length+" available retailer listing"+(items.length===1?"":"s")+" found. Prices and availability may change.":
-    "No available products found. Try another search or budget.";
+   const matches=window.MatchlatchRetailerMatch;
+   const merchants=matches?.merchants?.(items)||[];
+   storeState.retailers=merchants;
+   status.textContent=storeState.needBy&&!shippingZip()
+    ?"Set a five-digit destination ZIP in Me before searching by delivery deadline.":
+    storeState.needBy&&!items.length?
+    catalogSource?data.message:"No trusted retailer delivery forecasts meet "+storeState.needBy+". "+(data.deliveryFilter?.withheld||0)+" otherwise matching product(s) withheld; clear the deadline to browse them.":items.length?
+    items.length+" retailer listing"+(items.length===1?"":"s")+
+    " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
+    " in this search. US shipping eligibility filtered; prices and stock may change.":
+    catalogSource?(data.message||"No eligible public catalog products. Private development inventory is excluded."):"No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";
+   retailerSummary.hidden=merchants.length===0;
+   retailerSummary.open=false;
+   summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
+   shops.replaceChildren(...merchants.map(merchant=>el("span","store-retailer-name",merchant.name)));
    list.replaceChildren(...items.map(storeCard));
+   webPanel.hidden=false;
   }catch(error){
    if(run!==searchId)return;
-   if(error?.name!=="AbortError")status.textContent="We couldn't check the live catalog right now. Please try again.";
+   if(error?.name!=="AbortError"){
+    status.textContent="We couldn't check the live catalog. You can still explore research sources.";
+    webPanel.hidden=false;
+   }
   }finally{if(run===searchId)submit.disabled=false;}
  });
 }
@@ -408,7 +672,7 @@ function renderProfileLinks(){
  const sections=[
   ["Display","Appearance","Light, dark or your device theme.", "me-appearance"],
   ["Personalization","My style","Preferences, sizes and your look.", "me-preferences"],
-  ["Account access","My account","Guest access and secure sign-in.", "me-account-panel"],
+  ["Account access","My account","Manage your sign-in and security.", "me-account-panel"],
   ["Privacy control","Privacy & data","Device data and account controls.", "me-privacy-panel"]
  ];
  for(const [eyebrow,name,description,targetId] of sections){
@@ -422,6 +686,7 @@ function renderProfileLinks(){
   card.append(info,el("span","profile-shortcut-arrow","↗"));
   root.append(card);
  }
+ window.MatchlatchOwnerNavigation?.mount(root);
 }
 function renderAppearance(){
  const root=$("me-appearance");if(!root)return;
@@ -455,6 +720,8 @@ function renderMePreferences(){
  const heading=sectionTitle("Style preferences","Your style, your rules",
   "Update the preferences used in Studio and Mood.");
  root.append(heading);
+ const context=el("p","v12-me-context","Changes affect future styling and searches. Existing saved looks are not automatically rewritten.");
+ root.append(context);
  const grid=el("div","me-settings-grid");
  const fields=[
   ["Style expression","look"],
@@ -487,6 +754,25 @@ function renderMePreferences(){
   field.append(clone);grid.append(field);
  }
  root.append(grid);
+ const shipping=el("section","v12-shipping-preference");
+ shipping.append(el("h3",null,"Delivery destination"));
+ shipping.append(el("p","v12-me-context","Optional US ZIP code for delivery forecasting. Saved on this device only; sent only to retailer catalog search when needed for destination filtering; never to OpenAI research. A retailer-specific estimate is required before dates appear."));
+ const zipLabel=el("label","me-setting");
+ zipLabel.append(el("span","me-setting-label","US ZIP code"));
+ const input=el("input");input.type="text";input.inputMode="numeric";input.maxLength=5;
+ input.pattern="[0-9]{5}";input.placeholder="5-digit ZIP";input.autocomplete="off";
+ input.value=shippingZip();zipLabel.append(input);shipping.append(zipLabel);
+ const zipStatus=el("p","v12-me-context");zipStatus.setAttribute("role","status");
+ shipping.append(button("Save destination",()=>{
+   if(!lib()?.requireAccount?.(()=>showPage("account")))return;
+  const value=input.value.trim();
+  if(value&&!/^\d{5}$/.test(value)){zipStatus.textContent="Enter a valid five-digit US ZIP code.";return;}
+  try{const key=shippingKey();if(!key)throw Error("Sign in required");if(value)localStorage.setItem(key,value);else localStorage.removeItem(key);
+   zipStatus.textContent=value?"Destination saved on this device.":"Destination cleared.";
+  }catch{zipStatus.textContent="Local storage is unavailable. Destination not saved.";}
+ },"destination-link"));
+ shipping.append(zipStatus);
+ root.append(shipping);
  const footer=el("div","me-settings-bottom");
  footer.append(el("p","me-preferences-status","Changes are saved to your device or signed-in account."));
  footer.lastChild.id="me-preferences-status";
@@ -500,7 +786,24 @@ function renderMePreferences(){
  },"destination-link"));
  root.append(footer);
 }
+function renderClosetBridge(){
+ const root=$("screen-styles");
+ if(!root)return;
+ let bridge=root.querySelector(".v12-closet-bridge");
+ if(!bridge){
+  bridge=el("section","v12-closet-bridge");
+  bridge.setAttribute("aria-label","Continue your styling journey");
+  const target=root.querySelector(".library-top")||root.firstElementChild;
+  if(target)target.after(bridge);else root.prepend(bridge);
+ }
+ bridge.replaceChildren();
+ const state=snapshot();
+ bridge.append(el("strong",null,"Your style archive"));
+ bridge.append(el("span","v12-closet-count",state.looks.length+" saved look"+(state.looks.length===1?"":"s")+" · "+state.collections.length+" collection"+(state.collections.length===1?"":"s")));
+ bridge.append(button("Start a new look ↗",()=>lib()?.startFreshStudio?.(),"destination-link quiet"));
+}
 function renderDestination(page){
+ if(page==="styles"||page==="closet")renderClosetBridge();
  if(page==="studio")renderWorkspace();
  if(page==="mood")renderMood();
  if(page==="store")renderStore();
@@ -524,10 +827,32 @@ function initThemeToggle(){
  update();
 }
 initThemeToggle();
+void import("./owner-navigation.mjs").then(({createOwnerNavigation})=>{
+ window.MatchlatchOwnerNavigation=createOwnerNavigation({
+  getUserId:()=>lib()?.getUserId?.()||null,
+  getSession:()=>window.MatchlatchAuth?.client?.auth.getSession()||Promise.resolve({data:{session:null}}),
+  onAuthChange:callback=>window.addEventListener("matchlatch:auth-user",callback)
+ });
+ renderProfileLinks();
+}).catch(()=>{});
+let storeAccountId=lib()?.getUserId?.()||null;
+window.addEventListener("matchlatch:auth-user",()=>{
+ const nextAccountId=lib()?.getUserId?.()||null;if(nextAccountId===storeAccountId)return;storeAccountId=nextAccountId;
+ searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.retailers=[];storeState.searched=false;storeState.criteria=null;
+ if(location.hash.startsWith("#store"))renderStore();
+});
 window.addEventListener("matchlatch:page",event=>renderDestination(event.detail?.page));
+window.addEventListener("matchlatch:retailer-search",event=>{
+ const d=event.detail||{};const q=String(d.query||"").slice(0,170),max=Number(d.max);
+ searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.criteria=null;storeState.searched=false;
+ storeState.query=q;storeState.provider="retailer";storeState.exactSize=String(d.size||"").slice(0,40);storeState.brand="";storeState.needBy="";
+ storeState.slot=supportedSlots.some(([slot])=>slot===d.slot)?d.slot:"shirt";
+ storeState.max=Number.isFinite(max)&&max>=1&&max<=10000?max:200;
+ initialStoreQuery=q;initialStoreSlot=storeState.slot;showPage("store");renderStore();
+});
 window.addEventListener("matchlatch:library",()=>{
  const current=(location.hash||"#studio").slice(1);
- if(current==="studio"||current==="mood")renderDestination(current);
+ if(current==="studio"||current==="mood"||current==="closet"||current==="styles")renderDestination(current);
 });
 const hash=(location.hash||"#studio").slice(1).split("?")[0].split("/")[0];
 renderDestination(hash==="me"?"account":(["mood","studio","store","account"].includes(hash)?hash:"studio"));
