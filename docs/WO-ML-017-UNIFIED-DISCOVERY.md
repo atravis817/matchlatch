@@ -110,3 +110,8 @@ A follow-up improves broad browsing with **Use my saved size when blank**: unche
 ### Empty-state correction
 
 Studio outfit generation still requires eligible reviewed feed products; unified Shopify discovery does not generate an outfit. The empty feed status now identifies that source explicitly. Studio disables the unavailable outfit action for customers when the reviewed catalog is empty, while retaining authorized staff access. Store distinguishes owner-required, disabled, unavailable, and actual no-match Shopify responses. No provider permissions or public access were expanded. Signed-in owner browser verification remains outstanding.
+
+
+### Category and deadline search correction
+
+A blank query now uses the selected clothing category. Missing destination and invalid search feedback appears within the visible search form. Unified sources still cannot verify arrival deadlines and retain the conservative withholding gate. An explicit Browse without delivery date action clears only the date and submits again; it never represents unknown arrival as confirmed. Provider and owner authorization remain unchanged.
