@@ -1,0 +1,5 @@
+# WO-ML-018D recovery baseline
+
+Captured read-only immediately before approved migration, 2026-10-14. Destination lqxeizvrdxuhzvipmlkl, MATCHLATCH-SHOPIFY-PREVIEW, ca-central-1, Postgres 17.11, ACTIVE_HEALTHY. public pg_class objects=[], public routines=0, auth users=0, storage objects=0. public namespace ACL: pg_database_owner UC; PUBLIC/postgres/anon/authenticated/service_role USAGE only. No application schema to export. Provider-managed schemas/extensions are preserved and are not part of migration/recovery scope. This catalog baseline is not a provider backup/PITR snapshot; no such capability claimed.
+
+Approved source: supabase/PROPOSED_shopify_sync.sql blob a5af019bc8da9323a640f2bf3f54065b21d37634, exact file has BEGIN/COMMIT. Failure before commit must leave baseline unchanged; inspect before retry. Post-commit recovery is disabled access plus evidence preservation and separately approved forward fix/DDL reversal; no DROP/restore/project deletion authorized by installation. No shared/Production rollback. No imports or customer data to restore in this empty baseline.
