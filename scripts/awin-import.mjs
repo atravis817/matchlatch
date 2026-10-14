@@ -67,6 +67,7 @@ export function validateProduct(p,id,retailer,testSource=null) {
 }
 export const mapProduct=(p,id,retailer)=>validateProduct(p,id,retailer).product;
 export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds'),full=process.argv.includes('--full'),resumeId=process.argv.find(a=>a.startsWith('--resume='))?.slice(9)||null}={}) {
+ if(process.env.MATCHLATCH_SHOPIFY_FIRST_PHASE==='true')throw Error('Awin feed import and reconciliation are frozen during Shopify validation');
  if(write)writeApproval();
  const signal=AbortSignal.timeout(240000);
  if(accessibleTestFeeds&&process.env.VERCEL_ENV!=='preview')throw Error('Accessible test feeds require the Preview environment');

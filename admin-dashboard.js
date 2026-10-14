@@ -1,10 +1,12 @@
 import {exportCSV,exportJSON} from './admin-export.mjs';
+import {connectShopifySync} from './admin-shopify-sync.mjs';
 import {connectShopifyDiagnostic} from './admin-shopify-diagnostic.mjs';
 const $=id=>document.getElementById(id),status=$('status'),titles={overview:'Overview',catalog:'Catalog',accounts:'Accounts',saved:'Saved looks & records',ai:'AI & spending',imports:'Feed operations'};
 const el=(tag,text='',cls='')=>{const n=document.createElement(tag);n.textContent=text;if(cls)n.className=cls;return n;};
 let awinGeneration=0;
 let client=null,snapshot=null,view='overview',generation=0,busy=false;
 const shopifyDiagnostic=connectShopifyDiagnostic({button:$('shopify-test'),output:$('shopify-result'),getSession:()=>client.auth.getSession(),isOwnerView:()=>Boolean(snapshot)&&!$('dashboard').hidden});
+const shopifySync=connectShopifySync({root:$('shopify-sync-panel'),getSession:()=>client.auth.getSession(),isOwnerView:()=>Boolean(snapshot)&&!$('dashboard').hidden});
 const shippingDiagnostic=connectShopifyDiagnostic({button:$('shipping-test'),output:$('shipping-result'),getSession:()=>client.auth.getSession(),isOwnerView:()=>Boolean(snapshot)&&!$('dashboard').hidden,mode:'shipping'});
 const format=(value,unit='count')=>value===null?'—':unit==='usd'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:4}).format(value):unit==='percent'?value.toFixed(1)+'%':Number(value).toLocaleString('en-US');
 const delta=m=>m.previous===null?'Current snapshot':m.change===null?'Comparison unavailable':(m.change>=0?'+':'')+(m.unit==='percent'?m.change.toFixed(1):format(m.change,m.unit))+(m.unit==='percent'?' percentage points':m.changePercent===null?' · no prior baseline':' ('+(m.changePercent>=0?'+':'')+m.changePercent.toFixed(1)+'%)')+' vs previous period';
@@ -22,7 +24,7 @@ function render(){if(!snapshot)return;const content=$('content');content.replace
  const limitations=$('limitations');limitations.replaceChildren(el('h2','Not collected yet'));const list=el('div','','definition-list');snapshot.unavailable.forEach(u=>{const p=el('p');p.append(el('strong',u.label),document.createTextNode(u.reason));list.append(p);});limitations.append(list,el('p',snapshot.note,'muted'));
 }
 function resetAwin(){awinGeneration++;$("awin-result").textContent="";$("awin-result").hidden=true;$("awin-report").disabled=false;$("awin-feeds").disabled=false;}
-function clear(){resetAwin();generation++;snapshot=null;shopifyDiagnostic.reset();shippingDiagnostic.reset();$('dashboard').hidden=true;$('login').hidden=false;$('content').replaceChildren();if($('detail').open)$('detail').close();}
+function clear(){shopifySync.reset();resetAwin();generation++;snapshot=null;shopifyDiagnostic.reset();shippingDiagnostic.reset();$('dashboard').hidden=true;$('login').hidden=false;$('content').replaceChildren();if($('detail').open)$('detail').close();}
 async function load(){if(!client||busy)return;const ticket=++generation;busy=true;['refresh','period','csv','json'].forEach(id=>$(id).disabled=true);status.textContent='Verifying owner and reading operating data…';try{const {data}=await client.auth.getSession();if(!data?.session){clear();status.textContent='Sign in to view the Command Center.';return;}const r=await fetch('/api/admin-summary?days='+$('period').value,{headers:{Authorization:'Bearer '+data.session.access_token},cache:'no-store'}),d=await r.json();if(ticket!==generation)return;if(!r.ok)throw Error(d.error||'Dashboard unavailable');snapshot=d;$('dashboard').hidden=false;$('login').hidden=true;render();status.textContent=Object.values(d.sections).every(s=>s.status==='ok')?'Connected · Preview metrics':'Connected · Some sources unavailable';}catch(e){if(ticket===generation){clear();status.textContent=e.message==='Forbidden'?'This account is not authorized for Command Center access.':e.message;}}finally{busy=false;['refresh','period','csv','json'].forEach(id=>$(id).disabled=false);}}
 
 async function loadAwin(action){

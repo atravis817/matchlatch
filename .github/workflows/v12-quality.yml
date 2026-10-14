@@ -7,6 +7,7 @@ on:
       - feature/v1.2-awin-commerce-20261013
       - feature/wo-ml-015-checkout-20261013
       - feature/wo-ml-017-unified-discovery
+      - feature/wo-ml-018a-nightly-shopify-sync
       - staging/v1.1-tile-cleanup-100926
   pull_request:
     branches:
@@ -30,6 +31,10 @@ jobs:
           find . -path './.git' -prune -o \( -name '*.js' -o -name '*.mjs' \) -type f -print0 | xargs -0 -n1 node --check
       - name: Regression audit
         run: node scripts/audit.mjs
+      - name: Install pinned ephemeral PostgreSQL test runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/matchlatch-sql" --no-audit --no-fund @electric-sql/pglite@0.5.9
+          echo "MATCHLATCH_PGLITE_MODULE=$RUNNER_TEMP/matchlatch-sql/node_modules/@electric-sql/pglite/dist/index.js" >> "$GITHUB_ENV"
       - name: Complete isolated regression suite
         run: node --test scripts/test-*.mjs
       - name: Public catalog policy tests

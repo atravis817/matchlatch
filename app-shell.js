@@ -483,6 +483,8 @@ function renderStore(){
  retailerSummary.append(summary,shops);
  results.append(retailerSummary);
  const list=el("div","store-grid");results.append(list);
+ let nextOffset=null,appendRequested=false;
+ const loadMore=button("Load more products",()=>{if(nextOffset!==null){appendRequested=true;form.requestSubmit();}},"commerce-secondary");loadMore.hidden=true;results.append(loadMore);
  // Web references are opt-in styling research; never cart-ready products.
  const webPanel=el("section","store-web-discovery");webPanel.hidden=true;
  const webSummary=el("p","store-web-summary"),webSources=el("div","store-web-sources");
@@ -615,6 +617,8 @@ function renderStore(){
  }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
+  const append=appendRequested;appendRequested=false;const pageOffset=append?nextOffset:0;
+  if(append&&pageOffset===null)return;
   const allCategories=select.value==="all",q=query.value.trim()||(allCategories?"":select.value),max=Number(budget.value),selectedDeadline=browseWithoutDate.checked?"":deadline.value;
   formStatus.textContent="";
   const explainSearch=message=>{formStatus.textContent=message;status.textContent=message;};
@@ -638,9 +642,9 @@ function renderStore(){
   storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;storeState.useSavedSize=useSavedSize.checked;
   storeState.needBy=selectedDeadline;storeState.deliveryDateDraft=deadline.value;
-  storeState.searched=true;storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
+  storeState.searched=true;if(!append)storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
   showStoreView("results");
-  list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
+  if(!append)list.replaceChildren();loadMore.disabled=true;retailerSummary.hidden=true;shops.replaceChildren();
   webPanel.hidden=true;webCode.hidden=true;webSummary.textContent="";
   webSources.replaceChildren();
   status.textContent="Finding pieces that match your style…";
@@ -649,7 +653,7 @@ function renderStore(){
   controller=new AbortController();
   const run=++searchId;
   try{
-   const params=new URLSearchParams({mode:"search",slot:allCategories?"all":criteria.slot,q:allCategories?q:criteria.q,max:String(criteria.max)});
+   const params=new URLSearchParams({mode:"search",slot:allCategories?"all":criteria.slot,q:allCategories?q:criteria.q,max:String(criteria.max),offset:String(pageOffset)});
    if(criteria.size)params.set("size",criteria.size);
    if(criteria.color)params.set("color",criteria.color);
    if(shippingZip())params.set("postal",shippingZip());
@@ -669,7 +673,7 @@ function renderStore(){
    const ranked=allCategories?candidates.flatMap(item=>{const c=matcher.criteria({slot:item.slot,profile:p,size:exactSize.value.trim()||(useSavedSize.checked?storeSizeFor(item.slot,p):""),max,manualQuery:q||item.slot});return matcher.rank([item],c);}):matcher.rank(candidates,criteria);
    const items=catalogSource&&storeState.needBy?[]:ranked;
    if(sort.value==="price-asc")items.sort((a,b)=>a.price-b.price);else if(sort.value==="price-desc")items.sort((a,b)=>b.price-a.price); // Server already enforces deadline eligibility against trusted provider data.
-   storeState.items=items;storeState.checkedAt=Date.now();
+   storeState.items=append?[...storeState.items,...items.filter(item=>!storeState.items.some(old=>old.id===item.id))]:items;storeState.checkedAt=Date.now();nextOffset=data.nextOffset??null;loadMore.hidden=nextOffset===null;
    const matches=window.MatchlatchRetailerMatch;
    const merchants=matches?.merchants?.(items)||[];
    storeState.retailers=merchants;
@@ -687,7 +691,8 @@ function renderStore(){
    retailerSummary.open=false;
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
    shops.replaceChildren(...merchants.map(merchant=>el("span","store-retailer-name",merchant.name)));
-   list.replaceChildren(...items.map(storeCard));
+   list.replaceChildren(...storeState.items.map(storeCard));
+   if(data.sources?.shopifyInternal)status.textContent=storeState.items.length+" approved Shopify products shown. Prices and inventory are snapshots; confirm at checkout.";
    webPanel.hidden=false;
   }catch(error){
    if(run!==searchId)return;
@@ -695,7 +700,7 @@ function renderStore(){
     status.textContent=/^Store (account tools did not initialize|could not read your account session)/.test(error?.message||"")?error.message:"We couldn't check the live catalog. Use Check Store access to verify your session and both owner routes.";
     webPanel.hidden=false;
    }
-  }finally{if(run===searchId)submit.disabled=false;}
+  }finally{if(run===searchId){submit.disabled=false;loadMore.disabled=false;}}
  });
 }
 function renderProfileLinks(){
