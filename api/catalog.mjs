@@ -1,10 +1,20 @@
 import {allowRequest} from '../lib/request-limits.mjs';
 import {json,session,staffAccess,retrieveCatalog,clean,SLOTS} from '../lib/catalog-server.mjs';
 import {intentFromText,rankCandidates,catalogEmptyMessage} from '../lib/styling-engine.mjs';
+import {internalShopifySearch} from '../lib/shopify-internal-catalog.mjs';
 export async function GET(request){
  if(!allowRequest(request,'catalog',60))return json({error:'Too many catalog requests. Retry shortly.'},429);
  try{
   const u=new URL(request.url);const account=await session(request);
+  if(process.env.VERCEL_ENV==='preview'&&process.env.MATCHLATCH_SHOPIFY_FIRST_PHASE==='true'){
+   if(u.searchParams.get('mode')==='capabilities'){
+    let available=false;try{available=(await internalShopifySearch({slot:'all',purpose:'recommendation'})).items.length>0;}catch{}
+    return json({staff:false,aiReady:false,aiConfigured:false,aiConnectionVerified:false,catalogAvailable:available,catalogStatus:available?'available':'unconfigured_or_empty',studioDemoAvailable:true,studioLiveDiscovery:false,source:'shopify_internal',aiProcessing:false});
+   }
+   if(u.searchParams.get('private')==='1')return json({error:'Private Shopify products are available only in owner review.'},403);
+   const result=await internalShopifySearch({query:u.searchParams.get('q')||'',slot:u.searchParams.get('slot')||'all',max:Number(u.searchParams.get('max')||10000),size:u.searchParams.get('size')||'',brand:u.searchParams.get('brand')||'',sort:u.searchParams.get('sort')||'',needBy:u.searchParams.get('needBy')||'',offset:Number(u.searchParams.get('offset')||0)});
+   return json({...result,hasMore:result.nextOffset!==null});
+  }
   if(u.searchParams.get('mode')==='capabilities'){
    const aiConfigured=process.env.VERCEL_ENV==='preview'&&Boolean(process.env.MATCHLATCH_PREVIEW_OPENAI_API_KEY);
    const publicProducts=await retrieveCatalog();
