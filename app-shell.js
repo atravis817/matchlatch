@@ -230,7 +230,7 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"unified",exactSize:"",brand:"",sort:"relevance",styleContext:"",sizeSystem:""};
+const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"unified",exactSize:"",brand:"",sort:"relevance",styleContext:"",sizeSystem:"",useSavedSize:true};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
@@ -414,6 +414,8 @@ function renderStore(){
  const providerLabel=el("label","store-field store-source-field");providerLabel.append(el("span",null,"PRODUCT SOURCE"),provider);
  const exactSize=el("input");exactSize.type="text";exactSize.maxLength=40;exactSize.value=storeState.exactSize;exactSize.placeholder="Use saved size";exactSize.setAttribute("aria-label","Exact size");
  const sizeLabel=el("label","store-field");sizeLabel.append(el("span",null,"SIZE · OPTIONAL"),exactSize);
+ const useSavedSize=el("input");useSavedSize.type="checkbox";useSavedSize.checked=storeState.useSavedSize!==false;useSavedSize.setAttribute("aria-label","Use my saved size when exact size is blank");
+ const savedSizeLabel=el("label","store-size-choice");savedSizeLabel.append(useSavedSize,el("span",null,"Use my saved size when blank"));sizeLabel.append(savedSizeLabel);
  const brand=el("input");brand.type="text";brand.maxLength=60;brand.value=storeState.brand;brand.setAttribute("aria-label","Brand");
  const brandLabel=el("label","store-field");brandLabel.append(el("span",null,"BRAND · OPTIONAL"),brand);
  const sort=el("select");sort.setAttribute("aria-label","Sort products");for(const [v,t] of [["relevance","Relevance"],["price-asc","Price: low to high"],["price-desc","Price: high to low"]])sort.add(new Option(t,v));sort.value=storeState.sort;
@@ -606,14 +608,14 @@ function renderStore(){
    status.textContent="Personalized search needs a refresh. Reload MATCHLATCH and try again.";
    return;
   }
-  const p=profile(),preferredSize=exactSize.value.trim()||storeSizeFor(select.value,p);
+  const p=profile(),preferredSize=exactSize.value.trim()||(useSavedSize.checked?storeSizeFor(select.value,p):"");
   const criteria=matcher.criteria({
    slot:select.value,profile:p,size:preferredSize,max,manualQuery:q
   });
   if(!criteria){status.textContent="Choose a supported clothing category.";return;}
   if(storeState.styleContext){try{const context=JSON.parse(storeState.styleContext);criteria.hints.notes=context.notes||"";criteria.hints.occasion=context.occasion||"";criteria.hints.aesthetic=context.style||criteria.hints.aesthetic;}catch{}}
   storeState.criteria=criteria;
-  storeState.query=q;storeState.slot=select.value;storeState.max=max;
+  storeState.query=q;storeState.slot=select.value;storeState.max=max;storeState.useSavedSize=useSavedSize.checked;
   storeState.needBy=deadline.value;
   storeState.searched=true;storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
   showStoreView("results");
@@ -632,7 +634,7 @@ function renderStore(){
    if(shippingZip())params.set("postal",shippingZip());
    if(storeState.needBy)params.set("needBy",storeState.needBy);
    const catalogSource=provider.value==="catalog",unifiedSource=provider.value==="unified";
-   if(unifiedSource){params.set("mode","unified");params.set("brand",brand.value.trim());params.set("sort",sort.value);if(storeState.styleContext)params.set("context",storeState.styleContext);if(storeState.sizeSystem)params.set("sizeSystem",storeState.sizeSystem);}
+   if(unifiedSource){params.set("mode","unified");params.set("brand",brand.value.trim());params.set("sort",sort.value);if(storeState.styleContext)params.set("context",storeState.styleContext);if(preferredSize&&storeState.sizeSystem)params.set("sizeSystem",storeState.sizeSystem);}
    const accountId=lib()?.getUserId?.(),session=unifiedSource?(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session:null;
    if(unifiedSource&&accountId!==lib()?.getUserId?.())return;
    if(catalogSource){params.set("q",q);params.set("brand",brand.value.trim());params.set("sort",sort.value);}

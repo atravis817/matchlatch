@@ -74,3 +74,34 @@ CI, deployment and HTTP/browser verification references will be recorded after p
 | Distributed throttling | Release/scaling requirement | Existing limits are per runtime; validate coordination before public launch |
 
 Engineering assessment: the shared search and Studio handoff remove the architectural Awin-only dependency. Real Shopify evaluation works through the documented tutorial route; both-source live product acceptance is not satisfied until Awin inventory/credentials and MATCHLATCH profile/launch requirements are resolved. **NO-GO for Production; appropriate for authorized founder Preview evaluation.**
+
+## Executed deployment and HTTP verification
+
+Application checkpoint `c44ebd7eec9a0b0012f2de89ca6b6bb5200d9e2d` published in [draft PR #6](https://github.com/atravis817/matchlatch/pull/6). Its Git tree exactly matched the local tested tree. [GitHub quality run 38499660535](https://github.com/atravis817/matchlatch/actions/runs/38499660535) passed all configured checks.
+
+The first automatic deployment began before branch-scoped settings were applied and returned a missing-owner 503 plus disabled evaluation. It was not used as the delivered configured Preview. After settings were confirmed, the same exact commit was redeployed with current Preview configuration. The API uses `target=staging` for this non-Production deployment; the initial attempt with `target=preview` was rejected by Vercel's input validator and created no deployment.
+
+Configured READY deployment: `dpl_EDDYH7ppVfBYSJu1Hua89JXE6fFf`, https://matchlatch-rmcfbvh3m-matchlatch.vercel.app . Non-Production target `staging`; correct project and application SHA verified. Vercel Authentication remains enabled. No custom production domains were promoted.
+
+Actual authorized HTTP results on this configured deployment:
+
+| Request | Actual result |
+| --- | --- |
+| Application HTML | 200, Store/Studio/checkout assets linked and purchases-disabled meta retained |
+| Owner capability, guest | 403 Forbidden, proving configured gate now denies guest instead of missing-owner 503 |
+| Unified capabilities, guest | 200, enabled=true, ownerEvaluation=false, ownerOnly=true, publicShopify=false, aiProcessing=false |
+| Unified sneakers search, guest | 200, Shopify owner_required, Awin empty, zero products; no invented listing |
+| Private inventory, guest | 403 Staff access required |
+| Checkout verification | 403 BETA_PURCHASES_DISABLED |
+
+These are deployed guest HTTP checks, not owner-session browser tests. A cloud-browser visit still redirected to Vercel login. Owner search, owner Command Center visuals, separate real customer isolation, mobile/desktop/light-dark layout and touch/accessibility remain blocked by unavailable legitimate browser sessions. No screenshot or signed-in pass is claimed.
+
+A follow-up improves broad browsing with **Use my saved size when blank**: uncheck it and leave Exact size blank to inspect products without a hidden saved-size constraint. An explicitly entered size remains mandatory. Source limitations stay visible and unspecified sizes remain labeled; no size is fabricated. The full 182-test suite and audit passed again after this change. The final commit/deployment reference is the current PR head and deployment reported in the completion response.
+
+### Founder test path
+
+1. Open the delivered protected Preview with your Vercel access, then sign into MATCHLATCH with the existing verified owner account.
+2. In ME, check Command Center. In Store, leave **All available products** selected, choose Footwear, query sneakers and set a merchandise budget. For a broad initial browse, uncheck the saved-size option and leave exact size/brand/deadline blank. Then repeat with your actual size and preferences; an empty constrained result is legitimate.
+3. Confirm source status for Shopify and Awin separately. Shopify owner evaluation should attempt the live catalog; Awin can remain empty until eligible feed data exists. Shopify cards are evaluation-only and cannot be saved. No retailer checkout or payment is enabled.
+4. In Studio, choose occasion/style/budget and enter garment notes, then select **Search products in Store**. Verify the context, size and budget carried over. This does not generate or claim a complete AI outfit.
+5. Sign out and confirm owner controls disappear. Use a separate ordinary customer session for denial and cart regression tests. Never send login secrets in chat.
