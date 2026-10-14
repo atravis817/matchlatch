@@ -115,3 +115,8 @@ Studio outfit generation still requires eligible reviewed feed products; unified
 ### Category and deadline search correction
 
 A blank query now uses the selected clothing category. Missing destination and invalid search feedback appears within the visible search form. Unified sources still cannot verify arrival deadlines and retain the conservative withholding gate. An explicit Browse without delivery date action clears only the date and submits again; it never represents unknown arrival as confirmed. Provider and owner authorization remain unchanged.
+
+
+### Owner session investigation
+
+The owner reported a successful BASALT diagnostic on deployment zhf2c46hb while Store returned owner_required. Both routes call authorizeOwner; no configuration or permission mismatch has been proven. Store now waits for the existing app auth initializer rather than silently proceeding with no client. Check Store access sends the same session to both owner capability routes and distinguishes initialization failure, absent session, denial, and route disagreement. It reveals no tokens, identities, provider secrets, or customer data. This is diagnostic instrumentation, not proof that the reported live issue is resolved. Use the stable branch Preview hostname to avoid losing sessions on every deployment URL change.

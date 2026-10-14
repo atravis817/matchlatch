@@ -453,6 +453,13 @@ function renderStore(){
   const feed=feedAvailability===null?"Reviewed feed availability has not been confirmed.":feedAvailability?"Reviewed feeds contain eligible public products.":"Reviewed feeds contain no eligible public products.";
   readiness.textContent=provider.value==="catalog"?feed:provider.value==="retailer"?"Participating retailer search is independent of the reviewed feed catalog.":"All available products searches two independent sources. Shopify search is a Preview evaluation for the verified owner only. Delivery-date verification is unavailable for these sources; clear Need it by to browse listings. "+feed;
  }
+ const access=button("Check Store access",async()=>{
+  access.disabled=true;readiness.textContent="Checking Store session and both owner routes…";
+  const ticket=searchId;
+  try{const tools=await import("./store-session.mjs");const session=await tools.storeSession();const message=await tools.checkStoreAccess({session,signal:AbortSignal.timeout(10000)});if(ticket===searchId&&readiness.isConnected)readiness.textContent=message;}
+  catch(e){if(ticket===searchId&&readiness.isConnected)readiness.textContent=e.message||"Store access check unavailable.";}
+  finally{access.disabled=false;}
+ },"commerce-secondary");box.append(access);
  const sourceChange=provider.onchange;provider.onchange=()=>{sourceChange();showReadiness();};showReadiness();
  fetch("/api/catalog?mode=capabilities",{cache:"no-store",signal:AbortSignal.timeout(10000)}).then(async r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{if(readiness.isConnected){feedAvailability=d.catalogAvailable===true;showReadiness();}}).catch(()=>{if(readiness.isConnected)showReadiness();});
  target.append(box);
@@ -647,10 +654,10 @@ function renderStore(){
    if(storeState.needBy)params.set("needBy",storeState.needBy);
    const catalogSource=provider.value==="catalog",unifiedSource=provider.value==="unified";
    if(unifiedSource){params.set("mode","unified");params.set("brand",brand.value.trim());params.set("sort",sort.value);if(storeState.styleContext)params.set("context",storeState.styleContext);if(preferredSize&&storeState.sizeSystem)params.set("sizeSystem",storeState.sizeSystem);}
-   const accountId=lib()?.getUserId?.(),session=unifiedSource?(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session:null;
+   const accountId=lib()?.getUserId?.(),session=unifiedSource?await (await import("./store-session.mjs")).storeSession():null;
    if(unifiedSource&&accountId!==lib()?.getUserId?.())return;
    if(catalogSource){params.set("q",q);params.set("brand",brand.value.trim());params.set("sort",sort.value);}
-   const response=await fetch((catalogSource?"/api/catalog?":"/api/shop?")+params,{signal:controller.signal,cache:"no-store",headers:session?.access_token?{Authorization:"Bearer "+session.access_token}:{}});
+   const response=await fetch((catalogSource?"/api/catalog?":"/api/shop?")+params,{signal:controller.signal,credentials:"same-origin",redirect:"error",cache:"no-store",headers:session?.access_token?{Authorization:"Bearer "+session.access_token}:{}});
    const data=await response.json();
    if(run!==searchId)return;
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
@@ -681,7 +688,7 @@ function renderStore(){
   }catch(error){
    if(run!==searchId)return;
    if(error?.name!=="AbortError"){
-    status.textContent="We couldn't check the live catalog. You can still explore research sources.";
+    status.textContent=/^Store (account tools did not initialize|could not read your account session)/.test(error?.message||"")?error.message:"We couldn't check the live catalog. Use Check Store access to verify your session and both owner routes.";
     webPanel.hidden=false;
    }
   }finally{if(run===searchId)submit.disabled=false;}
