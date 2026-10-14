@@ -16,12 +16,8 @@ test('Production retains its existing invalid-reference response rather than the
  try{const r=await GET(new Request('https://fixture.test/api/shop?mode=verify&id=invalid&variant=invalid&max=100'));assert.equal(r.status,400);assert.notEqual((await r.json()).code,'BETA_PURCHASES_DISABLED');}
  finally{if(prior===undefined)delete process.env.VERCEL_ENV;else process.env.VERCEL_ENV=prior;}
 });
-test('existing saved retailer items render a disabled beta checkout control',()=>{
- const code=readFileSync(new URL('../library.js',import.meta.url),'utf8');
- const start=code.indexOf('  function verifiedCheckoutAction(item){'),end=code.indexOf('  function renderCheckout',start);
- const node=(tag,cls,text)=>({tag,cls,text,children:[],append(...items){this.children.push(...items);}});
- const btn=(text,fn,cls)=>({...node('button',cls,text),onclick:fn,disabled:false});
- const result=runInNewContext(code.slice(start,end)+'\nverifiedCheckoutAction({shopRef:{provider:"shopify"},retailer:"Fixture retailer"})',
- {document:{querySelector:()=>({content:'purchases-disabled'})},node,btn});
- assert.equal(result.children[0].disabled,true);assert.match(result.children[1].text,/does not offer retailer checkout handoffs/);
+test('saved retailer checkout remains disabled in the actual unified beta review',async()=>{
+ const {checkoutHarness}=await import('./checkout-dom-fixture.mjs');
+ const h=checkoutHarness();h.window.MatchlatchCheckout.checkout(h.host,[],h.hooks);
+ assert.match(h.text(),/outbound checkout remain disabled/);
 });

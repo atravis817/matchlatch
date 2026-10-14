@@ -1,7 +1,9 @@
 import {json,session,staffAccess} from '../lib/catalog-server.mjs';
 import {allowRequest} from '../lib/request-limits.mjs';
 import {discoverCommerce} from '../lib/commerce-discovery.mjs';
+import {checkoutRequest} from '../lib/checkout-route.mjs';
 export async function POST(request){
+ if(new URL(request.url).searchParams.get('action')==='checkout')return checkoutRequest(request);
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Shopping intelligence is available in Preview only.'},503);
  if(request.headers.get('origin')&&request.headers.get('origin')!==new URL(request.url).origin)return json({error:'Cross-origin research denied.'},403);
  if(!allowRequest(request,'commerce',20))return json({error:'Too many requests. Retry shortly.'},429);

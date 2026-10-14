@@ -140,3 +140,5 @@ See the **[living MATCHLATCH V0–V4 MONSTER work map](ROADMAP.md)**. That file 
 **Current focus:** validate V1's real photo-to-retailer shopping experience and V1.5's account/profile/photo synchronization while preparing V2's **REVEAL** camera foundation. [REVEAL Live and Reveal Snap UX flow](REVEAL-EXPERIENCE.md) is documented and the app code has **not** yet shipped it. Saved outfits, cart and manual purchase records are early V3 foundations—not payment or order tracking.
 
 V1.2 Awin affiliate commerce Preview: [WO-ML-012 implementation, verification and setup blockers](docs/WO-ML-012-AWIN-COMMERCE.md). New handoffs remain gated; listed coupons never alter totals.
+
+V1.2 checkout workstream: [WO-ML-015 cart, merchant review and gated shipping/checkout adapter](docs/WO-ML-015-CHECKOUT.md). Quantities and merchant subtotals are unified; payments remain merchant-hosted. Preview purchases remain disabled pending authorized live validation.
