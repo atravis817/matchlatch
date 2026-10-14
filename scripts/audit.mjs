@@ -187,7 +187,7 @@ check(shop.includes('collect(shopify,size,color)')&&shop.includes('checkoutUrl:s
   "Real retailer listings preserve exact variant and merchant-owned checkout references");
 check(library.includes('function addRetailProduct(item)')
   &&library.includes('item.available!==true||item.currency!=="USD"')
-  &&library.includes('secureProductUrl(item?.url)'),
+  &&library.includes('window.MatchlatchCheckoutModel?.safeUrl(item?.merchantProductUrl||item?.url)'),
   "Add-to-cart requires a verified USD variant and safe retailer link");
 check(library.includes('function renderCheckout(target)')
   &&library.includes('if(selectedTab==="checkout")renderCheckout(content)')
@@ -197,8 +197,8 @@ check(library.includes('renderCart(target=$("cart-body"))')
   &&library.includes('addRetailProduct,')
   &&!library.includes('matchlatch-commerce-cart-v1'),
   "Studio and Store share the original persisted shopping cart");
-check(library.includes('MATCHLATCH does not collect payment or place orders yet')
-  &&library.includes('Each retailer handles payment and delivery'),
+check(file('checkout-experience.js').includes('Each retailer completes its own purchase')
+  &&file('lib/merchant-checkout.mjs').includes('orderPlaced:false'),
   "Checkout never claims payment or order placement");
 check(file("commerce.css").includes('.commerce-checkout-grid')
   &&file("commerce.css").includes(':root[data-theme="dark"]')
@@ -211,14 +211,13 @@ check(file("COMMERCE-STAGE.md").includes('Variant-specific Shopify cart permalin
 /* POC-01: server-verified Shopify variant checkout link, no simulated payment. */
 check(library.includes('async function verifyCheckoutItem(cartItem)')
   &&library.includes('mode:"verify"')
-  &&library.includes('live.variantId!==variant')
-  &&library.includes('secureProductUrl(live.checkoutUrl)'),
+  &&file('checkout-model.js').includes('live.variantId!==item.shopRef?.variantId')
+  &&file('lib/merchant-checkout.mjs').includes('model.safeUrl(cart.checkoutUrl'),
   "POC checkout verifies exact Shopify variant and HTTPS merchant link");
-check(library.includes('function verifiedCheckoutAction(item)')
-  &&library.includes('Price changed since you added this item')
-  &&library.includes("Direct checkout isn't offered for this listing")
-  &&library.includes('window.location.assign(checked.url)'),
-  "POC handoff explicitly handles changed price, fallback and direct checkout");
+check(file('checkout-experience.js').includes('Price changed to ')
+  &&file('checkout-experience.js').includes('Product-page handoff only')
+  &&file('checkout-experience.js').includes("link.rel='noopener noreferrer'"),
+  "Checkout explicitly handles changed price and safe retailer fallbacks");
 check(file("PROOF-OF-CONCEPT.md").includes('10 independent first-time users')
   &&file("PROOF-OF-CONCEPT.md").includes('not yet measured results'),
   "POC includes measurable, currently unverified validation goals");
@@ -345,9 +344,9 @@ check(shop.includes('searchAwin({slot,q,max,size,color})')
   &&shop.includes('Promise.allSettled'),
   "Shopify and Awin browsing providers coexist with independent failure isolation");
 check(library.includes('item?.source==="awin"')
-  &&library.includes('directCheckout:shopify&&Boolean(checkout)')
-  &&library.includes('Retailer feed listing confirmed')
-  &&library.includes('Product choices are based on your style, not commissions'),
+  &&file('checkout-experience.js').includes('Stock is a feed snapshot.')
+  &&file('lib/merchant-checkout.mjs').includes('affiliateWrapped:false')
+  &&file('checkout-model.js').includes('live.stockVerifiedLive===false'),
   "Awin cart and retailer handoff preserve personalization and no false checkout");
 check(awinImporter.includes('AWIN_PUBLISH_APPROVED==="1"')
   &&awinImporter.includes('joinedCandidate(joined.get(candidate.id),candidate)')

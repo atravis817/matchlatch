@@ -48,11 +48,12 @@
     return state;
   };
   const setState=state=>{
-    const previousLook=currentLookId;
+    const previousLook=currentLookId,previousCart=JSON.stringify(dbState.cart);
     dbState=clone(state||empty());
     currentLookId=dbState.looks.some(x=>x.id===previousLook)?previousLook:null;
     if(selectedLookDetail&&!dbState.looks.some(x=>x.id===selectedLookDetail))selectedLookDetail=null;
     if(selectedCollectionId&&selectedCollectionId!=="__unfiled__"&&!dbState.collections.some(x=>x.id===selectedCollectionId))selectedCollectionId=null;
+    if(previousCart!==JSON.stringify(dbState.cart))window.MatchlatchCheckout?.reconcile(dbState.cart);
     photoCache.clear();
     refreshCounts();
     if(activePage==="styles")renderStyles();
@@ -454,10 +455,11 @@
     if(!requireAccount(()=>addToCart(lookId,index)))return;
     const look=lookFor(lookId),piece=look?.pieces[index];
     if(!piece)return;
-    const existing=cartExists(lookId,index);
+    const key=window.MatchlatchCheckoutModel?.identity(piece);
+    const existing=cartExists(lookId,index)||Boolean(key&&dbState.cart.some(x=>window.MatchlatchCheckoutModel.identity(x)===key));
     if(!existing) {
       dbState.cart.unshift({id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,
-        source:piece.shopRef&&secureProductUrl(piece.productUrl)?"retailer":"look",
+        source:piece.shopRef&&secureProductUrl(piece.productUrl)?"retailer":"look",quantity:1,
         createdAt:new Date().toISOString()});
       persist();
     }
@@ -904,12 +906,12 @@
   // Real catalog products use the existing Closet cart and persistence.
   // No parallel shopping bag and no inferred retailer checkout sessions.
   const secureProductUrl=value=>{
-    try{const u=new URL(String(value||""));return u.protocol==="https:"?u.href:"";}catch{return "";}
+    return window.MatchlatchCheckoutModel?.safeUrl(value,{checkout:true})||"";
   };
   const moneyAmount=x=>Number.isFinite(Number(x))&&Number(x)>=0?Number(x):null;
   function addRetailProduct(item){
     if(!requireAccount(()=>addRetailProduct(item)))return;
-    const price=moneyAmount(item?.price),url=secureProductUrl(item?.url);
+    const price=moneyAmount(item?.price),url=window.MatchlatchCheckoutModel?.safeUrl(item?.merchantProductUrl||item?.url);
     const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
     const shopify=/^gid:\/\/shopify\//.test(productId)&&/^gid:\/\/shopify\//.test(variantId);
     const awin=item?.source==="awin"&&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(productId)
@@ -921,7 +923,8 @@
       feedback("This item is not available to add right now.");
       return false;
     }
-    if(dbState.cart.some(x=>x.shopRef?.variantId===variantId)){
+    const selectionKey=window.MatchlatchCheckoutModel.identity({shopRef:{productId,variantId},merchantId:String(item.merchantId||""),merchantProductUrl:url});
+    if(dbState.cart.some(x=>window.MatchlatchCheckoutModel.identity(x)===selectionKey)){
       feedback("Already in your cart.","View cart",()=>openClosetTab("shortlist"));
       return true;
     }
@@ -930,11 +933,12 @@
     dbState.cart.unshift({
       id:uid(),source:"retailer",lookId:null,inspirationId:null,
       type:String(item.slot||"Clothing").slice(0,36),description:title,target:price,
-      currency:"USD",retailer,productUrl:url,
+      currency:"USD",retailer,productUrl:url,merchantProductUrl:url,quantity:1,
+      merchantId:String(item.merchantId||""),color:String(item.color||""),options:Array.isArray(item.options)?clone(item.options):[],
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||title).slice(0,150),
       size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
       checkedAt:String(item.checkedAt||""),
-      shopRef:{productId,variantId,slot:String(item.slot||"shirt"),provider:awin?"awin":"shopify"},
+      shopRef:{productId,variantId,merchantId:String(item.merchantId||""),slot:String(item.slot||"shirt"),provider:awin?"awin":"shopify"},
       createdAt:new Date().toISOString()
     });
     persist();
@@ -963,192 +967,37 @@
       persist();if(activePage==="styles")renderStyles();else if(activePage==="cart")renderCart();
     });
   }
-  // Proof of concept: resolve a fresh variant-specific checkout permalink.
-  // Checkout uses Shopify's catalog-verified checkout_url when supplied.
-  // Never construct merchant cart URLs or imply a MATCHLATCH payment.
   async function verifyCheckoutItem(cartItem){
-    const id=String(cartItem?.shopRef?.productId||"");
-    const variant=String(cartItem?.shopRef?.variantId||"");
-    const shopify=/^gid:\/\/shopify\/p\/[A-Za-z0-9_-]+$/.test(id)
-      &&/^gid:\/\/shopify\/ProductVariant\/[A-Za-z0-9_-]+$/.test(variant);
-    const awin=/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(id)
-      &&/^awin:[1-9][0-9]{0,9}:.{1,200}$/.test(variant)
-      &&id.split(":")[1]===variant.split(":")[1];
-    if(!shopify&&!awin){
-      throw new Error("This item needs a fresh Store selection.");
-    }
-    const qs=new URLSearchParams({mode:"verify",id,variant,max:"10000"});
-    if(cartItem.size)qs.set("size",String(cartItem.size).slice(0,36));
-    let response,body;
-    try{
-      response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
-      body=await response.json();
-    }catch{
-      throw new Error("We couldn't check this item right now. Please try again.");
-    }
-    if(!response.ok||!body?.item){
-      throw new Error(response.status===409
-        ?"This size or variant is no longer confirmed available. Please choose another."
-        :"We couldn't confirm this item right now. Please try again.");
-    }
-    const live=body.item;
-    const amount=moneyAmount(live.price);
-    if(live.available!==true||live.currency!=="USD"||amount===null
-      ||live.productId!==id||live.variantId!==variant){
-      throw new Error("The retailer listing has changed. Please choose the item again.");
-    }
-    const checkout=secureProductUrl(live.checkoutUrl);
-    const product=secureProductUrl(live.url);
-    if(!checkout&&!product)throw new Error("This retailer isn't accepting a handoff for this item right now.");
-    return {url:checkout||product,directCheckout:shopify&&Boolean(checkout),
-      feedOnly:awin,price:amount,checkedAt:Date.now()};
+    const qs=new URLSearchParams({mode:"verify",id:cartItem.shopRef.productId,variant:cartItem.shopRef.variantId,max:"10000"});
+    if(cartItem.size)qs.set("size",cartItem.size);
+    if(cartItem.color)qs.set("color",cartItem.color);
+    const response=await fetch("/api/shop?"+qs,{cache:"no-store",headers:await checkoutHeaders(),signal:AbortSignal.timeout(20000)});
+    const body=await response.json();
+    if(!response.ok||!body?.item)throw Error(body.error||"This retailer listing could not be verified.");
+    return body.item;
   }
-  function verifiedCheckoutAction(item){
-    if(document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"){
-      const blocked=node("div","commerce-checkout-actions");
-      const disabled=btn("Purchases disabled in usability beta",()=>{},"commerce-primary");disabled.disabled=true;
-      blocked.append(disabled,node("p","commerce-checkout-status","Review your shortlist and send feedback. This beta does not offer retailer checkout handoffs."));return blocked;
-    }
-    const actions=node("div","commerce-checkout-actions");
-    const status=node("p","commerce-checkout-status");
-    status.setAttribute("role","status");
-    status.setAttribute("aria-live","polite");
-    const retailer=String(item.retailer||"retailer");
-    let confirmed=null;
-    const button=btn(item.shopRef?.provider==="awin"?"Review at "+retailer+" ↗":"Checkout at "+retailer+" ↗",async()=>{
-      // Explicitly confirmed changed price or product-page fallback; short TTL.
-      if(confirmed&&Date.now()-confirmed.checkedAt<45000){
-        window.location.assign(confirmed.url);
-        return;
-      }
-      confirmed=null;
-      button.disabled=true;button.textContent="Checking availability…";
-      status.textContent=item.shopRef?.provider==="awin"
-        ?"Checking the latest published retailer listing…"
-        :"Checking the latest price and availability.";
-      try{
-        const checked=await verifyCheckoutItem(item);
-        if(!button.isConnected)return;
-        if(!checked.directCheckout){
-          confirmed=checked;
-          button.textContent="View item at "+retailer+" ↗";
-          status.textContent=checked.feedOnly
-            ? (Math.abs(checked.price-Number(item.target))>.005
-               ? "Feed price is now "+money(checked.price)+". Confirm price, size and stock on the retailer's site before buying."
-               : "Retailer feed listing confirmed. Check current price, size and stock on the retailer's site before buying.")
-            : (Math.abs(checked.price-Number(item.target))>.005
-               ? "Price is now "+money(checked.price)+". Direct checkout isn't offered; continue on the retailer's product page."
-               : "Direct checkout isn't offered for this listing. Continue on the retailer's product page.");
-        }else if(Math.abs(checked.price-Number(item.target))>.005){
-          confirmed=checked;
-          button.textContent="Continue at "+money(checked.price)+" ↗";
-          status.textContent="Price changed since you added this item. Confirm to continue.";
-        }else{
-          // The merchant's catalog returned a checkout permalink for this exact variant.
-          window.location.assign(checked.url);
-          return;
-        }
-      }catch(error){
-        if(!button.isConnected)return;
-        button.textContent="Try checkout again ↗";
-        status.textContent=error instanceof Error?error.message:"Unable to check availability.";
-      }finally{
-        button.disabled=false;
-      }
-    },"commerce-primary");
-    actions.append(button,status);
-    return actions;
+  async function checkoutHeaders(){
+    if(!activeUser||!supabase)throw Error("Sign in to check retailer availability.");
+    const user=activeUser.id,{data}=await supabase.auth.getSession();
+    if(activeUser?.id!==user||!data?.session?.access_token)throw Error("Account changed. Sign in again.");
+    return {Authorization:"Bearer "+data.session.access_token};
   }
+  function updateCartQuantity(id,value){
+    if(!requireAccount())return;
+    const item=dbState.cart.find(x=>x.id===id),q=window.MatchlatchCheckoutModel.quantity(value);
+    if(!item||q===null)return;
+    item.quantity=q;persist();
+    if(activePage==="styles")renderStyles();else renderCart();
+  }
+  function checkoutHooks(){return {image:cartImage,remove:removeCartItem,quantity:updateCartQuantity,page:showPage,
+    user:()=>activeUser?.id||null,headers:checkoutHeaders,verify:verifyCheckoutItem,
+    record:openPurchaseForm,review:()=>openClosetTab("checkout"),cart:()=>openClosetTab("shortlist")};}
   function renderCheckout(target){
-    target.replaceChildren();
-    const shell=node("section","commerce-checkout");
-    if(!dbState.cart.length){
-      const emptyTitle=node("h3",null,"Your cart is empty");
-      shell.append(emptyTitle,node("p",null,"Find something you love, add it to your cart, then check out."));
-      shell.append(btn("Explore the store ↗",()=>showPage("store"),"commerce-primary"));
-      target.append(shell);
-      return;
-    }
-    const introduction=node("div","commerce-checkout-intro");
-    introduction.append(node("h3",null,"Ready when you are"),
-      node("p",null,document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"?"Usability beta: review your saved pieces. Purchases and retailer checkout handoffs are disabled.":"Review your pieces, then complete purchase at each retailer."));
-    shell.append(introduction);
-    const grid=node("div","commerce-checkout-grid");
-    const items=node("div","commerce-checkout-items");
-    for(const item of dbState.cart){
-      const row=node("article","commerce-checkout-item");
-      row.append(cartImage(item));
-      const details=node("div","commerce-checkout-details");
-      details.append(node("span","micro-title",item.source==="retailer"?item.retailer||"Retailer":"Outfit inspiration"));
-      details.append(node("h4",null,item.description));
-      if(item.size)details.append(node("small",null,"Size "+item.size));
-      details.append(node("strong","commerce-checkout-price",money(item.target)));
-      const actions=item.shopRef&&secureProductUrl(item.productUrl)
-        ? verifiedCheckoutAction(item)
-        : node("div","commerce-checkout-actions");
-      if(!item.shopRef||!secureProductUrl(item.productUrl)){
-        actions.append(btn("Find your piece ↗",()=>showPage("store"),"commerce-primary"));
-      }
-      details.append(actions);
-      row.append(details);items.append(row);
-    }
-    const aside=node("aside","commerce-checkout-summary");
-    aside.append(node("span","micro-title","Order summary"));
-    aside.append(node("h3",null,dbState.cart.length+" "+(dbState.cart.length===1?"piece":"pieces")));
-    const total=dbState.cart.reduce((sum,item)=>sum+(Number(item.target)||0),0);
-    const estimate=node("div","commerce-checkout-total");
-    estimate.append(node("span",null,"Estimated item total"),node("strong",null,money(total)));
-    aside.append(estimate);
-    aside.append(node("p",null,"Each retailer handles payment and delivery. Final prices, taxes and shipping are shown there."));
-    aside.append(node("p","commerce-checkout-trust",
-      "MATCHLATCH does not collect payment or place orders yet."));
-    if(dbState.cart.some(x=>x.shopRef?.provider==="awin"))
-      aside.append(node("p","commerce-checkout-trust",
-        "Some retailer links may earn MATCHLATCH a commission. Product choices are based on your style, not commissions."));
-    aside.append(btn("← Back to cart",()=>openClosetTab("shortlist"),"commerce-secondary"));
-    grid.append(items,aside);shell.append(grid);target.append(shell);
+    window.MatchlatchCheckout.checkout(target,dbState.cart,checkoutHooks());
   }
-
   function renderCart(target=$("cart-body")) {
-    target.replaceChildren();
-    const old=$("purchase-editor");
-    if(old)old.remove();
-    target.append(node("p","library-caption","Your favorite finds, all in one place."));
-    if(!dbState.cart.length) {
-      showEmpty(target,"Your cart is empty.","Add something from Store or Studio, then return here to check out.");
-      target.append(btn("Explore the store ↗",()=>showPage("store"),"commerce-primary"));
-      return;
-    }
-    const list=node("div","cart-list");
-    for(const item of dbState.cart) {
-      const row=node("article","cart-entry");
-      row.append(cartImage(item));
-      const info=node("div","cart-info");
-      info.append(node("div","library-meta",item.source==="retailer"
-        ? (item.retailer||"Retailer")+" · Price when selected"
-        : item.type+" · "+(item.shopRef?"Price when selected":"Budget target")));
-      info.append(node("h3",null,item.description));
-      if(item.source==="retailer"){
-        if(item.size)info.append(node("small",null,"Size "+item.size));
-      }else{
-        info.append(node("small",null,"Inspired by: "+(inspirationFor(item.inspirationId)?.label||"original photo")));
-      }
-      const controls=node("div","cart-controls");
-      if(item.source!=="retailer")void appendLiveShopLink(controls,item);
-      if(item.inspirationId&&item.lookId)
-        controls.append(btn("Record purchase",()=>openPurchaseForm(item.id)));
-      controls.append(btn("Remove",()=>removeCartItem(item),"quiet-button"));
-      info.append(controls);row.append(info);list.append(row);
-    }
-    target.append(list);
-    const total=dbState.cart.reduce((sum,x)=>sum+(Number(x.target)||0),0);
-    const totals=node("div","cart-total");
-    totals.append(node("span",null,"Estimated total · excludes tax and shipping"),node("strong",null,money(total)));
-    target.append(totals);
-    const checkout=node("div","commerce-cart-footer");
-    checkout.append(btn(document.querySelector('meta[name="matchlatch-usability-beta"]')?.content==="purchases-disabled"?"Review shortlist →":"Checkout →",()=>openClosetTab("checkout"),"commerce-primary"));
-    checkout.append(btn("Keep shopping",()=>showPage("store"),"commerce-secondary"));
-    target.append(checkout);
+    document.getElementById("purchase-editor")?.remove();
+    window.MatchlatchCheckout.cart(target,dbState.cart,checkoutHooks());
   }
 
   function openPurchaseForm(cartId) {
@@ -1349,7 +1198,9 @@
       priceAtSelection:Number(item.price)||0,
       shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot,provider:item.source==="awin"?"awin":"shopify"},
       retailer:String(item.merchant||"Retailer").slice(0,90),
-      productUrl:secureProductUrl(item.url),
+      productUrl:window.MatchlatchCheckoutModel.safeUrl(item.merchantProductUrl||item.url),
+      merchantProductUrl:window.MatchlatchCheckoutModel.safeUrl(item.merchantProductUrl||item.url),
+      merchantId:String(item.merchantId||""),color:String(item.color||""),options:Array.isArray(item.options)?clone(item.options):[],quantity:1,
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||item.title||slot).slice(0,150),
       size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
       currency:"USD",checkedAt:String(item.checkedAt||"")
