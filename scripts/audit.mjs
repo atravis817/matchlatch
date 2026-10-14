@@ -25,7 +25,7 @@ const analyze=file("api/analyze.mjs");
 const auth=file("api/auth-config.mjs");
 const sql=file("supabase/setup.sql");
 const agent=JSON.parse(file("ucp-agent.json"));
-const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
+const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].filter(m=>!m[0].includes('type="application/ld+json"')).map(m=>m[1]).filter(Boolean);
 check(inline.length===2,"Early appearance boot and Studio logic are separate");
 for(const [name,source] of [
   ["Appearance initializer",inline[0]],["Studio initializer",inline[1]],
