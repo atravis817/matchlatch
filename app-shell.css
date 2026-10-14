@@ -342,3 +342,7 @@ a.owner-command-center{text-decoration:none;color:inherit}
 
 .store-field small{text-transform:none;letter-spacing:normal;font-size:11px;line-height:1.5}
 @media(max-width:700px){.store-source-field{grid-column:1/-1}}
+
+.store-size-choice{display:flex!important;align-items:center;gap:7px;font-size:11px;color:var(--muted);letter-spacing:0;text-transform:none}.store-size-choice input[type="checkbox"]{width:16px;min-height:16px;flex:0 0 16px;margin:0}
+
+.store-date-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.store-date-row input[type="date"]{flex:1 1 140px}.store-date-row .store-size-choice{flex:0 1 auto;margin-top:8px}

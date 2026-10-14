@@ -266,7 +266,8 @@ check(retailerMatch.includes('candidates.sort((a,b)=>b.score-a.score||b.saving-a
   &&!retailerMatch.includes('item.commission'),
   "Verified sale benefits can only break equal style-relevance ties; commissions never rank");
 check(appShell.includes("function storeSizeFor(slot,p)")
-  &&/\b(?:items|ranked)\s*=\s*matcher\.rank\(/.test(appShell)
+  &&appShell.includes("matcher.rank(candidates,criteria)")
+  &&appShell.includes("matcher.rank([item],c)")
   &&appShell.includes('params.set("size",criteria.size)')
   &&appShell.includes('params.set("color",criteria.color)'),
   "All manual Store searches apply saved sizing and curation constraints");
@@ -450,7 +451,8 @@ check(appShell.includes('input.pattern="[0-9]{5}"')
   &&appShell.includes('never to OpenAI research.'),
   "Destination ZIP stays locally stored and is shared only with retailer catalog search");
 check(appShell.includes('deadline.type="date"')
-  &&appShell.includes('storeState.needBy=deadline.value')
+  &&appShell.includes('storeState.needBy=selectedDeadline')
+  &&appShell.includes('selectedDeadline=browseWithoutDate.checked?"":deadline.value')
   &&appShell.includes('params.set("postal",shippingZip())')
   &&appShell.includes('params.set("needBy",storeState.needBy)')
   &&file("api/shop.mjs").includes('evaluateDelivery(item,{zip:postal,needBy,today})')
