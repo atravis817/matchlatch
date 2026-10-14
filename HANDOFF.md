@@ -4,6 +4,10 @@ Development branch: `feature/wo-ml-018a-nightly-shopify-sync`.
 Base: `feature/wo-ml-017-unified-discovery` at `815e3ca`.
 
 Read `docs/WO-ML-018A-NIGHTLY-SHOPIFY-SYNC.md` before any service activation.
+Evidence and remaining gates: `docs/WO-ML-018A-COMPLETION-REPORT.md`.
+Draft PR: https://github.com/atravis817/matchlatch/pull/9.
+Protected READY Preview: https://matchlatch-nkgaop749-matchlatch.vercel.app.
+220 local tests passed with no skips; code commit `458192b` passed GitHub CI.
 
 The shared Supabase baseline is 899 private **Awin** variants from Watches Of USA, not Shopify. No live catalog rows were altered. Awin modules, account relationships and source data remain preserved.
 
