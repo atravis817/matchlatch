@@ -230,7 +230,7 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"unified",exactSize:"",brand:"",sort:"relevance",styleContext:"",sizeSystem:"",useSavedSize:true};
+const storeState={query:"",slot:"all",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"unified",exactSize:"",brand:"",sort:"relevance",styleContext:"",sizeSystem:"",useSavedSize:true};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
@@ -390,6 +390,7 @@ function renderStore(){
  query.setAttribute("aria-label","Search products");
  query.value=initialStoreQuery||storeState.query||"";
  const select=el("select");select.setAttribute("aria-label","Clothing category");
+ select.add(new Option("All categories","all"));
  for(const [value,label] of supportedSlots){const option=new Option(label,value);select.add(option);}
  select.value=initialStoreSlot||storeState.slot;
  initialStoreSlot="";
@@ -400,15 +401,15 @@ function renderStore(){
  const queryLabel=el("label","store-field store-query-field");queryLabel.append(el("span",null,"WHAT ARE YOU LOOKING FOR?"),query);
  const categoryLabel=el("label","store-field");categoryLabel.append(el("span",null,"CATEGORY"),select);
  const budgetLabel=el("label","store-field");budgetLabel.append(el("span",null,"MAX PRICE · USD"),budget);
- const deadlineLabel=el("label","store-field v12-date-field");
+ const deadlineLabel=el("div","store-field v12-date-field");
  deadlineLabel.append(el("span",null,"NEED IT BY · OPTIONAL"));
  const deadline=el("input");deadline.type="date";deadline.setAttribute("aria-label","Need my items by date");
- deadline.value=storeState.needBy;
+ deadline.value=storeState.deliveryDateDraft||storeState.needBy;
  // Native date input opens the device calendar picker.
  const localToday=()=>{const d=new Date(),off=d.getTimezoneOffset()*60000;return new Date(d.getTime()-off).toISOString().slice(0,10);};
  deadline.min=localToday();
  const deadlineNote=el("small","v12-delivery-note","Only retailer forecasts confirming arrival on or before this date qualify. Shipping estimates are not guarantees.");
- deadlineLabel.append(deadline,deadlineNote);
+ const dateRow=el("div","store-date-row");dateRow.append(deadline);deadlineLabel.append(dateRow,deadlineNote);
  const provider=el("select");provider.setAttribute("aria-label","Product source");
  provider.add(new Option("All available products","unified"));provider.add(new Option("Reviewed feed catalog","catalog"));provider.add(new Option("Participating retailer search","retailer"));provider.value=storeState.provider;
  const providerLabel=el("label","store-field store-source-field");providerLabel.append(el("span",null,"PRODUCT SOURCE"),provider);
@@ -420,11 +421,13 @@ function renderStore(){
  const brandLabel=el("label","store-field");brandLabel.append(el("span",null,"BRAND · OPTIONAL"),brand);
  const sort=el("select");sort.setAttribute("aria-label","Sort products");for(const [v,t] of [["relevance","Relevance"],["price-asc","Price: low to high"],["price-desc","Price: high to low"]])sort.add(new Option(t,v));sort.value=storeState.sort;
  const sortLabel=el("label","store-field");sortLabel.append(el("span",null,"SORT"),sort);
- provider.onchange=()=>{query.required=false;brand.disabled=provider.value==="retailer";};provider.onchange();
+ provider.onchange=()=>{query.required=false;brand.disabled=provider.value==="retailer";if(provider.value!=="unified"&&select.value==="all")select.value="shirt";select.options[0].disabled=provider.value!=="unified";};provider.onchange();
  const formStatus=el("p","store-search-status");formStatus.setAttribute("role","status");formStatus.setAttribute("aria-live","polite");
- const browseWithoutDate=button("Browse without delivery date",()=>{deadline.value="";storeState.needBy="";form.requestSubmit();},"commerce-secondary");browseWithoutDate.hidden=true;
- deadline.addEventListener("change",()=>{browseWithoutDate.hidden=!deadline.value;});browseWithoutDate.hidden=!deadline.value;
- form.append(queryLabel,providerLabel,categoryLabel,budgetLabel,sizeLabel,brandLabel,sortLabel,deadlineLabel,submit,formStatus,browseWithoutDate);
+ const browseWithoutDate=el("input");browseWithoutDate.type="checkbox";browseWithoutDate.checked=!storeState.needBy;browseWithoutDate.setAttribute("aria-label","Browse without delivery date");
+ const dateChoice=el("label","store-size-choice");dateChoice.append(browseWithoutDate,el("span",null,"Browse without delivery date"));dateRow.append(dateChoice);
+ deadline.disabled=browseWithoutDate.checked;
+ browseWithoutDate.addEventListener("change",()=>{deadline.disabled=browseWithoutDate.checked;});
+ form.append(queryLabel,providerLabel,categoryLabel,budgetLabel,sizeLabel,brandLabel,sortLabel,deadlineLabel,submit,formStatus);
  box.append(button("Build a look in Studio ↗",()=>showPage("studio"),"destination-link quiet"));
  box.append(form);
  const context=el("p","v12-store-context","Personal style, size and budget determine eligible results. Web references remain research-only.");
@@ -472,7 +475,7 @@ function renderStore(){
  const status=el("p","store-search-status");
  status.setAttribute("role","status");status.setAttribute("aria-live","polite");
  results.append(status);
- const clearDateResults=button("Browse without delivery date",()=>{deadline.value="";storeState.needBy="";form.requestSubmit();},"commerce-secondary");clearDateResults.hidden=!storeState.needBy;results.append(clearDateResults);
+
  const retailerSummary=el("details","store-retailer-summary");
  retailerSummary.hidden=true;
  const summary=el("summary",null,"Retailers in these results");
@@ -612,12 +615,12 @@ function renderStore(){
  }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
-  const q=query.value.trim()||select.value,max=Number(budget.value);
+  const allCategories=select.value==="all",q=query.value.trim()||(allCategories?"":select.value),max=Number(budget.value),selectedDeadline=browseWithoutDate.checked?"":deadline.value;
   formStatus.textContent="";
   const explainSearch=message=>{formStatus.textContent=message;status.textContent=message;};
-  if(deadline.value&&(!/^\d{4}-\d{2}-\d{2}$/.test(deadline.value)||deadline.value<localToday())){explainSearch("Choose today or a future delivery date.");return;}
-  if(deadline.value&&!shippingZip()){explainSearch("Save your destination ZIP in Me to check arrival dates, or choose Browse without delivery date.");browseWithoutDate.hidden=false;return;}
-  if((provider.value!=="catalog"&&q.length<2)||q.length>170||!Number.isFinite(max)||max<1||max>10000){
+  if(selectedDeadline&&(!/^\d{4}-\d{2}-\d{2}$/.test(selectedDeadline)||selectedDeadline<localToday())){explainSearch("Choose today or a future delivery date.");return;}
+  if(selectedDeadline&&!shippingZip()){explainSearch("Save your destination ZIP in Me to check arrival dates, or choose Browse without delivery date.");return;}
+  if((provider.value!=="catalog"&&q.length>0&&q.length<2)||q.length>170||!Number.isFinite(max)||max<1||max>10000){
    explainSearch("Choose a category or enter a search of at least 2 characters, and a budget between $1 and $10,000.");
    return;
   }
@@ -628,15 +631,14 @@ function renderStore(){
   }
   const p=profile(),preferredSize=exactSize.value.trim()||(useSavedSize.checked?storeSizeFor(select.value,p):"");
   const criteria=matcher.criteria({
-   slot:select.value,profile:p,size:preferredSize,max,manualQuery:q
+   slot:allCategories?"shirt":select.value,profile:p,size:preferredSize,max,manualQuery:q||(allCategories?"shirt":"")
   });
   if(!criteria){status.textContent="Choose a supported clothing category.";return;}
   if(storeState.styleContext){try{const context=JSON.parse(storeState.styleContext);criteria.hints.notes=context.notes||"";criteria.hints.occasion=context.occasion||"";criteria.hints.aesthetic=context.style||criteria.hints.aesthetic;}catch{}}
   storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;storeState.useSavedSize=useSavedSize.checked;
-  storeState.needBy=deadline.value;
+  storeState.needBy=selectedDeadline;storeState.deliveryDateDraft=deadline.value;
   storeState.searched=true;storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
-  browseWithoutDate.hidden=!deadline.value;clearDateResults.hidden=!deadline.value;
   showStoreView("results");
   list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
   webPanel.hidden=true;webCode.hidden=true;webSummary.textContent="";
@@ -647,7 +649,7 @@ function renderStore(){
   controller=new AbortController();
   const run=++searchId;
   try{
-   const params=new URLSearchParams({mode:"search",slot:criteria.slot,q:criteria.q,max:String(criteria.max)});
+   const params=new URLSearchParams({mode:"search",slot:allCategories?"all":criteria.slot,q:allCategories?q:criteria.q,max:String(criteria.max)});
    if(criteria.size)params.set("size",criteria.size);
    if(criteria.color)params.set("color",criteria.color);
    if(shippingZip())params.set("postal",shippingZip());
@@ -663,7 +665,8 @@ function renderStore(){
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
    // Hard preference/variant and suitability gates are mandatory for Store
    // just as they are for AI-originated Outfit Tree recommendations.
-   const ranked=matcher.rank(Array.isArray(data.items)?data.items:[],criteria);
+   const candidates=Array.isArray(data.items)?data.items:[];
+   const ranked=allCategories?candidates.flatMap(item=>{const c=matcher.criteria({slot:item.slot,profile:p,size:exactSize.value.trim()||(useSavedSize.checked?storeSizeFor(item.slot,p):""),max,manualQuery:q||item.slot});return matcher.rank([item],c);}):matcher.rank(candidates,criteria);
    const items=catalogSource&&storeState.needBy?[]:ranked;
    if(sort.value==="price-asc")items.sort((a,b)=>a.price-b.price);else if(sort.value==="price-desc")items.sort((a,b)=>b.price-a.price); // Server already enforces deadline eligibility against trusted provider data.
    storeState.items=items;storeState.checkedAt=Date.now();
@@ -678,7 +681,8 @@ function renderStore(){
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
     catalogSource?(data.message||"No eligible public catalog products. Private development inventory is excluded."):"No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";
-   if(unifiedSource)status.textContent=(storeState.needBy?"These sources cannot verify arrival by "+storeState.needBy+". Products are withheld; choose Browse without delivery date to see listings with unknown arrival dates.":items.length?items.length+" products match your size, style and merchandise budget.":data.sources?.shopify?.status==="owner_required"?"Shopify was not searched: verified owner sign-in is required in this Preview.":data.sources?.shopify?.status==="disabled"?"Shopify search is disabled in this Preview.":data.sources?.shopify?.status==="unavailable"?"Shopify search could not be reached.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" · Participating catalog: "+data.sources?.shopify?.status+" · Reviewed feeds: "+data.sources?.awin?.status;
+   if(unifiedSource)status.textContent=(storeState.needBy?"These sources cannot verify arrival by "+storeState.needBy+". Products are withheld; return to Search filters and check Browse without delivery date to see listings with unknown arrival dates.":items.length?items.length+" products match your size, style and merchandise budget.":data.sources?.shopify?.status==="owner_required"?"Shopify was not searched: verified owner sign-in is required in this Preview.":data.sources?.shopify?.status==="disabled"?"Shopify search is disabled in this Preview.":data.sources?.shopify?.status==="unavailable"?"Shopify search could not be reached.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" · Participating catalog: "+data.sources?.shopify?.status+" · Reviewed feeds: "+data.sources?.awin?.status;
+   if(data.browse)status.textContent+=" · Live browse page across "+data.browse.categories+" supported categories; not the full retailer inventory.";
    retailerSummary.hidden=merchants.length===0;
    retailerSummary.open=false;
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";

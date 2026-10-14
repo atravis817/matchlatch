@@ -120,3 +120,15 @@ A blank query now uses the selected clothing category. Missing destination and i
 ### Owner session investigation
 
 The owner reported a successful BASALT diagnostic on deployment zhf2c46hb while Store returned owner_required. Both routes call authorizeOwner; no configuration or permission mismatch has been proven. Store now waits for the existing app auth initializer rather than silently proceeding with no client. Check Store access sends the same session to both owner capability routes and distinguishes initialization failure, absent session, denial, and route disagreement. It reveals no tokens, identities, provider secrets, or customer data. This is diagnostic instrumentation, not proof that the reported live issue is resolved. Use the stable branch Preview hostname to avoid losing sessions on every deployment URL change.
+
+
+### Verified Shirt category defect
+
+A live owner-evaluation service call returned 10 Shopify products for Shirt / $200 and normalized zero: all variants hit product_type_mismatch, with eight also lacking category evidence in that response. A second fresh query returned explicitly titled tees among listings. The navigation category `shirt` was mistakenly interpreted as only the specific taxonomy type `shirt`, excluding `t_shirt`. Bare category searches now allow verified subtypes of the same slot; explicit typed requests keep exact product-type constraints. Unknown classification, sizes, budget, availability, authorization, and deadline gates remain intact. Fixture coverage validates tee retention and continued strict exclusions. Live validation is reported separately from fixtures.
+
+The correction applies to all nine navigation categories and their explicit broad synonyms. Shoes admits classified sneakers/boots/etc.; Jacket admits classified coats/overcoats. Specific subtype queries still reject substitutions. Regression fixtures exercise all nine slots, cross-category rejection, exact size and budget, plus footwear/outerwear aliases. After the initial Shirt correction, a separate fresh live service call returned four eligible tees at $29.95, $36, $36, and $145 without size or deadline constraints; this verifies provider normalization, not the signed-in Preview browser.
+
+
+### Empty search and date control
+
+All categories is now available for unified browsing and is the initial Store category. Submitting an empty query searches each of nine supported categories independently, up to ten provider product records each and at most 90 merged eligible listings. This is a bounded live page, not a full-inventory claim or downloaded catalog. Other source modes retain their individual category controls. Saved sizes apply per garment during display filtering. The single Browse without delivery date checkbox sits alongside the optional date control, retains the draft date, and makes exclusion of that filter explicit. Duplicate date-recovery buttons are removed.

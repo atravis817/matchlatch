@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {unifiedDiscovery,unifiedPolicy,discoveryCriteria,EVALUATION_PROFILE} from '../lib/unified-discovery.mjs';
+import {unifiedDiscovery,unifiedBrowse,unifiedPolicy,discoveryCriteria,EVALUATION_PROFILE} from '../lib/unified-discovery.mjs';
 import {discoveryFixtures} from '../lib/discovery-fixtures.mjs';
 import {GET} from '../api/shop.mjs';
 import handoffModule from '../studio-discovery-handoff.js';
@@ -32,3 +32,37 @@ test('actual Studio form dispatches Store handoff without submitting outfit AI',
  const all=(n=host)=>[n,...n.children.flatMap(all)];const occasion=all().find(n=>n.tagName==='label'&&n.textContent.startsWith('Occasion')).children[0];occasion.value='Work';const style=all().find(n=>n.tagName==='label'&&n.textContent.startsWith('Style')).children[0];style.value='Casual';all().find(n=>n.tagName==='textarea').value='black sneakers';const b=all().find(n=>n.textContent==='Search products in Store');b.onclick();assert.equal(events[0].type,'matchlatch:retailer-search');assert.equal(events[0].detail.slot,'shoes');assert.equal(events[0].detail.max,200);await new Promise(r=>setImmediate(r));assert.equal(calls,1); // capability read only
 });
 test('Studio exact notes budgets, size system and negative preferences survive Store handoff',async()=>{const d=handoffModule.handoff({occasion:'Dinner',style:'Casual',notes:'black sneakers under $90 US size 11.5, no red',max:150});assert.equal(d.max,89.99);assert.equal(d.size,'11.5');assert.equal(d.sizeSystem,'US');assert.equal(d.query,'black sneakers');assert.throws(()=>handoffModule.handoff({occasion:'Work',style:'Casual',notes:'black white sneakers',max:100}));const r=await run({}, {...query(),context:JSON.stringify({notes:'no black'})});assert.equal(r.items.length,0);});
+
+function topFixture(){const p=structuredClone(discoveryFixtures().products[2]);p.title='Fictional Basic Tee';p.product_type='t-shirt';p.variants[0].price.amount=4000;return {products:[p]};}
+test('broad Shirt category retains verified T-shirt subtype with original variant and budget',async()=>{
+ const input={query:'shirt',slot:'shirt',max:200};const r=await run({shopify:async()=>topFixture()},input);assert.equal(r.items.length,1);assert.equal(r.items[0].classification.productType,'t_shirt');assert.equal(r.items[0].variantId,topFixture().products[0].variants[0].id);assert.equal(r.items[0].price,40);
+ for(const patch of [{size:'XL'},{max:39},{slot:'pants'},{needBy:'2026-10-31'}])assert.equal((await run({shopify:async()=>topFixture()},{...input,...patch})).items.length,0);
+ assert.equal((await run({shopify:async()=>topFixture()},{...input,query:'hoodie'})).items.length,0);
+});
+test('unclassified product titles remain withheld even during broad category browsing',async()=>{
+ const d=topFixture();d.products[0].title='Fictional Drop-Cut LUX';delete d.products[0].product_type;
+ assert.equal((await run({shopify:async()=>d},{query:'shirt',slot:'shirt',max:200})).items.length,0);
+});
+
+test('all navigation categories include evidenced subtypes without accepting another category',async()=>{
+ const cases=[['hat','Fictional Beanie','beanie'],['scarf','Fictional Scarf','scarf'],['jacket','Fictional Overcoat','coat'],['shirt','Fictional Hoodie','hoodie'],['watch','Fictional Chronograph Watch','watch'],['belt','Fictional Belt','belt'],['pants','Fictional Jeans','jeans'],['socks','Fictional Socks','socks'],['shoes','Fictional Sneakers','sneaker']];
+ for(const [slot,title,type] of cases){const d=topFixture();d.products[0].title=title;d.products[0].product_type=type;const input={query:slot,slot,max:200};assert.equal((await run({shopify:async()=>d},input)).items.length,1,slot+' subtype');assert.equal((await run({shopify:async()=>d},{...input,slot:slot==='watch'?'shoes':'watch'})).items.length,0,slot+' wrong category');assert.equal((await run({shopify:async()=>d},{...input,size:'XXXL'})).items.length,0,slot+' exact size');assert.equal((await run({shopify:async()=>d},{...input,max:39})).items.length,0,slot+' budget');}
+});
+test('generic footwear and outerwear synonyms include subtypes, specific requests do not substitute',async()=>{
+ const d=topFixture();d.products[0].title='Fictional Overcoat';d.products[0].product_type='coat';
+ for(const query of ['jacket','jackets','outerwear','overcoat'])assert.equal((await run({shopify:async()=>d},{query,slot:'jacket',max:200})).items.length,1,query);
+ d.products[0].title='Fictional Ankle Boots';d.products[0].product_type='boot';
+ for(const query of ['shoe','shoes','footwear'])assert.equal((await run({shopify:async()=>d},{query,slot:'shoes',max:200})).items.length,1,query);
+ assert.equal((await run({shopify:async()=>d},{query:'sneaker',slot:'shoes',max:200})).items.length,0);
+});
+
+test('blank all-category browse calls each supported category with independent bounded queries',async()=>{
+ const names={hat:'Hat',scarf:'Scarf',jacket:'Overcoat',shirt:'T-shirt',watch:'Watch',belt:'Belt',pants:'Jeans',socks:'Socks',shoes:'Sneakers'};let calls=0;
+ const r=await unifiedBrowse({query:'',max:200},{owner:true,policy,awinConfigured:false,shopify:async(tool,args)=>{calls++;assert.equal(args.pagination.limit,10);const d=topFixture(),slot=args.query;assert.ok(names[slot]);d.products[0].title='Fictional '+names[slot];d.products[0].product_type=names[slot];d.products[0].id='gid://shopify/p/'+slot;d.products[0].variants[0].id='gid://shopify/ProductVariant/'+slot;d.products[0].variants[0].url='https://example.invalid/products/'+slot;return d;}});
+ assert.equal(calls,9);assert.equal(r.items.length,9);assert.equal(r.browse.completeCatalog,false);assert.equal(r.criteria.slot,'all');assert.equal(new Set(r.items.map(i=>i.slot)).size,9);
+ let deniedCalls=0;const denied=await unifiedBrowse({query:'',max:200},{owner:false,policy,awinConfigured:false,shopify:async()=>{deniedCalls++;}});assert.equal(deniedCalls,0);assert.equal(denied.sources.shopify.status,'owner_required');assert.equal(denied.items.length,0);
+});
+test('all-category browse retains successful category pages after provider failure',async()=>{
+ const r=await unifiedBrowse({query:'',max:200},{owner:true,policy,awinConfigured:false,shopify:async(tool,args)=>{if(args.query!=='shirt')throw Error('PRIVATE_PROVIDER_ERROR');return topFixture();}});
+ assert.equal(r.items.length,1);assert.equal(r.partial,true);assert.equal(r.allFailed,false);assert.ok(!JSON.stringify(r).includes('PRIVATE_PROVIDER_ERROR'));
+});
