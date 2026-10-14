@@ -9,7 +9,8 @@ export function connectShopifySync({root,getSession,isOwnerView}){
    const response=await fetch('/api/admin-summary?action=shopify-sync-'+(action||(method==='POST'?'run':'status')),{method,headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(65000)}),data=await response.json();
    if(ticket!==generation||(await getSession()).data?.session?.user.id!==session.user.id||!isOwnerView())return;
    if(!response.ok)throw Error((data.error||'Sync unavailable')+(data.diagnostics?'\n'+Object.entries(data.diagnostics).filter(([,value])=>typeof value==='boolean').map(([name,value])=>name+': '+value).join('\n'):''));
-   if(action?.startsWith('review')){
+   if(action==='auth'){output.textContent='Shopify access: PASS\nStore: '+data.shop+'\nAdmin API: '+data.apiVersion+'\nRequired read scopes verified: '+data.requiredReadScopesVerified+'\nBounded sample: '+data.sampleProducts+' products\nMore products available: '+data.hasMore+'\nThis sample is not total inventory. No sync was run.';}
+   else if(action?.startsWith('review')){
     review.replaceChildren();const selected=new Map(),batch=el('button','Approve selected eligible products');batch.disabled=true;batch.onclick=()=>call('','POST',{action:'publish',variants:[...selected.values()]});review.append(batch);
     for(const row of data.candidates||[]){const card=el('article');card.className='panel';card.append(el('h3',row.data.title),el('p',row.shop+' · '+row.variant_id),el('p','Vendor claim: '+row.data.brand+' · Evidence: '+(row.publicationEvidence||'Unverified')),el('p','Observed '+stamp(row.observed_at)),el('p','Visibility: '+(row.is_public?'Public':'Private')),el('p','Warnings: '+(row.decision.reasons.join(', ')||'Eligible')));
      if(row.data.image){const image=el('img');image.src=row.data.image;image.alt=row.data.title;image.style.maxWidth='120px';image.referrerPolicy='no-referrer';card.append(image);}
@@ -22,6 +23,7 @@ export function connectShopifySync({root,getSession,isOwnerView}){
   }catch(error){if(ticket===generation)output.textContent=error.message;}
   finally{if(ticket===generation)controls.forEach(b=>b.disabled=false);}
  }
+ root.querySelector('[data-sync-auth]').onclick=()=>call('auth');
  root.querySelector('[data-sync-status]').onclick=()=>call('');
  root.querySelector('[data-sync-dry]').onclick=()=>call('','POST',{dryRun:true,mode:'full'});
  root.querySelector('[data-sync-run]').onclick=()=>call('','POST',{dryRun:false,mode:'full'});
