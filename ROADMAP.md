@@ -6,6 +6,20 @@
 >
 > **Current position:** **V1 — The Magic Trick** and **V1.5 — Personal Style** are built and awaiting critical live validation. **V2 — REVEAL** now has a full approved design blueprint (working name; implementation not begun). V2-A camera work can be developed independently, but generation/AR claims and broad testing wait for the necessary security, cost and real-device gates. Selected V3 foundations exist early; V3 itself is **not complete**.
 
+## Active engineering priorities — October 14, 2026
+
+This dated note adds current Founder directives without replacing V1–V4 or marking unpassed gates complete. Coordinate through [issue #7](https://github.com/atravis817/matchlatch/issues/7).
+
+| Priority | Work order / current evidence | Next gate |
+| --- | --- | --- |
+| P0 | WO-ML-018A Shopify-first owner-imported inventory, draft PR #9. Engine/isolated tests exist; actual Admin import/recurrence blocked. Shared 899 variants are audited private Awin records. | Authorized Admin/isolated Preview access, real baseline/rights and midnight America/New_York completion. |
+| P0 permanent standard | WO-ML-GOV-001 full protocol and evidence-based continuity on isolated docs branch. | Self-audited draft and coordinated branch integration; main merge not authorized. |
+| P1 | WO-ML-019 Search/Growth PR #8 owns SEO/AEO/GEO/AIO/SXO foundation. Protected noindex and repository rubric differ from public performance. | Scoped schema/content/accessibility/Preview proof; public release/indexing gated. |
+
+Awin expansion/import/feed remediation/attribution activation is paused; preserve code/data/accounts. Production/main/cron/private live publication/real purchases require explicit Founder approval. See [full runbook](docs/runbooks/AGENT-HANDOFF-PROTOCOL.md), [handoff](HANDOFF.md), and [improvement plan](IMPROVEMENT_PLAN.md).
+
+Historical descriptions below keep their dates. Current V1.2 branch CI success is recorded in HANDOFF.md; the older V0 unconfirmed-CI statement is historical, not current branch CI status.
+
 ## Status language (important)
 
 - **Done:** Implemented **and** demonstrated through the defined acceptance checks. Never use "done" for code that merely exists.
