@@ -1,3 +1,7 @@
+## WO-ML-018C — 2026-10-14 current database checkpoint
+
+BLOCKED: only shared project odxqxymwlwnbqginqems visible; no isolated project authorized/identified and both MATCHLATCH_SHOPIFY_PREVIEW_SUPABASE_URL / MATCHLATCH_SHOPIFY_PREVIEW_SERVICE_KEY absent. Writes/publication/schedule flags false. Full exact setup, key compatibility constraint, migration scope, read-only validation, recovery and provisioning approval packet: docs/WO-ML-018C-DATABASE-READINESS.md. Read-only order does not authorize even durable dry-run bookkeeping. Shopify authentication remains separately unverified; database error is not authentication proof. Next milestone: Founder supplies only non-secret authorized isolated project identity, or separately approves a reviewed creation plan/cost. No infrastructure, SQL, imports or application changes performed; no tests rerun for docs only. Prior verification records below remain historical.
+
 ## WO-ML-018B-V1 — BLOCKED (2026-10-14 22:07 UTC)
 
 EXTERNAL_VERIFIED configuration metadata: SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET (Sensitive), SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_API_VERSION exist for Preview branch feature/wo-ml-018a-nightly-shopify-sync. Values were not read; presence does not prove correctness. SHOPIFY_ADMIN_READ_TOKEN absent. Writes/schedule/publication flags all false. A second Preview-wide SHOPIFY_CLIENT_SECRET entry exists; branch-specific entry is present; no configuration mutated.
