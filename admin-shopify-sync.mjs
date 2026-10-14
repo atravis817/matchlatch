@@ -8,7 +8,7 @@ export function connectShopifySync({root,getSession,isOwnerView}){
   try{const session=(await getSession()).data?.session;if(!session)throw Error('Sign in as the owner.');
    const response=await fetch('/api/admin-summary?action=shopify-sync-'+(action||(method==='POST'?'run':'status')),{method,headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(65000)}),data=await response.json();
    if(ticket!==generation||(await getSession()).data?.session?.user.id!==session.user.id||!isOwnerView())return;
-   if(!response.ok)throw Error(data.error||'Sync unavailable');
+   if(!response.ok)throw Error((data.error||'Sync unavailable')+(data.diagnostics?'\n'+Object.entries(data.diagnostics).filter(([,value])=>typeof value==='boolean').map(([name,value])=>name+': '+value).join('\n'):''));
    if(action?.startsWith('review')){
     review.replaceChildren();const selected=new Map(),batch=el('button','Approve selected eligible products');batch.disabled=true;batch.onclick=()=>call('','POST',{action:'publish',variants:[...selected.values()]});review.append(batch);
     for(const row of data.candidates||[]){const card=el('article');card.className='panel';card.append(el('h3',row.data.title),el('p',row.shop+' · '+row.variant_id),el('p','Vendor claim: '+row.data.brand+' · Evidence: '+(row.publicationEvidence||'Unverified')),el('p','Observed '+stamp(row.observed_at)),el('p','Visibility: '+(row.is_public?'Public':'Private')),el('p','Warnings: '+(row.decision.reasons.join(', ')||'Eligible')));
