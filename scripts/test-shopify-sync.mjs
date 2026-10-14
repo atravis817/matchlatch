@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {normalizeProduct,reconcile,syncSlice,publicationDecision,easternDay,isMidnightWindow,nextMidnight,changeQuery,createShopifyReader} from '../lib/shopify-sync.mjs';
 import {createSyncStore} from '../lib/shopify-sync-store.mjs';
 import {internalShopifySearch} from '../lib/shopify-internal-catalog.mjs';
-import {POST,GET} from '../api/shopify-sync.mjs';
+import {POST,GET} from '../lib/shopify-sync-route.mjs';
 import {MemoryStore,product,readerFor} from './shopify-sync-fixture.mjs';
 import {STORE_DOMAIN} from '../lib/shopify-storefront-adapter.mjs';
 import {createHmac} from 'node:crypto';
@@ -113,8 +113,8 @@ test('read-only upstream retry handles throttles, nested variant pagination and 
  const page=await reader.page({cutoff:now.toISOString()});assert.equal(calls,3);assert.equal(page.nodes[0].variants.nodes.length,2);
 });
 test('Production and unauthenticated scheduler paths are closed',async()=>{
- const old=process.env.VERCEL_ENV;try{process.env.VERCEL_ENV='production';assert.equal((await POST(new Request('https://example.test/api/shopify-sync',{method:'POST'}))).status,404);assert.equal((await GET(new Request('https://example.test/api/shopify-sync'))).status,404);
- process.env.VERCEL_ENV='preview';assert.equal((await POST(new Request('https://example.test/api/shopify-sync?action=scheduled',{method:'POST'}))).status,401);}finally{if(old===undefined)delete process.env.VERCEL_ENV;else process.env.VERCEL_ENV=old;}
+ const old=process.env.VERCEL_ENV;try{process.env.VERCEL_ENV='production';assert.equal((await POST(new Request('https://example.test/api/admin-summary?action=shopify-sync-status',{method:'POST'}))).status,404);assert.equal((await GET(new Request('https://example.test/api/admin-summary?action=shopify-sync-status'))).status,404);
+ process.env.VERCEL_ENV='preview';assert.equal((await POST(new Request('https://example.test/api/admin-summary?action=shopify-sync-scheduled',{method:'POST'}))).status,401);}finally{if(old===undefined)delete process.env.VERCEL_ENV;else process.env.VERCEL_ENV=old;}
 });
 test('SQL proposal has atomic checkpoint, fencing, private tables and restricted execute grants',async()=>{
  const sql=await readFile(new URL('../supabase/PROPOSED_shopify_sync.sql',import.meta.url),'utf8');assert.match(sql,/j\.cursor is distinct from/);assert.match(sql,/lease_until<=now\(\)/);assert.match(sql,/last_successful_run=j.id/);assert.match(sql,/revoke all on function.*from public,anon,authenticated/);assert.equal((sql.match(/enable row level security/g)||[]).length,5);

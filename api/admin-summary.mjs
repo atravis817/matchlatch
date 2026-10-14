@@ -5,15 +5,19 @@ import {privateCatalogFixtures} from '../lib/catalog-fixtures.mjs';
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
 import {runShopifyDiagnostic} from '../lib/shopify-diagnostic.mjs';
 import {runShippingDiagnostic} from '../lib/shopify-shipping-diagnostic.mjs';
+import {GET as syncGET,POST as syncPOST} from '../lib/shopify-sync-route.mjs';
 import {awinOwnerReport} from '../lib/awin-owner-report.mjs';
+export const maxDuration=300;
 const cache=new Map(),pending=new Map();
 export async function POST(request){
+ if(new URL(request.url).searchParams.get('action')?.startsWith('shopify-sync-'))return syncPOST(request);
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
  if(new URL(request.url).searchParams.get('action')==='shopify-shipping')return runShippingDiagnostic(request);
  if(new URL(request.url).searchParams.get('action')!=='shopify-diagnostic')return json({error:'Unknown action'},404);
  return runShopifyDiagnostic(request);
 }
 export async function GET(request){
+ if(new URL(request.url).searchParams.get('action')?.startsWith('shopify-sync-'))return syncGET(request);
  if(process.env.VERCEL_ENV!=='preview')return json({error:'Not found'},404);
  if(!allowRequest(request,'admin-summary',30))return json({error:'Rate limited'},429);
  const gate=await authorizeOwner(request);if(gate.response)return gate.response;

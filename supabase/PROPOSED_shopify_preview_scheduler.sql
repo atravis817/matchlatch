@@ -4,7 +4,7 @@ begin;
 create table public.matchlatch_shopify_preview_schedule (
  singleton boolean primary key default true check(singleton),
  enabled boolean not null default false,
- endpoint text not null check(endpoint ~ '^https://[a-z0-9-]+\.vercel\.app/api/shopify-sync\?action=scheduled$')
+ endpoint text not null check(endpoint ~ '^https://[a-z0-9-]+\.vercel\.app/api/admin-summary\?action=shopify-sync-scheduled$')
 );
 alter table public.matchlatch_shopify_preview_schedule enable row level security;
 revoke all on public.matchlatch_shopify_preview_schedule from public,anon,authenticated,service_role;

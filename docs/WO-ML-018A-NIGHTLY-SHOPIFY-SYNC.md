@@ -38,7 +38,7 @@ Existing code targets `pfcdgt-is.myshopify.com`, API version `2026-10`. That ide
 | `lib/shopify-sync.mjs` | Read-only Admin queries, bounded product/variant pagination, normalization, hashes, eligibility, incremental overlap, Eastern calendar, orchestration |
 | `lib/shopify-sync-store.mjs` | Isolated Preview database RPC transport; never falls back to the shared/live database |
 | `supabase/PROPOSED_shopify_sync.sql` | Source tables, unique shop/variant identities, durable jobs, daily deduplication, fencing leases, atomic page/checkpoint transactions, watermarks, retirement, publication audit |
-| `api/shopify-sync.mjs` | Owner-only status/review/dry run/manual execution; separately authenticated scheduled POST; Production returns 404 |
+| `lib/shopify-sync-route.mjs` through `api/admin-summary.mjs` | Owner-only status/review/dry run/manual execution; separately authenticated scheduled POST; Production returns 404 |
 | `admin-shopify-sync.mjs`, `admin.html` | Status, counts, manual run/resume, review pages, candidate preview, batch approval and revocation |
 | `lib/shopify-internal-catalog.mjs` | Bounded approved inventory queries; taxonomy subtypes, sizes, brand/color, price, permission/freshness gates |
 | `api/catalog.mjs`, `api/style.mjs`, `lib/unified-discovery-route.mjs` | Shopify-first Store and Studio integration; deterministic candidates; no Shopify candidate model call |
@@ -83,7 +83,7 @@ Provisioning another database, applying SQL to a live project or adding fees is 
 
 The scheduler proposal installs no job. Its configuration defaults disabled. After confirming a separate Preview project and available pg_cron, pg_net and Vault, a DBA can apply the proposal, set the protected Preview endpoint and populate Vault with independently provisioned schedule and Vercel-protection credentials. A cron tick each minute checks `America/New_York` inside PostgreSQL, calls the handler during local hour zero, and continues incomplete write runs afterward. The durable local-day ledger prevents duplicate daily starts. The first tick at or shortly after midnight is a schedule target, not a precision guarantee.
 
-Keep deployment protection enabled. Scheduled requests need both the job Bearer secret and a scoped Vercel protection bypass credential. Do not use a shareable tester URL as scheduler authentication. The endpoint uses the same engine as Run Sync Now. The production handler is intentionally absent/closed; deploying this branch to Production would **not** activate synchronization. A later approved change must define Production authorization, database isolation, schedule configuration and rollback.
+Keep deployment protection enabled. Scheduled requests need both the job Bearer secret and a scoped Vercel protection bypass credential. Do not use a shareable tester URL as scheduler authentication. The scheduled endpoint is `/api/admin-summary?action=shopify-sync-scheduled`; owner status/review/run actions use `shopify-sync-status`, `shopify-sync-review` and `shopify-sync-run`. The endpoint uses the same engine as Run Sync Now. The production handler is intentionally absent/closed; deploying this branch to Production would **not** activate synchronization. A later approved change must define Production authorization, database isolation, schedule configuration and rollback.
 
 Required non-Production scheduling proof: observe at least one real scheduled tick → protected handler → durable run → successful final checkpoint. Confirm another tick for the same Eastern date returns the same successful job. Test spring/fall clock boundaries separately. A manual test is not proof of autonomous operation. No real nightly tick has been observed in this work.
 
@@ -112,3 +112,5 @@ Recommended next milestone: provision authorized isolated Preview access and exe
 - https://supabase.com/docs/guides/database/extensions/pg_net
 - https://vercel.com/docs/cron-jobs
 
+
+The first Preview build exceeded the Hobby 12-function limit. The sync route was consolidated behind the existing owner API; no paid-plan change was made.

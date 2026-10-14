@@ -6,7 +6,7 @@ export function connectShopifySync({root,getSession,isOwnerView}){
  async function call(action,method='GET',body){
   if(!isOwnerView())return;const ticket=++generation;controls.forEach(b=>b.disabled=true);output.textContent='Checking Shopify synchronization…';
   try{const session=(await getSession()).data?.session;if(!session)throw Error('Sign in as the owner.');
-   const response=await fetch('/api/shopify-sync'+(action?'?action='+action:''),{method,headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(65000)}),data=await response.json();
+   const response=await fetch('/api/admin-summary?action=shopify-sync-'+(action||(method==='POST'?'run':'status')),{method,headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(65000)}),data=await response.json();
    if(ticket!==generation||(await getSession()).data?.session?.user.id!==session.user.id||!isOwnerView())return;
    if(!response.ok)throw Error(data.error||'Sync unavailable');
    if(action?.startsWith('review')){
