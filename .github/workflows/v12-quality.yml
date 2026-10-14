@@ -7,6 +7,7 @@ on:
       - feature/v1.2-awin-commerce-20261013
       - feature/wo-ml-015-checkout-20261013
       - feature/wo-ml-017-unified-discovery
+      - feature/search-ai-foundation-20261014
       - staging/v1.1-tile-cleanup-100926
   pull_request:
     branches:

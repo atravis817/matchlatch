@@ -220,3 +220,6 @@ For future updates, make a small edit to **this file** and commit it whenever a 
 ### WO-ML-012 — Awin affiliate commerce Preview
 
 Implemented bounded advertiser/domain eligibility, optional official long-link preparation, stricter Savings Check, private manual performance/feed-metadata reporting and conservative cross-provider variant deduplication. Existing coupon-estimator bug fixed: unredeemed promotions cannot lower totals or budget qualification. 151 automated tests pass. Live plugin confirms four joined advertisers and long-link support; deployed Preview token, full merchant promotional terms and real product/feed/browser verification remain release blockers. See `docs/WO-ML-012-AWIN-COMMERCE.md`. No Production release authorized.
+
+## Controlled search and AI discovery foundation — 2026-10-14
+Protected evaluation branch adds truthful capability answers, metadata, brand entities and indexing exclusions. See docs/SEARCH_AI_DISCOVERY_ARCHITECTURE.md. Next: Shopify-first qualification and customer journey evidence, demand research, external validation, approved measurement, then separately authorized public crawl/Production release. Awin expansion and scheduler activation remain paused.

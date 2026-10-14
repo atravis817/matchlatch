@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,readdirSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+test('every root page excludes Preview indexing',()=>{for(const p of readdirSync(new URL('../',import.meta.url)).filter(p=>p.endsWith('.html')))assert.match(read(p),/<meta name="robots" content="noindex,\s*nofollow">/);});
+test('deployment crawler policy and sitemap do not publish private routes',()=>{const config=JSON.parse(read('vercel.json'));assert.ok(config.headers.some(x=>x.source==='/(.*)'&&x.headers.some(h=>h.key==='X-Robots-Tag'&&h.value.includes('noindex'))));assert.match(read('robots.txt'),/Disallow: \/\n/);assert.doesNotMatch(read('sitemap.xml'),/<loc>/);});
+test('brand entity graph is consistent and contains no products or invented ratings',()=>{for(const p of ['index.html','about.html']){const html=read(p),graph=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);assert.deepEqual(graph['@graph'].map(x=>x['@type']),['Organization','WebSite','WebPage']);assert.equal(graph['@graph'][0]['@id'],'https://matchlatch.company/#organization');assert.match(html,/rel="canonical" href="https:\/\/matchlatch.company\//);assert.doesNotMatch(JSON.stringify(graph),/aggregateRating|Offer|founder|review/);}});
+test('customer answers disclose beta and wardrobe limitations',()=>{const html=read('about.html');assert.match(html,/Live outfit generation and purchases remain disabled/);assert.match(html,/owned-first outfit workflow are still in development/);assert.match(html,/owner-only Preview evaluation/);assert.match(html,/retailer-hosted checkout separately/);});
