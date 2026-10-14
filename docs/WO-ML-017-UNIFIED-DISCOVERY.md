@@ -105,3 +105,8 @@ A follow-up improves broad browsing with **Use my saved size when blank**: unche
 3. Confirm source status for Shopify and Awin separately. Shopify owner evaluation should attempt the live catalog; Awin can remain empty until eligible feed data exists. Shopify cards are evaluation-only and cannot be saved. No retailer checkout or payment is enabled.
 4. In Studio, choose occasion/style/budget and enter garment notes, then select **Search products in Store**. Verify the context, size and budget carried over. This does not generate or claim a complete AI outfit.
 5. Sign out and confirm owner controls disappear. Use a separate ordinary customer session for denial and cart regression tests. Never send login secrets in chat.
+
+
+### Empty-state correction
+
+Studio outfit generation still requires eligible reviewed feed products; unified Shopify discovery does not generate an outfit. The empty feed status now identifies that source explicitly. Studio disables the unavailable outfit action for customers when the reviewed catalog is empty, while retaining authorized staff access. Store distinguishes owner-required, disabled, unavailable, and actual no-match Shopify responses. No provider permissions or public access were expanded. Signed-in owner browser verification remains outstanding.

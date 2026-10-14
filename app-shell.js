@@ -444,9 +444,14 @@ function renderStore(){
  box.append(quick);
  box.append(el("p","store-curation-note",
   "Chosen for your style and saved sizes. Savings are considered only after a good match."));
- const readiness=el("p","v12-store-context","Checking reviewed catalog availability…");box.append(readiness);
- const capabilityRun=searchId;
- fetch("/api/catalog?mode=capabilities",{cache:"no-store",signal:AbortSignal.timeout(10000)}).then(async r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{if(capabilityRun===searchId&&readiness.isConnected)readiness.textContent=d.catalogAvailable?"Reviewed feed catalog has eligible public products.":"Reviewed feed catalog has no eligible public products. Private inventory is excluded. Participating retailer search is a separate source.";}).catch(()=>{if(readiness.isConnected)readiness.textContent="Reviewed catalog availability could not be checked. Retry your search.";});
+ const readiness=el("p","v12-store-context","Checking product sources…");box.append(readiness);
+ let feedAvailability=null;
+ function showReadiness(){
+  const feed=feedAvailability===null?"Reviewed feed availability has not been confirmed.":feedAvailability?"Reviewed feeds contain eligible public products.":"Reviewed feeds contain no eligible public products.";
+  readiness.textContent=provider.value==="catalog"?feed:provider.value==="retailer"?"Participating retailer search is independent of the reviewed feed catalog.":"All available products searches two independent sources. Shopify search is a Preview evaluation for the verified owner only. "+feed;
+ }
+ const sourceChange=provider.onchange;provider.onchange=()=>{sourceChange();showReadiness();};showReadiness();
+ fetch("/api/catalog?mode=capabilities",{cache:"no-store",signal:AbortSignal.timeout(10000)}).then(async r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{if(readiness.isConnected){feedAvailability=d.catalogAvailable===true;showReadiness();}}).catch(()=>{if(readiness.isConnected)showReadiness();});
  target.append(box);
  const results=el("div","store-results");
  const head=el("div","store-results-top");
@@ -659,7 +664,7 @@ function renderStore(){
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
     catalogSource?(data.message||"No eligible public catalog products. Private development inventory is excluded."):"No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";
-   if(unifiedSource)status.textContent=(items.length?items.length+" products match your size, style and merchandise budget.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" · Participating catalog: "+data.sources?.shopify?.status+" · Reviewed feeds: "+data.sources?.awin?.status;
+   if(unifiedSource)status.textContent=(items.length?items.length+" products match your size, style and merchandise budget.":data.sources?.shopify?.status==="owner_required"?"Shopify was not searched: verified owner sign-in is required in this Preview.":data.sources?.shopify?.status==="disabled"?"Shopify search is disabled in this Preview.":data.sources?.shopify?.status==="unavailable"?"Shopify search could not be reached.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" · Participating catalog: "+data.sources?.shopify?.status+" · Reviewed feeds: "+data.sources?.awin?.status;
    retailerSummary.hidden=merchants.length===0;
    retailerSummary.open=false;
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
