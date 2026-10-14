@@ -1,3 +1,9 @@
+## WO-ML-018E — 2026-10-14 runtime checkpoint
+
+WO-ML-018E — DB runtime BLOCKED; Shopify auth separately BLOCKED. Current Vercel metadata still has neither MATCHLATCH_SHOPIFY_PREVIEW_SUPABASE_URL nor MATCHLATCH_SHOPIFY_PREVIEW_SERVICE_KEY; writes/publication/schedule flags false. No credentials read or changed. Latest verified READY sync-branch deployment https://matchlatch-pwuq4pfkz-matchlatch.vercel.app / dpl_86w4t9tM2zdxnzx3DFeWM4DMNn4u / f34b9e3e1825c5d4f5f737528fa49674459d57ed. Direct isolated DB read-back reconfirms all counts/jobs/state/seen/audit zero and no anon/authenticated table SELECT grants; this is not deployed service-key/REST proof. No MATCHLATCH owner session is available to execute owner status or independent Shopify auth. Next milestone: Founder saves the two values from WO-ML-018E directly in Vercel (Preview only, exact sync branch; legacy service_role JWT Sensitive), redeploys correct branch, and signs in as owner. Then validate GET shopify-sync-status and shopify-sync-auth separately. No sync/dry run or other mutations authorized/performed.
+
+---
+
 ## WO-ML-018D — schema installation PASS, 2026-10-14
 
 Founder approval “Approve” received in the explicit WO-ML-018D approval context. Exact destination lqxeizvrdxuhzvipmlkl reconfirmed MATCHLATCH-SHOPIFY-PREVIEW, ca-central-1, ACTIVE_HEALTHY; empty application baseline captured in docs/WO-ML-018D-EMPTY-BASELINE.md before execution. Local and GitHub SQL blob matched a5af019bc8da9323a640f2bf3f54065b21d37634.
