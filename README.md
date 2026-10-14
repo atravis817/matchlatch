@@ -142,3 +142,5 @@ See the **[living MATCHLATCH V0–V4 MONSTER work map](ROADMAP.md)**. That file 
 V1.2 Awin affiliate commerce Preview: [WO-ML-012 implementation, verification and setup blockers](docs/WO-ML-012-AWIN-COMMERCE.md). New handoffs remain gated; listed coupons never alter totals.
 
 V1.2 checkout workstream: [WO-ML-015 cart, merchant review and gated shipping/checkout adapter](docs/WO-ML-015-CHECKOUT.md). Quantities and merchant subtotals are unified; payments remain merchant-hosted. Preview purchases remain disabled pending authorized live validation.
+
+V1.2 unified discovery: [WO-ML-017 shared Shopify/Awin search and Studio handoff](docs/WO-ML-017-UNIFIED-DISCOVERY.md). New Shopify evaluation is owner-only; Awin published inventory is independent. Own-profile hosting and live Awin product evidence remain launch requirements.

@@ -230,7 +230,7 @@ function renderMood(){
   target.append(saved);
  }
 }
-const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"catalog",exactSize:"",brand:"",sort:"relevance"};
+const storeState={query:"",slot:"shirt",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",provider:"unified",exactSize:"",brand:"",sort:"relevance",styleContext:"",sizeSystem:""};
 const supportedSlots=[
  ["shirt","Tops"],["pants","Bottoms"],["jacket","Outerwear"],["shoes","Footwear"],
  ["hat","Headwear"],["scarf","Scarves"],["watch","Watches"],["belt","Belts"],["socks","Socks"]
@@ -281,7 +281,8 @@ function storeCard(item){
  info.append(el("small","v12-delivery-note",item.fixture?"Not a shopping offer. Stock, shipping and links are not supplied.":shippingInfo(item)));
  const actions=el("div","store-card-actions store-card-shopping");
  actions.append(button("View product details ↗",()=>openProduct(item),"store-view-details"));
- if(!item.fixture)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
+ if(!item.fixture&&item.saveAllowed!==false)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
+ if(item.evaluationOnly)info.append(el("small","store-data-note","Owner Preview evaluation · product saving disabled · imagery rendered live only."));
  info.append(actions);
  card.append(cover,info);
  return card;
@@ -335,7 +336,7 @@ function renderProduct(){
   ?"Retailer-feed listing. Confirm size, stock, final price and shipping on the retailer’s website."
   :"Price and availability are checked when listed and may change before checkout."));
  const actions=el("div","store-product-actions");
- if(!item.fixture)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
+ if(!item.fixture&&item.saveAllowed!==false)actions.append(button("Add to shortlist",()=>lib()?.addRetailProduct?.({...item,slot:item.slot||storeState.slot}),"store-add-to-cart"));
  actions.append(button("View shortlist ↗",()=>lib()?.openClosetTab?.("shortlist"),"store-view-details"));
  const retailerLink=(()=>{try{const url=new URL(item.merchantProductUrl||item.url);return url.protocol==="https:"?url.href:"";}catch{return "";}})();
  if(retailerLink&&!document.querySelector('meta[name="matchlatch-usability-beta"][content="purchases-disabled"]')){
@@ -382,7 +383,7 @@ function renderStore(){
  const p=profile();
  const box=el("section","store-search");
  box.append(sectionTitle("Find your next piece","Find something new",
-  "Choose a source and filter your next piece. For an outfit or AI styling, start in Studio."));
+  "Search available retailer catalogs for your next piece. Outfit styling is separate."));
  const form=el("form","store-search-form");
  const query=el("input");query.type="search";query.placeholder="e.g. charcoal oversized shirt";
  query.maxLength=170;query.required=storeState.provider!=="catalog";query.minLength=2;
@@ -409,7 +410,7 @@ function renderStore(){
  const deadlineNote=el("small","v12-delivery-note","Only retailer forecasts confirming arrival on or before this date qualify. Shipping estimates are not guarantees.");
  deadlineLabel.append(deadline,deadlineNote);
  const provider=el("select");provider.setAttribute("aria-label","Product source");
- provider.add(new Option("Reviewed feed catalog","catalog"));provider.add(new Option("Participating retailer search","retailer"));provider.value=storeState.provider;
+ provider.add(new Option("All available products","unified"));provider.add(new Option("Reviewed feed catalog","catalog"));provider.add(new Option("Participating retailer search","retailer"));provider.value=storeState.provider;
  const providerLabel=el("label","store-field store-source-field");providerLabel.append(el("span",null,"PRODUCT SOURCE"),provider);
  const exactSize=el("input");exactSize.type="text";exactSize.maxLength=40;exactSize.value=storeState.exactSize;exactSize.placeholder="Use saved size";exactSize.setAttribute("aria-label","Exact size");
  const sizeLabel=el("label","store-field");sizeLabel.append(el("span",null,"SIZE · OPTIONAL"),exactSize);
@@ -417,11 +418,12 @@ function renderStore(){
  const brandLabel=el("label","store-field");brandLabel.append(el("span",null,"BRAND · OPTIONAL"),brand);
  const sort=el("select");sort.setAttribute("aria-label","Sort products");for(const [v,t] of [["relevance","Relevance"],["price-asc","Price: low to high"],["price-desc","Price: high to low"]])sort.add(new Option(t,v));sort.value=storeState.sort;
  const sortLabel=el("label","store-field");sortLabel.append(el("span",null,"SORT"),sort);
- provider.onchange=()=>{query.required=provider.value!=="catalog";brand.disabled=provider.value!=="catalog";};provider.onchange();
+ provider.onchange=()=>{query.required=provider.value!=="catalog";brand.disabled=provider.value==="retailer";};provider.onchange();
  form.append(queryLabel,providerLabel,categoryLabel,budgetLabel,sizeLabel,brandLabel,sortLabel,deadlineLabel,submit);
  box.append(button("Build a look in Studio ↗",()=>showPage("studio"),"destination-link quiet"));
  box.append(form);
  const context=el("p","v12-store-context","Personal style, size and budget determine eligible results. Web references remain research-only.");
+ if(storeState.styleContext){try{const c=JSON.parse(storeState.styleContext);context.textContent="From Studio: "+c.occasion+" · "+c.style+" · "+(c.notes||"Your preferences")+". Total merchandise budget retained; browse one garment at a time.";}catch{}}
  box.append(context);
  const quick=el("div","store-suggestions");
  quick.append(el("span","micro-title","START WITH"));
@@ -609,6 +611,7 @@ function renderStore(){
    slot:select.value,profile:p,size:preferredSize,max,manualQuery:q
   });
   if(!criteria){status.textContent="Choose a supported clothing category.";return;}
+  if(storeState.styleContext){try{const context=JSON.parse(storeState.styleContext);criteria.hints.notes=context.notes||"";criteria.hints.occasion=context.occasion||"";criteria.hints.aesthetic=context.style||criteria.hints.aesthetic;}catch{}}
   storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;
   storeState.needBy=deadline.value;
@@ -628,9 +631,12 @@ function renderStore(){
    if(criteria.color)params.set("color",criteria.color);
    if(shippingZip())params.set("postal",shippingZip());
    if(storeState.needBy)params.set("needBy",storeState.needBy);
-   const catalogSource=provider.value==="catalog";
+   const catalogSource=provider.value==="catalog",unifiedSource=provider.value==="unified";
+   if(unifiedSource){params.set("mode","unified");params.set("brand",brand.value.trim());params.set("sort",sort.value);if(storeState.styleContext)params.set("context",storeState.styleContext);if(storeState.sizeSystem)params.set("sizeSystem",storeState.sizeSystem);}
+   const accountId=lib()?.getUserId?.(),session=unifiedSource?(await window.MatchlatchAuth?.client?.auth.getSession())?.data?.session:null;
+   if(unifiedSource&&accountId!==lib()?.getUserId?.())return;
    if(catalogSource){params.set("q",q);params.set("brand",brand.value.trim());params.set("sort",sort.value);}
-   const response=await fetch((catalogSource?"/api/catalog?":"/api/shop?")+params,{signal:controller.signal,cache:"no-store"});
+   const response=await fetch((catalogSource?"/api/catalog?":"/api/shop?")+params,{signal:controller.signal,cache:"no-store",headers:session?.access_token?{Authorization:"Bearer "+session.access_token}:{}});
    const data=await response.json();
    if(run!==searchId)return;
    if(!response.ok)throw Error(data.error||"Retailer search unavailable.");
@@ -651,6 +657,7 @@ function renderStore(){
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
     catalogSource?(data.message||"No eligible public catalog products. Private development inventory is excluded."):"No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";
+   if(unifiedSource)status.textContent=(items.length?items.length+" products match your size, style and merchandise budget.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" · Participating catalog: "+data.sources?.shopify?.status+" · Reviewed feeds: "+data.sources?.awin?.status;
    retailerSummary.hidden=merchants.length===0;
    retailerSummary.open=false;
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
@@ -838,14 +845,14 @@ void import("./owner-navigation.mjs").then(({createOwnerNavigation})=>{
 let storeAccountId=lib()?.getUserId?.()||null;
 window.addEventListener("matchlatch:auth-user",()=>{
  const nextAccountId=lib()?.getUserId?.()||null;if(nextAccountId===storeAccountId)return;storeAccountId=nextAccountId;
- searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.retailers=[];storeState.searched=false;storeState.criteria=null;
+ searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.retailers=[];storeState.searched=false;storeState.criteria=null;storeState.styleContext="";storeState.sizeSystem="";
  if(location.hash.startsWith("#store"))renderStore();
 });
-window.addEventListener("matchlatch:page",event=>renderDestination(event.detail?.page));
+window.addEventListener("matchlatch:page",event=>{if(event.detail?.page!=="store"&&storeState.items.some(i=>i.evaluationOnly)){storeState.items=storeState.items.filter(i=>!i.evaluationOnly);if(storeState.selected?.evaluationOnly)storeState.selected=null;storeState.searched=false;}renderDestination(event.detail?.page);});
 window.addEventListener("matchlatch:retailer-search",event=>{
  const d=event.detail||{};const q=String(d.query||"").slice(0,170),max=Number(d.max);
  searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.criteria=null;storeState.searched=false;
- storeState.query=q;storeState.provider="retailer";storeState.exactSize=String(d.size||"").slice(0,40);storeState.brand="";storeState.needBy="";
+ storeState.query=q;storeState.provider="unified";storeState.styleContext=String(d.context||"").slice(0,600);storeState.sizeSystem=String(d.sizeSystem||"").slice(0,40);storeState.exactSize=String(d.size||"").slice(0,40);storeState.brand="";storeState.needBy="";
  storeState.slot=supportedSlots.some(([slot])=>slot===d.slot)?d.slot:"shirt";
  storeState.max=Number.isFinite(max)&&max>=1&&max<=10000?max:200;
  initialStoreQuery=q;initialStoreSlot=storeState.slot;showPage("store");renderStore();

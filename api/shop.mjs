@@ -6,6 +6,7 @@ import {evaluateDelivery} from "../lib/delivery-intelligence.mjs";
 import {authorizeOwner} from '../lib/owner-authorization.mjs';
 import {globalDiscoveryPolicy,boundedGlobalDiscovery} from '../lib/global-discovery.mjs';
 import {deduplicateMerchantVariants} from '../lib/merchant-offer-identity.mjs';
+import {unifiedSearch} from '../lib/unified-discovery-route.mjs';
 // MATCHLATCH Private Shop: live Shopify Global Catalog UCP interface.
 // No server-side catalog-result caching. A listing is displayed only when a
 // purchasable variant is explicitly reported available at a valid USD price.
@@ -66,6 +67,7 @@ export async function GET(request){
   try{
     const u=new URL(request.url);
     const mode=u.searchParams.get("mode")||"search";
+    if(['unified','unified-capabilities'].includes(mode))return unifiedSearch(request);
     if(mode==='studio-demo'){
       if(process.env.VERCEL_ENV!=='preview')return reply({error:'Not found'},404);
       if(!allowRequest(request,'studio-demo',30))return reply({error:'Too many demonstration requests.'},429);

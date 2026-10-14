@@ -910,6 +910,7 @@
   };
   const moneyAmount=x=>Number.isFinite(Number(x))&&Number(x)>=0?Number(x):null;
   function addRetailProduct(item){
+    if(item?.evaluationOnly||item?.saveAllowed===false){feedback("This catalog is for owner Preview evaluation. Product data and imagery are not saved.");return false;}
     if(!requireAccount(()=>addRetailProduct(item)))return;
     const price=moneyAmount(item?.price),url=window.MatchlatchCheckoutModel?.safeUrl(item?.merchantProductUrl||item?.url);
     const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
@@ -1185,6 +1186,7 @@
   }
 
   function shopPiece(slot,item){
+    if(item?.evaluationOnly||item?.saveAllowed===false)return -1;
     const look=currentLook();
     if(!look||!item?.productId||!item?.variantId)return -1;
     let index=look.pieces.findIndex(p=>p.shopRef?.variantId===item.variantId);
@@ -1209,6 +1211,7 @@
     return index;
   }
   function chooseShopItem(slot,item){
+    if(item?.evaluationOnly||item?.saveAllowed===false)return;
     if(!requireAccount(()=>chooseShopItem(slot,item)))return;
     const look=currentLook();
     if(!look||!item?.variantId||!item?.productId)return;
