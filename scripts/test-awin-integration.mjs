@@ -31,7 +31,7 @@ const feed={id:"SKU-M-OLIVE",title:"Olive Oxford Cotton Shirt",
  image_link:"https://images.example/olive.webp",
  price:"95.00 USD",sale_price:"75.00 USD",availability:"in_stock",
  size:"M",color:"Olive",material:"Cotton",
- aw_deep_link:"https://www.awin1.com/awclick.php?mid=6016&id=3118944",
+ aw_deep_link:"https://www.awin1.com/awclick.php?mid=6016&id=3118944&ued=https%3A%2F%2Fwconcept.com%2Fproducts%2Folive-oxford",
  shipping:[{country:"US",price:"6.00 USD"}]};
 // Enhanced Google-format JSONL may nest its price, category and
 // availability sections; importing must support those, including shipping objects.
@@ -80,7 +80,7 @@ assert.equal(mapProduct({...exposed,available:false}),null);
 assert.equal(mapProduct({...exposed,merchant_host:"fraud.example"}),null);
 assert.equal(mapProduct({...exposed,valid_until:new Date(Date.now()-1000).toISOString()}),null);
 assert.equal(mapProduct({...exposed,feed_imported_at:new Date(Date.now()-2*86400000).toISOString()}),null);
-assert.equal(mapProduct({...exposed,affiliate_url:"https://untrusted.example/redirect"}).affiliateTracked,false);
+assert.equal(mapProduct({...exposed,affiliate_url:"https://untrusted.example/redirect"}),null);
 
 const originalEnv={...process.env};
 const originalFetch=globalThis.fetch;

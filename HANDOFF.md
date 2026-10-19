@@ -1,146 +1,96 @@
-## Bounded acceptance implementation — development-only checkpoint
+# MATC-24 — Q-NAV11-01 completion-fencing handoff
 
-Founder directive 6180804125/CTPO 6180800031 acknowledged. LOCAL HEAD d75cd5f84a34b1b15d2a21c76df9ddf3d7c18e63; 241 tests pass, zero skips, PGlite 0.5.9. Full report docs/BOUNDED-ACCEPTANCE-DEVELOPMENT-REPORT.md. Hard 1 product page/5 complete products/250 cumulative variants, exact server manifest/shop/project/build binding, durable singleton one-use claim and private-only atomic commit; no normal jobs/state/retirement/watermark. Proposed acceptance SQL blob d4767511881e687d1ce4e26f8571de91c7e107ae tested EPHEMERALLY ONLY, never live. Existing local dirty files preserved. No flags/live imports/dry-runs/migrations/deployments. Remote PR branch held at d9a212ef to prevent automatic Vercel deployment; immutable review source commit linked in PR. This handoff is in that review commit, not live branch. Next: CTPO review and separate Founder branch-advance/Preview-deploy permission, followed by separate migration/config/one-execution approval gates. Do not clear consumed claims or use general Run Sync Now/Dry-run. Product manifest/private rights still absent.
+## 0. Incoming Agent Quick Start
 
-## Current checkpoint — first-import acceptance planning complete
+Local completion-fencing correction delivered, independent acceptance PENDING. First action: Mika collect the exact packet for Queen changed-only retest. Verify PINS.json, full-tree replay and evidence. No automatic retry/successor/event, deployment or broad baseline rerun. Prior source/handoffs remain preserved.
 
-2026-10-14: read latest CTPO PR directives 6180637782 and hub 6180683715; verified remote/application 0bbb15b READY dpl_CrHoHXZe1hnaixQ4m1XEFzX1HdVh and CI 38652936339 success. Shopify owner-observed PASS (5 sample, more=true) acknowledged; DB owner status PASS and fresh direct SQL all tables/counters/jobs zero, RLS/client grants intact. Flags writes/publication/schedule=false. Plan: docs/FIRST-PRIVATE-IMPORT-ACCEPTANCE-PLAN.md. Important gap: existing route defaults up to 10x5 products and 2,050 variants/product; no five-product/250-total-variant hard limit or manual one-use key exposed. Recommended small acceptance requires separately reviewed server controls before execution approval. Dry-run persists ledger/state/seen; not authorized. Source private-persistence rights require explicit selected-manifest confirmation; public/image/model/checkout rights not inferred. Local workspace earlier engineering changes preserved (7b1540d HEAD, dirty HANDOFF/admin/store/route plus two tests); remote is authority, no reset/cleanup. Planning-only SQL SELECT/provider metadata/doc edits, no imports/dry runs/flags/migrations/publication/schedule/Production/merge/costs. Next: CTPO scope review and Founder development-only decision; exact execution approval later against implemented cap/manifest/commit.
+## 1. Repository Identity
 
-## WO-ML-018F — owner access verification control
+atravis817/matchlatch; inspected 2026-10-18. Archive-only base tree 8d526c6347ed3222633ce926fe57e8e6171e49d4, 259 files; TAR SHA256 28f2b3b9834e75457100de02c4c7702bb4b17268a5625cb09e802d5a0156593c. Original ZIP cfe41b94415873e56f302126a14b750e156488eef3ef8cacef5cf0743ba99760 verified. No .git/HEAD/branch/upstream/worktrees or remote adoption in delivered source. Successor archive tree/pins are in outer PINS.json, not a commit/deployed ref. Read proposed source AGENTS, HANDOFF, ROADMAP, full protocol and improvement plan; current main AGENTS returned404 again via connector. Hub7/body/all108 comments read, latest6238226352. Prior PR6 draft record is historical, not refreshed. Current issue explicitly assigns sole client ownership to Freya. Family run read showed only this active Freya run, no concurrent owner.
 
-Added Check Shopify access to existing authenticated Command Center sync panel. Button performs only GET shopify-sync-auth, no DB/sync/dry-run mutation; uses existing session and owner/Preview checks. Displays sanitized shop/API version, required-read-scope verification flag, bounded sampleProducts/hasMore and explicit not-total/no-sync disclaimer. Scope flag true only for client-credentials path whose token response is enforced to exact read_products/read_inventory; legacy path does not claim scopes verified. Database status previously owner-verified PASS on dpl_3trzNfnPp2qnxtCcxqaDaYq2RD1p. Shopify live result remains BLOCKED on owner click; no owner session exposed to connector. Tests: full isolated suite 231 checks with pinned PGlite, result reported in PR/hub; no live Shopify success implied. No credentials/flags/SQL/imports/publication/scheduling/Production/merge changes. Next: owner clicks Check Shopify access on exact READY control build and returns sanitized output.
+## 2. Current Production State
 
-## Current runtime checkpoint — database status PASS
 
-WO-ML-018E runtime database PASS — Founder returned owner-only Sync status from refreshed sync Preview https://matchlatch-3yrc5q4xv-matchlatch.vercel.app/admin.html ; dpl_3trzNfnPp2qnxtCcxqaDaYq2RD1p ; f5f3f91a819dfc8a362e6a3afecce764ce05a31a. Catalog 0 products/0 variants; private/public/approved/blocked/stale=0. Preview scheduler Disabled; last successful run None; no run recorded; Production enabled No. Evidence: Founder-observed sanitized UI result, combined with verified exact-branch redeploy after key update. This establishes owner status plus deployed service-role read/counts success, not full import, recurrence or Shopify authentication. Prior 401 was on pre-key-update deployment; no replacement-key failure now claimed. Shopify auth remains separately NOT VERIFIED; next milestone is existing owner-only GET shopify-sync-auth on this exact Preview, using reviewed snippet in PR comment 6179545202. No sync/dry run/import/publication/schedule/SQL/Production/merge action authorized or executed.
+Not verified or changed. No current Production health, alias, rollback or uptime claim. See preserved prior handoff for dated historical records.
 
----
+## 3. Git & Workspace State
 
-## Current owner diagnostic result — database credential rejection
+No repository checkout/ref/commit/staging actions. Four paths differ from exact259 base: library.js (three-line producer correction), scripts/test-auth-completion.mjs (new seven-case regression), HANDOFF.md, docs/handoffs/2026-10-18-pre-Q-NAV11-COMPLETION-HANDOFF.md (byte-equal prior handoff). 261 files;257 unchanged. Outer original-inputs preserves delivered259 packet and Queen report/probes/handoff. Working logs, packaging scripts and negative fixture copies outside source. No PR under explicit local-only scope.
 
-WO-ML-018E-V4 owner-returned diagnostic evidence on diagnostic Preview f63eae29: previewEnvironment/urlPresent/keyPresent/urlValid/expectedIsolatedDestination/configurationGuardPassed=true; shared/customer-auth collision=false; keyWhitespace=false; legacyServiceRoleKey=false; keyProjectMatches=false; databaseUnauthorized=true; forbidden/objectUnavailable/providerFailure=false. Evidence is Founder-returned sanitized output, not connector-owned session. Conclusion: guard/isolation checks pass; downstream database rejects credential with HTTP 401. Saved value is not recognized as a legacy service_role JWT for lqxeizvrdxuhzvipmlkl. Its exact type is UNKNOWN (could be modern secret, wrong key type or malformed value); do not infer or request secret. Corrective action: Founder replaces only branch-scoped MATCHLATCH_SHOPIFY_PREVIEW_SERVICE_KEY with isolated project's Settings → API Keys → legacy service_role JWT; mark Sensitive. Do not use anon/publishable, database password, Shopify secret or shared key. If only sb_secret is offered, report only that key type and stop for adapter compatibility work. Redeploy exact sync branch only after correcting this established credential issue, then owner Sync status. No new SQL/import/dry run/publication/schedule/Production action. Shopify auth remains separate/unverified.
+## 4. Work Completed This Runtime
 
----
+LOCAL_VERIFIED remaining Q-NAV11-01 Medium completion gap: SDK callback receipt now increments authSwitch immediately when received identity differs from lastAppliedAuthId. Pending old hydration cannot emit auth-user or invoke resumeProtectedAction after signout/account-switch receipt, even before deferred timer. No cloud work runs inline. Same-account receipt leaves valid hydration completion/dedup intact. Initial lookup revision and latest deferred callback guards unchanged. Only library.js application code changed. Author probes use actual extracted initAuth/applyAuth and shipped owner consumer, synthetic SDK/cloud only; protected-action hook is counted, no real action/provider/admin request executed. Independent closure remains pending.
 
-## WO-ML-018E-V4 — diagnostic repair checkpoint
+## 5. Work In Progress
 
-Verified current-Preview error cannot establish guard failure: GET catches all configuration, network, REST and JSON errors with the same message. Fixed misleading error classification; owner-only Sync status now returns/displays boolean-only runtime environment/presence/URL validity/expected isolated destination/customer-auth collision/key-shape and REST failure diagnostics. No credential, decoded claim or raw provider body is returned. Key-shape/project booleans are inspection, not cryptographic validation. Existing owner/Preview/isolation guards retained; customer-auth collision also checks SUPABASE_URL alias. No flags, credentials, SQL or data changed. LOCAL_VERIFIED 230 passed, 0 failed, 0 skipped with pinned PGlite 0.5.9; static audit/policy/diff checks passed. Underlying deployed DB failure remains unestablished until owner runs Sync status on this exact diagnostic build. No blind redeploy requested; this build contains a reviewed diagnostic fix. Next: collect owner-visible boolean result, repair only established cause, then validate zero-count status. Shopify auth separate/unverified. No sync/dry run/import/publication/scheduler/Production/merge authorization.
 
-## WO-ML-018E-V1 — 2026-10-14 current runtime evidence
+Queen completion-fencing changed-only gate pending; Mika collects this bounded correction. Prior producer correction was HOLD with3PASS/2FAIL independent probes, not accepted. Gary server guards/API untouched. Full functional V1.2, actual owner incident and live Preview acceptance remain HOLD.
 
-WO-ML-018E-V1 — database runtime BLOCKED; Shopify auth BLOCKED independently. Configuration metadata PASS: isolated URL and Sensitive service key present, Preview-only branch feature/wo-ml-018a-nightly-shopify-sync; additional Preview-wide key entry observed but unchanged. Writes/publication/schedule flags false. Values not read; runtime target/project and key validity not proven by names. Direct SQL to lqxeizvrdxuhzvipmlkl confirms zero products/variants/public/private/jobs and no anon/authenticated SELECT grants (database-layer PASS, not deployed REST proof).
+Shopify automation transfer: Sally retains source/variant/catalog/sync ownership. Actual source API relationship, current catalog totals/product-vs-variant/private/public/rights/eligibility/duplicates/freshness UNKNOWN in this run. Prior historical899 records are not Shopify proof. No actual scheduler run/watermark/cursor/retries/lock/recurrence inspected. Midnight America/New_York is intended target, not observed durability. Publication approval/private/public/revoked counts UNKNOWN; ingestion does not grant publication. Search/styling eligible candidates, source rights, exact sizes/variants and nine-slot coverage not live-verified. Credential scope, isolated SQL, scheduler protection and activation remain separate gates. No imports/publication/DB/model calls.
 
-Latest sync branch READY: https://matchlatch-cv86ufsho-matchlatch.vercel.app ; dpl_9oTbSSHSAM94vYJkJN48AWsoWfmQ ; c1a8f3a6715f9c90cc39bb0d86866a86e7251b6e. Newest overall redeploy: https://matchlatch-53wtx1k49-matchlatch.vercel.app ; dpl_7KscmcHfzZ3vG2uDaJQpNtYPLG8x ; main 302fa9c3d83263ca25c3ed6252665fb73f06c569. Thus new configuration is not proven loaded into the sync implementation. Owner sign-in is Founder-reported and not exposed to this connector. Sessionless status check returned 403 Forbidden, proving only owner gate; no Shopify failure inferred.
+## 6. Validation Matrix
 
-Next milestone: select the deployment explicitly labeled feature/wo-ml-018a-nightly-shopify-sync, redeploy Preview with current variables, open that new Preview and sign in as MATCHLATCH owner. In /admin.html click Sync status (read-only, never Run Sync Now or Dry-run), and run independent auth snippet from PR comment 6179545202 on the same Preview. Return sanitized status/counts and auth result only; never credentials/session values. No sync/dry run/migrations/config changes/publication/scheduling/Production/merges performed.
+Existing bundled Multica Node runtime with ELECTRON_RUN_AS_NODE=1, no install. Twelve focused scripts:117 PASS/0FAIL/0CANCEL/0SKIP (prior110 plus seven completion regressions). Audit, commerce policy, library/new-test syntax PASS. New seven-case fixture against exact259 library:4PASS/3expectedFAIL/0CANCEL/0SKIP; these are Queen signout/switch receipt-before-timer failures and the added reversed-queue variant of the same stale-completion gap. Fixed version7PASS in focused suite, including Queen three previously passing cases, same-account refresh before completion and reversed queued newest callbacks. Original six-case checkpoint4PASS/2FAIL base and6PASS fixed preserved; seventh case and explicit stale-event assertions added before final runs. Prior author110PASS and Queen3PASS/2FAIL are historical, not all-green acceptance. Raw negative-final/focused/audit/policy/syntax logs and command runner attached. Portable manifests/modes/tree/TAR/patch/replay verification PASS recorded externally. Broad obsolete baseline, Sam, checkout DESIGN, browser/live session/model/provider/catalog/DB/nativeSQL/physical device NOT RUN; no need demonstrated for broader rerun.
 
----
+## 7. Database & Migrations
 
-## WO-ML-018E — 2026-10-14 runtime checkpoint
 
-WO-ML-018E — DB runtime BLOCKED; Shopify auth separately BLOCKED. Current Vercel metadata still has neither MATCHLATCH_SHOPIFY_PREVIEW_SUPABASE_URL nor MATCHLATCH_SHOPIFY_PREVIEW_SERVICE_KEY; writes/publication/schedule flags false. No credentials read or changed. Latest verified READY sync-branch deployment https://matchlatch-pwuq4pfkz-matchlatch.vercel.app / dpl_86w4t9tM2zdxnzx3DFeWM4DMNn4u / f34b9e3e1825c5d4f5f737528fa49674459d57ed. Direct isolated DB read-back reconfirms all counts/jobs/state/seen/audit zero and no anon/authenticated table SELECT grants; this is not deployed service-key/REST proof. No MATCHLATCH owner session is available to execute owner status or independent Shopify auth. Next milestone: Founder saves the two values from WO-ML-018E directly in Vercel (Preview only, exact sync branch; legacy service_role JWT Sensitive), redeploys correct branch, and signs in as owner. Then validate GET shopify-sync-status and shopify-sync-auth separately. No sync/dry run or other mutations authorized/performed.
+No SQL/data/schema/RLS/storage/migration operations. Native SQL/isolation tests NOT RUN. No hosted substitute.
 
----
+## 8. Deployment & Infrastructure
 
-## WO-ML-018D — schema installation PASS, 2026-10-14
 
-Founder approval “Approve” received in the explicit WO-ML-018D approval context. Exact destination lqxeizvrdxuhzvipmlkl reconfirmed MATCHLATCH-SHOPIFY-PREVIEW, ca-central-1, ACTIVE_HEALTHY; empty application baseline captured in docs/WO-ML-018D-EMPTY-BASELINE.md before execution. Local and GitHub SQL blob matched a5af019bc8da9323a640f2bf3f54065b21d37634.
+No changes. Retained latest listed candidate https://matchlatch-26vezpn9o-matchlatch.vercel.app/ / dpl_Ei4Hg6kGfCLGztPqeGQ6Z2hMoyj8 / recovered248 tree98c5e83bd836f4548c1082d8a9ebf2fde227da94 remains historical evidence, not exact Founder incident binding. Last-good UNKNOWN. UUID503 cause UNVERIFIED. Current ENV presence/scope unverified, not missing-config proof. No values or sessions retrieved. No CI trigger or ref movement. Rollback means decline local delta and retain pinned base, not provider action.
 
-LOCAL_VERIFIED: pinned @electric-sql/pglite 0.5.9, MATCHLATCH_PGLITE_MODULE=/tmp/matchlatch-sql-018d/node_modules/@electric-sql/pglite/dist/index.js node --test scripts/test-shopify-sync-sql.mjs: 8 passed, 0 failed, 0 skipped. Covers rollback/checkpoints, permissions, fencing, publication rejection/revocation and daily deduplication in ephemeral DB only.
+## 9. External Integrations
 
-EXTERNAL_VERIFIED: applied exact unmodified SQL once through apply_migration, name wo_ml_018d_shopify_sync_schema, migration version 20261014225422, success=true. Read-back: five tables, RLS true on each; three security-invoker functions; anon/authenticated SELECT and function EXECUTE false, service_role true. Ten total indexes including PK/unique indexes (four explicit secondary indexes). All product counts, jobs, state, seen and audit rows zero; auth users zero.
+Multica authenticated issue/history/family read/status/attachment/final comment. GitHub connector read hub7/body/comments and main AGENTS404. gh unavailable (exit127); corrected connector parameter validation before successful reads, no installation. No GitHub writes. Existing source governance read as proposed-only reference. No auth browser/session hunt, secrets or live Supabase/Shopify/Awin/OpenAI/admin/model calls.
 
-Security advisor: five INFO rls_enabled_no_policy notices, one per intentionally server-only table. This is consistent with revoked client grants and no client policies; do not add public policies to silence it. Reference: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy . No other security findings returned.
+## 10. Architecture & Product Decisions
 
-Limits: live PostgREST/owner status not verified; Vercel database credential configuration remains unauthorized/unperformed. No synthetic/live data writes after schema install, imports, publication, scheduling, purchases, merge, Production or Awin changes. Shopify authentication separately unverified. Recovery baseline is catalog evidence, not provider backup/PITR; post-commit reversal remains separately authorized.
+Keep synchronous SDK receipt limited to counters; defer cloud work outside auth lock. authSwitch is completion generation; sessionRevision remains initial lookup/queued callback ordering. Identity-changing receipt invalidates old generation before asynchronous hydration can settle. Same-account receipt does not invalidate or recreate cloud hydration. An intervening different identity conservatively fences old work even if later callbacks return to prior account; no automatic protected-action retry introduced. Owner capability/API guards and navigation/dashboard untouched.
 
-Next milestone: separately authorize secure branch-scoped Preview database URL/service-key configuration, then read-only REST/owner-status validation. Do not run import/dry-run ledger or activate flags.
+## 11. Security, Privacy & Data Integrity Invariants
 
----
 
-## WO-ML-018C-V3 — current destination checkpoint
+No hardcoded identity/all-authenticated owner grants or guard weakening. Existing owner UUID/confirmed/guest/nonowner/Production restrictions unchanged. Account/private wardrobe/photo/source/variant/rights/noindex/beta/budget/purchase-disabled safeguards preserved. Synthetic account IDs only. No operational admin requests or mutations.
 
-2026-10-14: lqxeizvrdxuhzvipmlkl independently verified MATCHLATCH-SHOPIFY-PREVIEW, ca-central-1, ACTIVE_HEALTHY, same Free organization; distinct host from shared/customer-auth odxqxymwlwnbqginqems. Inspected public schema/routines, auth users, storage objects, subscriptions, foreign servers and Realtime tables all zero; security advisor no lints. No exhaustive external dependency or billing/backup/API exposure proof claimed. Preview DB variables absent; three activation flags false. Read-only inspection only; first metadata query error corrected with successful query. Exact SQL blob a5af019bc8da9323a640f2bf3f54065b21d37634 and gated validation/recovery/config table/approval request: docs/WO-ML-018C-V3-DESTINATION-APPROVAL.md. No migration, imports, configuration, publication, scheduler, Production or Awin changes. Shopify auth separately unverified. Next: exact-destination migration approval after reviewing packet; no approval inferred. Prior records below are historical and superseded where contradictory.
+## 12. Known Risks & Technical Debt
 
-## WO-ML-018C — 2026-10-14 current database checkpoint
+Q-NAV11-01 Medium stale-completion defect reproduced on exact base and locally corrected; independent changed-only closure PENDING. Mitigation is receipt-time completion fencing; Queen must verify exact successor. This is a stale event/action-resumption hook defect, not demonstrated server permission compromise. Owner convenience link can remain until deferred auth transition; not a claim of immediate SDK-receipt identity clearing. Exact incident URL/source/last-good/current env scope UNKNOWN. Local synthetic tests cannot prove deployed/live owner journeys. Preserve all full V1.2/catalog/rights/SQL/nightly/B1N/B2/AO/release holds.
 
-BLOCKED: only shared project odxqxymwlwnbqginqems visible; no isolated project authorized/identified and both MATCHLATCH_SHOPIFY_PREVIEW_SUPABASE_URL / MATCHLATCH_SHOPIFY_PREVIEW_SERVICE_KEY absent. Writes/publication/schedule flags false. Full exact setup, key compatibility constraint, migration scope, read-only validation, recovery and provisioning approval packet: docs/WO-ML-018C-DATABASE-READINESS.md. Read-only order does not authorize even durable dry-run bookkeeping. Shopify authentication remains separately unverified; database error is not authentication proof. Next milestone: Founder supplies only non-secret authorized isolated project identity, or separately approves a reviewed creation plan/cost. No infrastructure, SQL, imports or application changes performed; no tests rerun for docs only. Prior verification records below remain historical.
+## 13. Authorized Next Work
 
-## WO-ML-018B-V1 — BLOCKED (2026-10-14 22:07 UTC)
+Mika collect exact pinned successor and evidence for Queen independent changed-only retest: two previously failing receipt→old completion→timer cases, three previously passing adversarial cases, valid same-account refresh/dedup, queued/reversed/latest callbacks, existing delayed initial lookup and owner/root/nav/dashboard guards. Definition of local delivery: minimal patch, exact replay and targeted checks. Stop at independent disposition; no author acceptance, successor dispatch/event or automatic retry. No new Founder approval needed for this routine authorized local correction.
 
-EXTERNAL_VERIFIED configuration metadata: SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET (Sensitive), SHOPIFY_STORE_DOMAIN and SHOPIFY_ADMIN_API_VERSION exist for Preview branch feature/wo-ml-018a-nightly-shopify-sync. Values were not read; presence does not prove correctness. SHOPIFY_ADMIN_READ_TOKEN absent. Writes/schedule/publication flags all false. A second Preview-wide SHOPIFY_CLIENT_SECRET entry exists; branch-specific entry is present; no configuration mutated.
+## 14. Investigation Only
 
-Latest sync-branch Preview: https://matchlatch-8q0um6p8d-matchlatch.vercel.app, dpl_6Y5yiqS6AEvEYmzzD7jdkyH1rvSS, READY, commit 4724cb551aa197f2d69613dfcfba0ba1019ad19e. Latest overall Preview is instead https://matchlatch-b26erbvaq-matchlatch.vercel.app, dpl_3NQKhmWeEvdVxEmbLJrLPRkReskk, source main 302fa9c3d83263ca25c3ed6252665fb73f06c569. Thus the reported redeploy is not a verified redeploy of the authentication implementation with the newly saved settings.
 
-Read-only GET to sync-branch /api/admin-summary?action=shopify-sync-auth returned HTTP 403 {"error":"Forbidden"} without an owner session. This verifies the owner gate only; token exchange, shop identity, API version, scopes, sampleProducts and hasMore are NOT VERIFIED (no count invented). No owner session is available through the connector; deployment protection access is not MATCHLATCH owner authentication.
+Reconcile existing records for exact failing Preview URL/source and last-good. Metadata-only config presence/scope only via established permitted surface; no values or settings changes. Do not infer incident from latest listed248.
 
-Exact next milestone: Vercel → MATCHLATCH → Deployments → select deployment 6Y5yiqS6AEvEYmzzD7jdkyH1rvSS (branch feature/wo-ml-018a-nightly-shopify-sync, commit 4724cb55) → Redeploy to Preview with current environment. Do not select main or Production. Open that new Preview, sign in as the existing MATCHLATCH owner, then run the same-origin read-only check using the browser's existing session. Never copy tokens/secrets to chat.
+## 15. Blocked / Requires Human Action
 
-No code/test changes, secrets read, database writes/migrations, scheduling/publication activation, Production changes, merge, purchase, spending or Awin work. Prior unit/CI results remain historical. Local source 7b1540d45570a95350852bc0a1783434177933ed has identical tree to remote 4724cb55; initially clean. Only HANDOFF.md updated this session; governance worktree preserved. Current canonical governance record in PR #10 read.
 
-Owner action (Preview browser console, after owner login; reads existing session without printing it):
+Legitimate owner browser/control unavailable; live Preview smoke NOT RUN. Exact incident URL still unbound; if records remain ambiguous, smallest owner clarification through Mika is exact failing Preview URL. No broad setup/model allocation question; existing OpenAI allocation established. These do not block local correction.
 
-```js
-await (async () => {
- const cfg = await (await fetch('/api/auth-config', {cache:'no-store'})).json();
- const {createClient} = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
- const client = createClient(cfg.url, cfg.publishableKey, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
- const {data} = await client.auth.getSession();
- if (!data.session) return console.log('Sign in as the MATCHLATCH owner on this Preview first.');
- const response = await fetch('/api/admin-summary?action=shopify-sync-auth', {headers:{Authorization:'Bearer '+data.session.access_token},cache:'no-store'});
- console.log({status:response.status,result:await response.json()});
-})();
-```
+## 16. Explicitly Frozen / Not Authorized
 
----
 
-# Current resume checkpoint — 2026-10-14 app authentication
+No main merge/PR/remote publication/ref move/deploy/access/config/credential/new service/install/spend/Production/import/private publication/DB/activation/payments/orders/scheduler actions. Awin frozen. B1N/B2/AO/OptionB/consumed-authority holds retained; V1.3/V1.4 future. Checkout DESIGN PASS36 remains zero TEST journeys.
 
-PR #9 authentication directive 6179162968 and issue #7 update 6179163204 received and acknowledged. Inspection HEAD 086d73f63ab81b75f1b5b246ff8b0bc2119b5be4; initially clean. Delivery SHA is recorded in PR/hub after commit. Canonical 0–20 governance record remains in PR #10, not merged or overwritten here.
+## 17. Commands & Operational Reference
 
-Implemented server-only client-credentials exchange, in-reader cache/single-flight, 60-second early renewal, one bounded 401 renewal, strict read_products/read_inventory scope gate, sanitization/timeouts/response caps, existing read-token compatibility, and owner-only Preview auth diagnostic independent of DB. Setup: docs/SHOPIFY-PREVIEW-AUTH-SETUP.md. New files: lib/shopify-admin-auth.mjs and scripts/test-shopify-admin-auth.mjs; modified reader and sync route. No SQL, workflow or public browser assets changed.
+python3 verify-delivery.py from a fresh packet verifies base/source manifests, modes, unchanged proof, patch replay and Git content trees. evidence/run-checks.py contains twelve focused scripts/audit/policy/syntax commands using bundled runtime. negative-final.log comes from exact259 application source with only new test supplied. No background jobs, services, process termination, remote changes or tests requiring private access.
 
-LOCAL_VERIFIED: node --test scripts/test-*.mjs: 218 passed, 0 failed, 1 SQL suite skipped (PGlite absent). Static audit, commerce policy and git diff --check passed. No live app credentials, organization eligibility, token exchange, Admin catalog baseline or scheduled tick verified. Existing Production/Preview metadata below is historical, not reverified for this change. No database writes/migrations, publication, scheduler, Production, purchase, paid-service or Awin activation authorized/performed.
+## 18. Key Files & Navigation Map
 
-Next action: Alan securely configures the four branch-scoped Preview variables in the setup guide; rebuild protected Preview and run owner-authorized read-only auth diagnostic. Same-organization eligibility must be established; otherwise authorization-code grant is the supported non-embedded alternative. No secret values in this record. Keep all three write/schedule/publication flags false. DB isolation remains a separate blocker. Review risks: client-credential eligibility unknown; exact scope gate intentionally rejects broader grants; token cache is per reader, not durable/global; previous main/governance divergence preserved. Final self-audit: code/docs/test scope inspected, counts reconciled, no secret values, no release implied. Incoming agents must consult PR #10 full handoff/runbook and current hub before overlapping edits.
+library.js receipt/applyAuth completion generation; scripts/test-auth-completion.mjs seven new regression scenarios adapted from Queen probes with portable paths. scripts/test-auth-producer.mjs retains original nine cases unchanged. owner-navigation.mjs/app-shell.js/admin-dashboard.js/lib/owner-authorization.mjs/api/admin-summary.mjs unchanged. Archived prior handoff retains historical source/deployment evidence.
 
----
-Historical implementation record follows; newer checkpoint above supersedes conflicting authentication/test statements.
+## 19. Assumptions Requiring Verification
 
-# MATCHLATCH handoff — WO-ML-018A
 
-Development branch: `feature/wo-ml-018a-nightly-shopify-sync`.
-Base: `feature/wo-ml-017-unified-discovery` at `815e3ca`.
+No local-to-deployed adoption assumed. Actual incident source/config/session/last-good unknown; current env presence not missing-config proof. Synthetic successful flows do not prove full outfit/fit/delivery/photo/checkout/live isolation/caps/catalog rights or scheduled recurrence. Main governance adoption not established.
 
-Read `docs/WO-ML-018A-NIGHTLY-SHOPIFY-SYNC.md` before any service activation.
-Evidence and remaining gates: `docs/WO-ML-018A-COMPLETION-REPORT.md`.
-Draft PR: https://github.com/atravis817/matchlatch/pull/9.
-Protected READY Preview: https://matchlatch-nkgaop749-matchlatch.vercel.app.
-220 local tests passed with no skips; code commit `458192b` passed GitHub CI.
+## 20. Final Continuity Checklist
 
-The shared Supabase baseline is 899 private **Awin** variants from Watches Of USA, not Shopify. No live catalog rows were altered. Awin modules, account relationships and source data remain preserved.
-
-The sync engine, protected owner/scheduler routes, isolated database proposal,
-approval checks, Store/Studio integration and tests are implemented. No live
-Shopify import or actual nightly scheduler execution has been verified.
-
-Missing prerequisites: authenticated Shopify Admin read access, a separately
-authorized isolated Preview database, live source/policy evidence and recurring
-scheduler validation. Do not use existing Production or shared database secrets
-as substitutes. Query schema execution remains authentication/tool-asset blocked.
-
-Production is 404 for the new sync handler. Never merge main, deploy Production,
-schedule Production, publish private live inventory, register webhooks, place
-orders or add fees without the specific Founder authorization required by the
-work order. Proposed SQL is not a request to apply it to the shared project.
-
-Validation commands:
-
-```sh
-node --test scripts/test-*.mjs
-node scripts/audit.mjs
-node scripts/check-commerce-policy.mjs
-```
-
-For actual SQL integration, set `MATCHLATCH_PGLITE_MODULE` to the installed
-`@electric-sql/pglite@0.5.9` module. CI provisions this pinned temporary dependency.
+Self-audited all0–20 sections; previous handoff archived byte-equal, source/accepted patches preserved. Four changed paths and257 unchanged; portable full-tree replay/pins/modes verified externally. No secrets/actual session or live action. Test checkpoints/failures/counts/limits disclosed. Only Multica status and exactly one final result comment written externally. Local-only, no PR/deployment. Next action: Mika collect exact packet for Queen independent changed-only review.

@@ -12,27 +12,86 @@
   }catch{return '';}
  }
  const destination=item=>safeUrl(item?.merchantProductUrl||item?.productUrl);
- const identity=item=>{const u=destination(item);return item?.shopRef?.productId&&item?.shopRef?.variantId&&u?new URL(u).hostname+'|'+String(item.merchantId||item.shopRef.merchantId||'')+'|'+item.shopRef.productId+'|'+item.shopRef.variantId:null;};
+ // Provider and merchant are explicit namespaces. Legacy references remain unresolved.
+ const reference=item=>{
+  const r=item?.shopRef||item;
+  const provider=r?.provider??(typeof r?.source==='string'?r.source:null);
+  const merchantId=r?.merchantId;
+  if(![provider,merchantId,r?.productId,r?.variantId].every(v=>typeof v==='string'&&v.length>0))return null;
+  if(item?.shopRef&&item.merchantId&&item.merchantId!==merchantId)return null;
+  return {provider,merchantId,productId:r.productId,variantId:r.variantId};
+ };
+ const sourceKey=item=>{const r=reference(item);return r?JSON.stringify([r.provider,r.merchantId,r.productId,r.variantId]):null;};
+ const sameSource=(a,b)=>Boolean(sourceKey(a)&&sourceKey(a)===sourceKey(b));
+ const identity=item=>item?.shopRef&&destination(item)&&item?.sourceState?.status!=='unavailable'&&item?.sourceState?.redacted!==true?sourceKey(item):null;
+ const optionKey=options=>JSON.stringify((Array.isArray(options)?options:[]).map(o=>[String(o.name),String(o.value)]).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
+ const canSave=item=>Boolean(reference(item)&&['shopify_storefront','awin'].includes(reference(item).provider)&&item?.saveAllowed===true&&!item.evaluationOnly&&item.available===true);
+ // Conservative local retention policy until exact licensed retention rights are supplied.
+ // User-authored fields and associations survive; merchant snapshots are an allowlist.
+
+ function sanitizeState(input,previous,{allowRetained=false}={}){
+  const state=JSON.parse(JSON.stringify(input||{})),blocked=new Set();
+  const walk=(v,fn)=>{if(!v||typeof v!=='object')return;if(Array.isArray(v)){v.forEach(x=>walk(x,fn));return;}fn(v);for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k))walk(x,fn);};
+  for(const root of [previous,state])walk(root,v=>{if(v.sourceState?.redacted===true&&sourceKey(v))blocked.add(sourceKey(v));});
+  walk(state,v=>{
+   if(!v.shopRef&&!(v.productId&&v.variantId))return; // User-original records, notes and photos are outside merchant retention.
+   const key=sourceKey(v),redact=!key||blocked.has(key)||!allowRetained||v.sourceState?.rights!=='retained';
+   const unavailable=redact||v.sourceState?.status==='unavailable';
+   if(redact){
+    const keep=new Set(['id','lookId','inspirationId','pieceIndex','type','slot','quantity','owned','userNotes','notes','userPhoto','userPhotos','createdAt','provider','merchantId','productId','variantId','shopRef','sourceState','source','wanted','userIntent','userPurchase']);
+    for(const field of Object.keys(v))if(!keep.has(field))delete v[field];
+    if(v.shopRef){const ref=v.shopRef;v.shopRef=Object.fromEntries(['provider','merchantId','productId','variantId','slot'].filter(k=>typeof ref[k]==='string').map(k=>[k,ref[k]]));}
+    v.description='Unavailable merchant reference';
+   }
+   v.sourceState={status:unavailable?'unavailable':'available',rights:redact?'unresolved':'retained',redacted:redact};
+  });
+  // Composite merchant-derived imagery can contain a withdrawn source. Preserve only
+  // explicitly user-original photos (inspirationId/userPhoto), never generated previews.
+  for(const look of state.looks||[])if((look.pieces||[]).some(p=>p.sourceState?.redacted)){
+   for(const field of ['derivedImage','derivedImages','generatedImage','productImage','merchantSnapshot','styleNotes'])delete look[field];
+  }
+  return state;
+ }
+ function sourceTransition(state,ref,{reason,rightsRetained=false}={}){
+  if(!sourceKey(ref))throw Error('Unresolved source identity');
+  if(!['stockout','delisted','permission_revoked','unresolved'].includes(reason))throw Error('Invalid source transition');
+  const next=JSON.parse(JSON.stringify(state));
+  const visit=v=>{if(!v||typeof v!=='object')return;if((v.shopRef||v.productId&&v.variantId)&&sameSource(v,ref))v.sourceState={status:'unavailable',rights:reason==='stockout'&&rightsRetained?'retained':'unresolved',redacted:reason!=='stockout'||!rightsRetained};for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k)){if(Array.isArray(x))x.forEach(visit);else visit(x);}};
+  visit(next);return sanitizeState(next,state,{allowRetained:true});
+ }
+
  function groupCart(cart){
   const groups=new Map(),unresolved=[];
   for(const item of cart||[]){const u=destination(item),price=cents(item.target),q=quantity(item.quantity);
    if(!identity(item)||item.currency!=='USD'||price===null||q===null){unresolved.push(item);continue;}
-   const host=new URL(u).hostname,merchantId=String(item.merchantId||item.shopRef.merchantId||host),key=merchantId+'|'+host;
+   const host=new URL(u).hostname,merchantId=String(item.merchantId||item.shopRef.merchantId||host),key=JSON.stringify([item.shopRef.provider,merchantId,host]);
    if(!groups.has(key))groups.set(key,{key,host,merchantId,merchant:item.retailer||host,currency:'USD',items:[],subtotalCents:0,units:0});
    const g=groups.get(key);g.items.push(item);g.subtotalCents+=price*q;g.units+=q;
   }
   return {groups:[...groups.values()],unresolved,subtotalCents:[...groups.values()].reduce((n,g)=>n+g.subtotalCents,0)};
  }
- const fingerprint=(group,destination={})=>JSON.stringify({merchant:group.key,lines:group.items.map(i=>[identity(i),quantity(i.quantity),cents(i.target),i.size||'',i.color||'',i.variant||'']).sort((a,b)=>a[0].localeCompare(b[0])),destination});
+ const fingerprint=(group,destination={})=>JSON.stringify({merchant:group.key,lines:group.items.map(i=>[identity(i),quantity(i.quantity),cents(i.target),i.size||'',i.color||'',i.variant||'',optionKey(i.options)]).sort((a,b)=>a[0].localeCompare(b[0])),destination});
  const fresh=(at,now=Date.now())=>Number.isFinite(Date.parse(at))&&Date.parse(at)<=now&&now-Date.parse(at)<=300000;
  function matchVerified(item,live){
-  if(!live||live.productId!==item.shopRef?.productId||live.variantId!==item.shopRef?.variantId||live.currency!==item.currency||live.available!==true||cents(live.price)===null)throw Error('The selected product or variant is no longer verified.');
+  if(!sameSource(item,live)||item?.sourceState?.status==='unavailable'||item?.sourceState?.redacted===true||live?.saveAllowed!==true||live?.evaluationOnly||live.productId!==item.shopRef?.productId||live.variantId!==item.shopRef?.variantId||live.currency!==item.currency||live.available!==true||cents(live.price)===null)throw Error('The selected product or variant is no longer verified.');
   const original=destination(item),current=safeUrl(live.merchantProductUrl||live.url);
   if(!original||!current||new URL(current).hostname!==new URL(original).hostname||(item.merchantId&&live.merchantId!==item.merchantId))throw Error('The retailer association changed. Choose the item again.');
   for(const k of ['size','color'])if(item[k]&&String(live[k]||'')!==String(item[k]))throw Error('The selected '+k+' changed. Choose the item again.');
+  if(optionKey(item.options)!==optionKey(live.options))throw Error('The selected options changed. Choose the item again.');
   if(!fresh(live.checkedAt))throw Error('Availability information expired. Check this item again.');
   return {productUrl:current,priceCents:cents(live.price),priceChanged:cents(live.price)!==cents(item.target),feedOnly:live.stockVerifiedLive===false};
  }
- const api={quantity,cents,safeUrl,destination,identity,groupCart,fingerprint,fresh,matchVerified};
+ function recordOwnedItem(item,details,{id,createdAt=new Date().toISOString()}={}){
+  const managed=Boolean(item?.shopRef||item?.productId&&item?.variantId||item?.source==='retailer');
+  const result={id,inspirationId:item.inspirationId,lookId:item.lookId,type:item.type,slot:item.slot,owned:true,
+   description:managed?'Unavailable merchant reference':item.description,
+   userPurchase:{retailer:String(details.retailer||'').trim().slice(0,100),paid:Number(details.paid),date:String(details.date||'')},
+   notes:String(details.notes||'').trim().slice(0,240),createdAt,source:'user-entered'};
+  for(const k of ['userNotes','userPhoto','userPhotos','userIntent'])if(item[k]!==undefined)result[k]=JSON.parse(JSON.stringify(item[k]));
+  if(item.notes&&!result.userNotes)result.userNotes=String(item.notes);
+  if(managed){const ref=item.shopRef||item;result.shopRef=Object.fromEntries(['provider','merchantId','productId','variantId','slot'].filter(k=>typeof ref[k]==='string').map(k=>[k,ref[k]]));result.sourceState={status:'unavailable',rights:'unresolved',redacted:true};}
+  return result;
+ }
+ const api={recordOwnedItem,reference,sourceKey,sameSource,optionKey,canSave,sanitizeState,sourceTransition,quantity,cents,safeUrl,destination,identity,groupCart,fingerprint,fresh,matchVerified};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.MatchlatchCheckoutModel=Object.freeze(api);
 })(typeof window==='object'?window:globalThis);

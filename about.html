@@ -1,25 +1,88 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <meta name="robots" content="noindex, nofollow">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f8f6">
   <meta name="description" content="Our mission at MATCHLATCH: simpler, smarter, more accessible clothes shopping for everyday people.">
   <title>About Us — MATCHLATCH</title>
   <link rel="icon" type="image/svg+xml" href="/logo-mark.svg">
+  <script>
+    (function(){
+      "use strict";
+      const key="matchlatch-appearance-v1";
+      const allowed=["system","light","dark"];
+      // Same-tab navigation carries appearance only, never account identity or data.
+      const sessionKey="matchlatch-appearance-session-v1";
+      let preference="system";
+      try{const saved=sessionStorage.getItem(sessionKey);if(allowed.includes(saved))preference=saved;}catch{}
+      let accountId=null;
+      // Appearance changes by signed-out visitors are session-only; signed-in choices are account-scoped on this device.
+      const device=()=>window.matchMedia?.("(prefers-color-scheme: dark)")?.matches?"dark":"light";
+      const update=()=>{
+        try{sessionStorage.setItem(sessionKey,preference);}catch{}
+        const theme=preference==="system"?device():preference;
+        document.documentElement.setAttribute("data-theme",theme);
+        document.documentElement.style.colorScheme=theme;
+        const meta=document.querySelector('meta[name="theme-color"]');
+        if(meta)meta.content=theme==="dark"?"#141714":"#f8f8f6";
+      };
+      window.MatchlatchAppearance={
+        get:()=>preference,
+        effective:()=>document.documentElement.getAttribute("data-theme"),
+        set:next=>{
+          if(!allowed.includes(next))return;
+          preference=next;
+          if(accountId)try{localStorage.setItem(key+"-"+accountId,next);}catch{}
+          update();
+          window.dispatchEvent(new CustomEvent("matchlatch:appearance",{detail:{preference,effective:window.MatchlatchAppearance.effective()}}));
+        }
+      };
+      update();
+      window.addEventListener("pageshow",()=>{
+        try{const saved=sessionStorage.getItem(sessionKey);if(allowed.includes(saved))preference=saved;}catch{}
+        update();
+      });
+      window.addEventListener("matchlatch:auth-user",event=>{
+        accountId=event.detail?.user?.id||null;
+        preference="system";
+        if(accountId)try{
+          const stored=localStorage.getItem(key+"-"+accountId);
+          if(allowed.includes(stored))preference=stored;
+        }catch{}
+        update();
+        window.dispatchEvent(new CustomEvent("matchlatch:appearance",{detail:{preference,effective:window.MatchlatchAppearance.effective()}}));
+      });
+      try{
+        const media=window.matchMedia?.("(prefers-color-scheme: dark)");
+        const onSystemChange=()=>{
+          if(preference!=="system")return;
+          update();
+          window.dispatchEvent(new CustomEvent("matchlatch:appearance",{
+            detail:{preference,effective:window.MatchlatchAppearance.effective()}
+          }));
+        };
+        if(media?.addEventListener)media.addEventListener("change",onSystemChange);
+        else if(media?.addListener)media.addListener(onSystemChange);
+      }catch{}
+    })();
+  </script>
   <style>
-    :root{color-scheme:dark;--bg:#19291f;--ink:#f7fbf6;--muted:#c0cebf;--line:rgba(248,255,248,.24);font-family:Inter,"Helvetica Neue",Arial,system-ui,sans-serif}
+    :root{color-scheme:light;--bg:#f8f8f6;--ink:#191a19;--muted:#555e54;--line:#cbd2c9;--header:rgba(248,248,246,.9);--panel:#fff;font-family:Inter,"Helvetica Neue",Arial,system-ui,sans-serif}
+    :root[data-theme="dark"]{color-scheme:dark;--bg:#141714;--ink:#eef3ed;--muted:#b4c0b3;--line:#3b483d;--header:rgba(32,38,32,.9);--panel:#202620}
+    @media(prefers-color-scheme:dark){:root:not([data-theme]){color-scheme:dark;--bg:#141714;--ink:#eef3ed;--muted:#b4c0b3;--line:#3b483d;--header:rgba(32,38,32,.9);--panel:#202620}}
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(145deg,#303c31,var(--bg) 72%);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+    body{margin:0;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
     a{color:inherit}
     a:focus-visible{outline:2px solid currentColor;outline-offset:5px}
     .wrap{width:min(760px,calc(100% - 48px));margin:auto}
-    header{border-bottom:1px solid var(--line);background:rgba(48,60,49,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+    header{border-bottom:1px solid var(--line);background:var(--header);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
     header .wrap{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:20px}
     .brand{font-size:20px;font-weight:800;letter-spacing:-.065em;text-decoration:none}
     .brand span{font-weight:400}
     .back{font-size:13px;color:var(--muted);text-underline-offset:4px}
-    main{padding:72px 0 80px}section{padding:32px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(150deg,rgba(255,255,255,.09),rgba(255,255,255,.025));box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+    main{padding:72px 0 80px}section{padding:32px;border:1px solid var(--line);border-radius:24px;background:var(--panel);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
     .promise{color:var(--muted);margin-top:-24px;margin-bottom:36px}.eyebrow{margin:0 0 18px;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
     h1{margin:0 0 48px;font-size:clamp(40px,7vw,64px);line-height:1.08;letter-spacing:-.055em;font-weight:550}
     h2{margin:0 0 22px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;font-weight:650}
@@ -28,6 +91,15 @@
     footer{border-top:1px solid var(--line);padding:24px 0 32px;color:var(--muted);font-size:11px;letter-spacing:.08em}
     @media(max-width:480px){main{padding:48px 0 56px}section{padding:24px}h1{margin-bottom:36px}p{font-size:16px}.back{font-size:12px}}
   </style>
+
+  <link rel="canonical" href="https://matchlatch.company/about.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="About MATCHLATCH — Personal style and fashion discovery">
+  <meta property="og:description" content="Learn what MATCHLATCH offers today, how retailer discovery works, and which features remain in development.">
+  <meta property="og:url" content="https://matchlatch.company/about.html">
+  <meta property="og:image" content="https://matchlatch.company/matchlatch-email-logo.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://matchlatch.company/#organization", "name": "MATCHLATCH", "url": "https://matchlatch.company/"}, {"@type": "WebSite", "@id": "https://matchlatch.company/#website", "name": "MATCHLATCH", "url": "https://matchlatch.company/", "publisher": {"@id": "https://matchlatch.company/#organization"}}, {"@type": "WebPage", "@id": "https://matchlatch.company/about.html#page", "url": "https://matchlatch.company/about.html", "name": "About MATCHLATCH \u2014 Personal style and fashion discovery", "description": "Learn what MATCHLATCH offers today, how retailer discovery works, and which features remain in development.", "isPartOf": {"@id": "https://matchlatch.company/#website"}}]}</script>
 </head>
 <body>
   <header><div class="wrap"><a class="brand" href="/#studio" aria-label="MATCHLATCH home">MATCH<span>LATCH</span></a><a class="back" href="/#studio">Return to Studio</a></div></header>
@@ -40,6 +112,18 @@
       <p class="lead">At MATCHLATCH, our mission is to make shopping for clothes simpler, smarter, and more accessible for everyday people.</p>
       <p>We help busy, budget-conscious shoppers discover clothing that fits their lives, preferences, and budgets—without the endless searching, confusing sizing, unavailable items, and hassle of shopping across multiple retailers.</p>
       <p>By bringing personalized styling, practical product discovery, and a more convenient shopping experience together, we aim to give people back their time and make getting dressed one less thing to worry about.</p>
+    </section>
+    <section aria-labelledby="how-title" style="margin-top:24px">
+      <h2 id="how-title">What works today?</h2>
+      <p>MATCHLATCH is a private beta for exploring personal style, saving looks and discovering clothing. Product discovery depends on eligible source records and retailer permissions. Live outfit generation and purchases remain disabled in this release.</p>
+      <h3>What is a digital closet?</h3>
+      <p>A digital closet organizes clothing and outfit ideas. My Closet currently supports saved looks, inspiration photos and manual purchase records. A complete owned-item wardrobe and owned-first outfit workflow are still in development.</p>
+      <h3>How does product discovery work?</h3>
+      <p>Store separates reviewed catalog records from participating retailer search. Shopify search is currently owner-only Preview evaluation. Private supplier inventory is excluded from customer results; a discovered listing does not establish checkout or display permission.</p>
+      <h3>Does MATCHLATCH take payment?</h3>
+      <p>No payment is collected in this beta. The reviewed cart groups selections by retailer. Future authorized handoffs may open retailer-hosted checkout separately; shipping, tax and final charges are determined by each retailer.</p>
+      <h3>How can I get started?</h3>
+      <p><a href="/#studio">Explore Studio</a>, then try the clearly labeled fictional demo or review your saved preferences. <a href="/#store">Open Store</a> to inspect available discovery options. Empty results can mean source or permission limits, rather than unavailable clothing everywhere.</p>
     </section>
   </main>
   <footer><div class="wrap">YOUR STYLE, UNLOCKED. · 2026 · PRIVATE BETA</div></footer>

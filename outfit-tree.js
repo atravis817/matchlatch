@@ -121,17 +121,18 @@ function init(data,profile,savedSelections){
    if(savedSelections && typeof savedSelections==="object"){
      for(const [slot,ref] of Object.entries(savedSelections)){
        if(session!==generation)return;
-       if(!slotById(slot)||slot===anchor||!ref?.productId||!ref?.variantId)continue;
+       if(!slotById(slot)||slot===anchor||!window.MatchlatchCheckoutModel.sourceKey(ref)||ref.sourceState?.status==="unavailable")continue;
        const current=stateFor(slot);
        current.loading=true;render();
        try{
          const qs=new URLSearchParams({mode:"verify",id:ref.productId,variant:ref.variantId,
            max:String(Math.max(1,remaining(slot)))});
+         qs.set("provider",ref.provider);qs.set("merchantId",ref.merchantId);
          if(sizeFor(slot))qs.set("size",sizeFor(slot));
          const response=await fetch("/api/shop?"+qs.toString(),{cache:"no-store"});
          const result=await response.json();
          if(session!==generation)return;
-         if(response.ok&&result.item&&result.item.price<=remaining(slot)+.001){
+         if(response.ok&&window.MatchlatchCheckoutModel.sameSource(ref,result.item)&&window.MatchlatchCheckoutModel.optionKey(ref.options)===window.MatchlatchCheckoutModel.optionKey(result.item.options)&&result.item.available===true&&result.item.price<=remaining(slot)+.001){
            current.options=[result.item];current.selected=result.item;current.index=0;
          } else current.message="That saved product isn't available in your size and budget right now.";
        }catch{
@@ -143,7 +144,7 @@ function init(data,profile,savedSelections){
    // Independent catalog lookups run concurrently; each auto-selection still
    // passes the existing remaining-budget check before entering the outfit.
    await Promise.all(autoSlots
-     .filter(slot=>slot!==anchor&&!stateFor(slot).selected)
+     .filter(slot=>slot!==anchor&&!savedSelections?.[slot]&&!stateFor(slot).selected)
      .map(slot=>fetchOptions(slot,true)));
  })();
 }
@@ -240,7 +241,7 @@ async function fetchOptions(slotId,auto=false,custom="",autoSelect=auto){
   state.query=usedQuery;
   if(custom)state.manualQuery=custom;
   if(state.selected&&!custom){
-    const refreshed=state.options.find(x=>x.variantId===state.selected.variantId);
+    const refreshed=state.options.find(x=>window.MatchlatchCheckoutModel.sameSource(x,state.selected));
     state.selected=refreshed||null;
     if(refreshed)state.index=state.options.indexOf(refreshed);
   }
@@ -350,7 +351,7 @@ function renderDrawer(){
   const checkedTime=item.checkedAt?new Date(item.checkedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"recently";
   info.append(node("small",null,"Available when checked at "+checkedTime+" · subject to change"));
   const actions=node("div","private-shop-actions");
-  actions.append(button(state.selected?.variantId===item.variantId?"Selected ✓":"Select this",()=>{
+  actions.append(button(window.MatchlatchCheckoutModel.sameSource(state.selected,item)?"Selected ✓":"Select this",()=>{
     select(id,i);window.MatchlatchLibrary?.chooseShopItem?.(id,item);
   }));
   const shop=document.createElement("a");shop.href=item.merchantProductUrl||item.url;shop.target="_blank";shop.rel="noopener noreferrer";shop.textContent="Retailer ↗";
@@ -359,7 +360,7 @@ function renderDrawer(){
   actions.append(button("＋ Cart",()=>window.MatchlatchLibrary?.cartShopItem?.(id,item),"tree-shop-help"));
   info.append(actions);
   // Savings is a quiet benefit of a chosen match, never a discovery hook.
-  if(state.selected?.variantId===item.variantId)
+  if(window.MatchlatchCheckoutModel.sameSource(state.selected,item))
     window.MatchlatchSavings?.attach?.(info,item);
   card.append(info);results.append(card);
  }

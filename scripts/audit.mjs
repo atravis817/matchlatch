@@ -25,7 +25,7 @@ const analyze=file("api/analyze.mjs");
 const auth=file("api/auth-config.mjs");
 const sql=file("supabase/setup.sql");
 const agent=JSON.parse(file("ucp-agent.json"));
-const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);
+const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].filter(m=>!m[0].includes('type="application/ld+json"')).map(m=>m[1]).filter(Boolean);
 check(inline.length===2,"Early appearance boot and Studio logic are separate");
 for(const [name,source] of [
   ["Appearance initializer",inline[0]],["Studio initializer",inline[1]],
@@ -73,7 +73,7 @@ check(agent.ucp?.capabilities?.["dev.ucp.shopping.catalog.search"]!==undefined,"
 check(analyze.includes('timingSafeEqual')&&analyze.includes('store: false'),"Private beta gate and no-store AI request");
 check(sql.includes("enable row level security")&&sql.includes("public=false"),"Private database and storage policy definitions");
 check(auth.includes("payload.role===\"anon\""),"No service-role key exposed through config");
-check(library.includes("inspirationId:cart.inspirationId")&&library.includes("inspirationId:look.inspirationId"),"Inspiration linkage retained");
+check(library.includes("recordOwnedItem(cart,")&&file("checkout-model.js").includes("inspirationId:item.inspirationId")&&library.includes("inspirationId:look.inspirationId"),"Inspiration linkage retained");
 check(!library.includes('let activeTab='),"Obsolete navigation state removed");
 const savings=file("savings.js");
 const savingsApi=file("api/savings.mjs");
@@ -271,7 +271,7 @@ check(appShell.includes("function storeSizeFor(slot,p)")
   &&appShell.includes('params.set("size",criteria.size)')
   &&appShell.includes('params.set("color",criteria.color)'),
   "All manual Store searches apply saved sizing and curation constraints");
-check(tree.includes('if(state.selected?.variantId===item.variantId)')
+check(tree.includes('if(window.MatchlatchCheckoutModel.sameSource(state.selected,item))')
   &&tree.includes('window.MatchlatchSavings?.attach?.(info,item)'),
   "Awin Savings Check runs only on the selected, qualifying Private Shop item");
 check(analyze.includes("PERSONAL CURATION IS ALWAYS THE FIRST OBJECTIVE")
@@ -379,24 +379,25 @@ check(awinFeed.includes("row.price_and_availability")
   &&awinFeed.includes("Array.isArray(shipment)")
   &&awinFeed.includes("!s.postal_code"),
   "Enhanced Awin Google feeds support nested pricing, category, size/color and region-safe shipping");
-check(webDiscovery.includes('tools:[{type:"web_search",search_context_size:"low"}]')
-  &&webDiscovery.includes('include:["web_search_call.action.sources"]')
-  &&webDiscovery.includes("store:false")
-  &&webDiscovery.includes("acceptsCode(body?.betaCode,code)"),
-  "OpenAI web research requires beta code and returns real indexed citations without storing user search");
-check(webDiscovery.includes("cartEligible:false")
-  &&webDiscovery.includes("verifiedStock:false")
-  &&webDiscovery.includes("verifiedPrice:false")
-  &&webDiscovery.includes("PERSONAL CURATION outranks"),
-  "Web research does not manufacture purchasable products and puts personal styling first");
-check(appShell.includes('button("Explore wider web ↗"')
-  &&appShell.includes('fetch("/api/discover"')
+const researchRoute=file("lib/research-route.mjs"),researchEngine=file("lib/commerce-discovery.mjs"),researchClient=file("research-client.mjs");
+check(webDiscovery.includes("researchRequest")&&!webDiscovery.includes("api.openai.com")
+  &&researchRoute.includes("acceptsCode(body.betaCode")&&researchRoute.includes("authenticate(request)")
+  &&researchRoute.includes("input.consent")&&researchEngine.includes("matchlatch_commerce_reserve")
+  &&researchEngine.includes("external_web_access:POLICY.webSearchLiveFetch"),
+  "Store research delegates to authenticated, consented policy and persistent metering");
+check(researchRoute.includes("cartEligible:false")&&researchRoute.includes("verifiedStock:false")
+  &&researchRoute.includes("verifiedPrice:false")&&researchRoute.includes("canAddToCart:false"),
+  "Research references cannot manufacture purchasable stock or verified prices");
+check(appShell.includes('button("Research Gap & Nordstrom ↗"')
+  &&appShell.includes('requestResearch({query:storeState.query||storeState.slot')
+  &&researchClient.includes("/api/discover")&&appShell.includes("researchConsent.checked")
   &&appShell.includes("Web references are opt-in styling research; never cart-ready products."),
-  "Store's optional web discovery is kept separate from actual cart-eligible retailer listings");
+  "Store has explicit opt-in research kept separate from eligible retailer listings");
 check(file("supabase/awin_joined_candidates.sql").includes("on conflict (advertiser_id) do nothing")
   &&file("JOINED-RETAILERS-WEB-DISCOVERY.md").includes("UNKNOWN (no live feed download)"),
   "Two joined merchants are documented without inventing available feeds or checkout");
-check(file("scripts/test-web-discovery.mjs").includes("Bad code cannot incur web-search cost")
+check(file("scripts/test-store-research.mjs").includes("actual Store route rejects origin, environment, beta, auth and consent before any paid request")
+  &&file("scripts/test-web-discovery.mjs").includes("indexed citations remain references")
   &&file("scripts/test-awin-integration.mjs").includes("Awin joined-programmes endpoint does NOT include"),
   "Web source and Awin joined-product regression suites are present");
 
@@ -465,7 +466,7 @@ check(file("app-shell.css").includes('.v12-date-field input[type="date"]'),
 
 check(file("lib/public-retailer-research.mjs").includes('status:"excluded"')
   &&file("lib/public-retailer-research.mjs").includes('classification:"public_research_reference"')
-  &&file("api/discover.mjs").includes("researchSources(sources)"),
+  &&file("lib/research-route.mjs").includes("researchSources(sources)"),
   "POC-01 restricts commercial collection and identifies research-only citations");
 check(file("api/public-catalog.mjs").includes('automatedProductIngestion:false')
   &&file("scripts/test-public-catalog.mjs").includes('PASS POC-01 policy guardrails'),

@@ -1,6 +1,11 @@
 /* Constraint-preserving product search, independent of AI outfit generation. */
 (function(root){
  'use strict';
+ function handoffCombined(input){
+  const normalizer=typeof module==='object'&&module.exports?require('./studio-request.js'):root.MatchlatchStudioRequest;
+  if(!normalizer)throw Error('Load studio-request.js before Studio search.');
+  return normalizer.studioSearchInput(input);
+ }
  const slots=['hat','scarf','jacket','shirt','watch','belt','pants','socks','shoes'];
  const aliases={hat:/\b(hat|cap|beanie)\b/i,scarf:/\b(scarf|wrap)\b/i,jacket:/\b(jacket|coat|blazer|outerwear)\b/i,shirt:/\b(shirt|top|sweater|hoodie|blouse|polo|tee)\b/i,watch:/\b(watch|timepiece)\b/i,belt:/\bbelt\b/i,pants:/\b(pants|trousers|jeans|shorts|chinos)\b/i,socks:/\bsocks?\b/i,shoes:/\b(shoes?|sneakers?|boots?|loafers?|heels?|trainers?)\b/i};
  function handoff({occasion,style,notes='',slot='',max,size='',sizeSystem='',profile={}}){
@@ -20,5 +25,5 @@
   const sizeKey={shirt:'topSize',jacket:'topSize',pants:'bottomSize',shoes:'shoeSize',hat:'hatSize',belt:'beltSize'}[slot];
   return {query:[color,subtype].filter(Boolean).join(' '),slot,max,size:String(size||profile[sizeKey]||'').slice(0,40),sizeSystem:String(sizeSystem||(slot==='shoes'?profile.shoeSystem||'':'')).slice(0,40),context:JSON.stringify({occasion,style,notes:String(notes).slice(0,350)}),profile};
  }
- if(typeof module==='object'&&module.exports)module.exports={handoff};else root.MatchlatchStudioDiscovery=Object.freeze({handoff});
+ if(typeof module==='object'&&module.exports)module.exports={handoff,handoffCombined};else root.MatchlatchStudioDiscovery=Object.freeze({handoff,handoffCombined});
 })(typeof window==='object'?window:globalThis);
