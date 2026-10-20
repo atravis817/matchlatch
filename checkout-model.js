@@ -33,27 +33,47 @@
   provider:'shopify_storefront',
   merchantId:'pfcdgt-is.myshopify.com',
   productId:'gid://shopify/Product/15499321999554',
-  evidenceRef:'WO-ML-018A-SAMPLE1-APPROVAL-20261018',
+  title:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
+  productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+  productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816',
+  evidenceRefs:Object.freeze(['WO-ML-018A-SAMPLE1-APPROVAL-20261018','FOUNDER-CTO-PREVIEW-ACCEPTANCE-2026-10-20']),
   restorationRef:'WO-ML-018A-SAVED-LOOK-RESTORE-20261020',
-  expiresAt:Date.parse('2026-10-21T20:00:00Z'),
+  allowedExpiresAt:Object.freeze(['2026-10-21T20:00:00Z','2026-11-20T20:00:00Z']),
+  expiresAt:Date.parse('2026-11-20T20:00:00Z'),
   variants:Object.freeze({
    'gid://shopify/ProductVariant/67768739332290':'5b8a5cbe074e7e55d3ca5b83015fa7e18f88cb6159b9755f6eeaa912654a3454',
    'gid://shopify/ProductVariant/67768739397826':'c984433ec31d3fe2e810e553b75b99bc1a51b84215b2fb5a632d955c81872f81'
   })
  });
  const REVOCATION_REASONS=new Set(['delisted','permission_revoked','unresolved']);
+ const productKey=item=>{const r=reference(item);return r?JSON.stringify([r.provider,r.merchantId,r.productId]):null;};
+ function revocationReason(v){
+  const s=v?.sourceState;
+  if(REVOCATION_REASONS.has(s?.reason))return s.reason;
+  if(s?.revoked===true||v?.revoked===true||s?.rightsState==='withdrawn'||v?.rightsState==='withdrawn'||s?.rights==='withdrawn'||s?.reason==='withdrawn')return 'permission_revoked';
+  return null;
+ }
+ function hasCanonicalApprovedContent(v,{requireAll=false}={}){
+  const descOk=v?.description===APPROVED_OWNED_SAMPLE.title;
+  const imgOk=requireAll?v?.productImage===APPROVED_OWNED_SAMPLE.productImage:(v?.productImage===undefined||v?.productImage===APPROVED_OWNED_SAMPLE.productImage);
+  const url=destination(v);
+  const urlOk=requireAll?url===APPROVED_OWNED_SAMPLE.productUrl:((!v?.productUrl&&!v?.merchantProductUrl)||url===APPROVED_OWNED_SAMPLE.productUrl);
+  return Boolean(descOk&&imgOk&&urlOk);
+ }
  function isApprovedSample(v,now=Date.now()){
   const r=reference(v),hash=r&&APPROVED_OWNED_SAMPLE.variants[r.variantId];
-  return Boolean(r&&hash&&r.provider===APPROVED_OWNED_SAMPLE.provider&&r.merchantId===APPROVED_OWNED_SAMPLE.merchantId&&r.productId===APPROVED_OWNED_SAMPLE.productId&&Number.isFinite(now)&&now<=APPROVED_OWNED_SAMPLE.expiresAt&&v?.sourceState?.rights==='retained'&&v?.sourceState?.redacted===false&&!REVOCATION_REASONS.has(v?.sourceState?.reason));
+  const restExp=v?.sourceState?.restoration?.expiresAt;
+  const cap=restExp&&APPROVED_OWNED_SAMPLE.allowedExpiresAt.includes(restExp)?Date.parse(restExp):APPROVED_OWNED_SAMPLE.expiresAt;
+  return Boolean(r&&hash&&r.provider===APPROVED_OWNED_SAMPLE.provider&&r.merchantId===APPROVED_OWNED_SAMPLE.merchantId&&r.productId===APPROVED_OWNED_SAMPLE.productId&&Number.isFinite(now)&&now<=cap&&v?.sourceState?.rights==='retained'&&v?.sourceState?.redacted===false&&!revocationReason(v)&&hasCanonicalApprovedContent(v));
  }
  function isAuthorizedRestore(v,now=Date.now()){
-  if(!isApprovedSample(v,now))return false;
+  if(!isApprovedSample(v,now)||!hasCanonicalApprovedContent(v,{requireAll:true}))return false;
   const rest=v?.sourceState?.restoration,hash=APPROVED_OWNED_SAMPLE.variants[reference(v).variantId];
-  return Boolean(rest&&rest.decisionRef===APPROVED_OWNED_SAMPLE.restorationRef&&rest.evidenceRef===APPROVED_OWNED_SAMPLE.evidenceRef&&rest.materialHash===hash&&Date.parse(rest.expiresAt)===APPROVED_OWNED_SAMPLE.expiresAt&&typeof v?.description==='string'&&v.description&&v.description!=='Unavailable merchant reference');
+  return Boolean(rest&&rest.decisionRef===APPROVED_OWNED_SAMPLE.restorationRef&&APPROVED_OWNED_SAMPLE.evidenceRefs.includes(rest.evidenceRef)&&rest.materialHash===hash&&APPROVED_OWNED_SAMPLE.allowedExpiresAt.includes(rest.expiresAt)&&now<=Date.parse(rest.expiresAt));
  }
 
  function sanitizeState(input,previous,{allowRetained=false,now=Date.now()}={}){
-  const state=JSON.parse(JSON.stringify(input||{})),blocked=new Set(),revoked=new Map(),redactedRefs=new Map(),restoredRefs=new Map(),nonRestoredInState=new Set();
+  const state=JSON.parse(JSON.stringify(input||{})),blocked=new Set(),revoked=new Map(),revokedProducts=new Map(),redactedRefs=new Map(),restoredRefs=new Map(),nonRestoredInState=new Set(),seenRecIds=new Set(),dupRecIds=new Set(),dupProductInLook=new Set();
   const walk=(v,fn,recId='')=>{
    if(!v||typeof v!=='object')return;
    if(Array.isArray(v)){v.forEach((x,i)=>walk(x,fn,typeof x?.id==='string'&&x.id?recId:recId+'#'+i));return;}
@@ -62,10 +82,17 @@
    fn(v,nextRec);
    for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k))walk(x,fn,nextRec?nextRec+'.'+k:k);
   };
+  for(const look of state.looks||[]){
+   const seenProducts=new Set();
+   for(const p of look?.pieces||[]){
+    const pk=productKey(p);if(!pk)continue;
+    if(seenProducts.has(pk))dupProductInLook.add(pk);else seenProducts.add(pk);
+   }
+  }
   for(const root of [previous,state])walk(root,(v,recId)=>{
-   const key=sourceKey(v);if(!key)return;
-   if(REVOCATION_REASONS.has(v.sourceState?.reason))revoked.set(key,v.sourceState.reason);
-   if(v.sourceState?.redacted===true){
+   const key=sourceKey(v),pk=productKey(v),revReason=revocationReason(v);if(!key)return;
+   if(revReason){revoked.set(key,revReason);if(pk)revokedProducts.set(pk,revReason);}
+   if(v.sourceState?.redacted===true||revReason){
     blocked.add(key);
     if(!redactedRefs.has(key))redactedRefs.set(key,new Set());
     redactedRefs.get(key).add(recId||'__anon__');
@@ -73,6 +100,7 @@
   });
   walk(state,(v,recId)=>{
    const key=sourceKey(v);if(!key)return;
+   if(recId){if(seenRecIds.has(recId))dupRecIds.add(recId);else seenRecIds.add(recId);}
    if(isAuthorizedRestore(v,now)&&recId){
     if(!restoredRefs.has(key))restoredRefs.set(key,new Set());
     restoredRefs.get(key).add(recId);
@@ -82,17 +110,17 @@
   });
   for(const key of [...blocked]){
    const redSet=redactedRefs.get(key),resSet=restoredRefs.get(key);
-   if(!revoked.has(key)&&!nonRestoredInState.has(key)&&redSet?.size&&resSet?.size&&[...redSet].every(id=>id!=='__anon__'&&resSet.has(id))){
+   if(!revoked.has(key)&&!nonRestoredInState.has(key)&&redSet?.size&&resSet?.size&&[...redSet].every(id=>id!=='__anon__'&&!dupRecIds.has(id)&&resSet.has(id))){
     blocked.delete(key);
    }
   }
-  walk(state,v=>{
+  walk(state,(v,recId)=>{
    if(!v.shopRef&&!(v.productId&&v.variantId))return; // User-original records, notes and photos are outside merchant retention.
    const approvedOwned=isApprovedSample(v,now),restoredOwned=isAuthorizedRestore(v,now);
-   const key=sourceKey(v),wasRedacted=redactedRefs.has(key);
-   const redact=!key||revoked.has(key)||blocked.has(key)||(wasRedacted&&!restoredOwned)||(!allowRetained&&!approvedOwned)||v.sourceState?.rights!=='retained';
+   const key=sourceKey(v),pk=productKey(v),wasRedacted=redactedRefs.has(key),revReason=revocationReason(v)||revoked.get(key)||revokedProducts.get(pk);
+   const redact=!key||Boolean(revReason)||blocked.has(key)||dupRecIds.has(recId)||dupProductInLook.has(pk)||(wasRedacted&&!restoredOwned)||(!allowRetained&&!approvedOwned)||v.sourceState?.rights!=='retained';
    const unavailable=redact||v.sourceState?.status==='unavailable';
-   const prevReason=REVOCATION_REASONS.has(v.sourceState?.reason)?v.sourceState.reason:revoked.get(key);
+   const prevReason=revReason;
    const keepRestore=!redact&&restoredOwned?JSON.parse(JSON.stringify(v.sourceState.restoration)):null;
    if(redact){
     const keep=new Set(['id','lookId','inspirationId','pieceIndex','type','slot','quantity','owned','userNotes','notes','userPhoto','userPhotos','createdAt','provider','merchantId','productId','variantId','shopRef','sourceState','source','wanted','userIntent','userPurchase']);

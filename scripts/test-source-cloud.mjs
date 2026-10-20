@@ -115,6 +115,41 @@ test('scoped authorized restoration heals default-denied local cache while prese
  const unknownVariantLook=makeLook('look-m',{},{shopRef:{...shopRef,variantId:'gid://shopify/ProductVariant/67768739365058'}});
  assert.equal(model.sanitizeState({looks:[unknownVariantLook]}).looks[0].pieces[0].sourceState.redacted,true);
  assert.equal(model.sanitizeState({looks:[restoredRemote]},undefined,{now:Date.parse('2026-10-21T20:00:01Z')}).looks[0].pieces[0].sourceState.redacted,true);
+ const extendedRemote=makeLook('look-ext',{},{sourceState:{status:'available',rights:'retained',redacted:false,restoration:{...restoration,expiresAt:'2026-11-20T20:00:00Z'}}});
+ assert.equal(model.sanitizeState({looks:[extendedRemote]},{looks:[makeLook('look-ext',{styleNotes:undefined},{description:'Unavailable merchant reference',productImage:undefined,sourceState:{status:'unavailable',rights:'unresolved',redacted:true}})]},{now:Date.parse('2026-11-15T12:00:00Z')}).looks[0].pieces[0].sourceState.redacted,false);
+ assert.equal(model.sanitizeState({looks:[extendedRemote]},undefined,{now:Date.parse('2026-11-20T20:00:01Z')}).looks[0].pieces[0].sourceState.redacted,true);
+ // 4b. SAVE-SEC-01: Explicit revoked=true and rightsState='withdrawn' encodings (sourceState or piece-level) always scrub and block sibling variants.
+ for(const revOverride of [
+  {sourceState:{status:'available',rights:'retained',redacted:false,revoked:true,restoration}},
+  {sourceState:{status:'available',rights:'retained',redacted:false,rightsState:'withdrawn',restoration}},
+  {revoked:true,sourceState:{status:'available',rights:'retained',redacted:false,restoration}},
+  {rightsState:'withdrawn',sourceState:{status:'available',rights:'retained',redacted:false,restoration}}
+ ]){
+  const revLook=makeLook('look-rev-enc',{},revOverride);
+  const siblingLook=makeLook('look-sib',{},{shopRef:{...shopRef,variantId:'gid://shopify/ProductVariant/67768739397826'},sourceState:{status:'available',rights:'retained',redacted:false,restoration:{...restoration,materialHash:'c984433ec31d3fe2e810e553b75b99bc1a51b84215b2fb5a632d955c81872f81'}}});
+  const s=model.sanitizeState({looks:[revLook,siblingLook]});
+  assert.equal(s.looks[0].pieces[0].sourceState.redacted,true);
+  assert.equal(s.looks[0].pieces[0].sourceState.reason,'permission_revoked');
+  assert.equal(s.looks[1].pieces[0].sourceState.redacted,true);
+ }
+ // 4c. SAVE-SEC-03: Canonical content binding rejects tampered description, productImage or productUrl even when materialHash matches.
+ for(const tamper of [
+  {description:'Tampered Product Title'},
+  {productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/tampered.png'},
+  {productUrl:'https://pfcdgt-is.myshopify.com/products/tampered-handle',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/tampered-handle'}
+ ]){
+  const tamperedLook=makeLook('look-restore',{},{...tamper,sourceState:{status:'available',rights:'retained',redacted:false,restoration}});
+  const s=model.sanitizeState({looks:[tamperedLook]},{looks:[defaultDeniedLocal]});
+  assert.equal(s.looks[0].pieces[0].sourceState.redacted,true);
+  assert.equal(s.looks[0].pieces[0].productImage,undefined);
+ }
+ // 4d. SAVE-COVERAGE-04: Duplicate same-product pieces within a look or colliding look IDs fail closed.
+ const sameProdLook={...restoredRemote,id:'look-same-prod',pieces:[restoredRemote.pieces[0],{...restoredRemote.pieces[0],shopRef:{...shopRef,variantId:'gid://shopify/ProductVariant/67768739397826'}}]};
+ const sameProdSanitized=model.sanitizeState({looks:[sameProdLook]});
+ assert.equal(sameProdSanitized.looks[0].pieces[0].sourceState.redacted,true);
+ assert.equal(sameProdSanitized.looks[0].pieces[1].sourceState.redacted,true);
+ const collidingIdSanitized=model.sanitizeState({looks:[restoredRemote,restoredRemote]},{looks:[defaultDeniedLocal]});
+ assert.equal(collidingIdSanitized.looks[0].pieces[0].sourceState.redacted,true);
  // 5. Deliberate authorized restoration heals default-denied local cache across cloud pull with zero redaction writebacks.
  const cache=new Map([['matchlatch-cloud-cache-v1-owner-1',JSON.stringify({state:{looks:[defaultDeniedLocal]},pending:[]})]]),writes=[];
  let shown,sync;
