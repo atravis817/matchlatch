@@ -205,19 +205,37 @@
     element.src=data;
     element.alt="Original inspiration photo";
   }
-  function imageFrame(id,cls="library-card-photo") {
+  function safeCatalogImageUrl(value){
+    return window.MatchlatchCheckoutModel?.safeUrl?.(value,{checkout:false})||"";
+  }
+  function imageFrame(id,cls="library-card-photo",productImage="") {
     const wrap=document.createElement("div");
     wrap.className=cls;
     const img=document.createElement("img");
     img.alt="Original inspiration photo";
     img.loading="lazy";
     wrap.append(img);
+    const safeProductImage=!id&&productImage?safeCatalogImageUrl(productImage):"";
+    if(safeProductImage){
+      img.src=safeProductImage;
+      img.alt="Saved catalog product";
+      img.referrerPolicy="no-referrer";
+      img.addEventListener("error",()=>{
+        if(!img.isConnected)return;
+        img.remove();
+        const fallback=document.createElement("span");
+        fallback.className="placeholder";
+        fallback.textContent="Catalog product image unavailable";
+        wrap.append(fallback);
+      },{once:true});
+      return wrap;
+    }
     attachPhoto(img,id).then(()=>{
       if(!img.getAttribute("src")&&img.isConnected) {
         img.remove();
         const fallback=document.createElement("span");
         fallback.className="placeholder";
-        fallback.textContent=activeUser?"Photo unavailable — reconnect to sync":"Photo unavailable on this device";
+        fallback.textContent=!id?"Catalog outfit — no inspiration photo":activeUser?"Photo unavailable — reconnect to sync":"Photo unavailable on this device";
         wrap.append(fallback);
       }
     });
@@ -738,7 +756,8 @@
     headings.append(node("h2",null,look.label));
     top.append(headings,btn("Close details ×",()=>{selectedLookDetail=null;renderStyles();},"library-subtle"));
     detail.append(top);
-    detail.append(imageFrame(look.inspirationId,"look-detail-photo"));
+    const detailPhoto=(look.pieces||[]).map(p=>safeCatalogImageUrl(p?.productImage)).find(Boolean)||"";
+    detail.append(imageFrame(look.inspirationId,"look-detail-photo",detailPhoto));
     if(look.styleNotes)detail.append(node("p","library-meta",look.styleNotes));
     const list=node("div","look-detail-items");
     look.pieces.forEach((piece,index)=>{
@@ -747,7 +766,14 @@
       text.append(node("div","library-meta",piece.type+" · Target "+money(piece.target)));
       text.append(node("strong",null,piece.description));
       const actions=node("div","library-actions");
-      actions.append(link(piece.searchQuery));
+      const directUrl=window.MatchlatchCheckoutModel?.destination?.(piece)||"";
+      if(directUrl){
+        const a=node("a",null,"Open retailer ↗");
+        a.href=directUrl;a.target="_blank";a.rel="noopener noreferrer";
+        actions.append(a);
+      }else{
+        actions.append(link(piece.searchQuery));
+      }
       actions.append(btn(favoriteExists(look.id,index)?"Remove favorite":"Favorite",()=>{toggleFavorite(look.id,index);renderStyles();}));
       actions.append(btn(cartExists(look.id,index)?"In cart ✓":"Add to cart",()=>{addToCart(look.id,index);renderStyles();}));
       item.append(text,actions);list.append(item);
@@ -756,7 +782,7 @@
     const bottom=node("div","library-actions");
     bottom.append(btn("Shop this outfit ↗",()=>void reopenTree(look.id),"library-primary"));
     bottom.append(btn(look.saved?"Remove saved outfit":"Save outfit",()=>toggleSaveLook(look.id)));
-    bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
+    if(look.inspirationId)bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
     bottom.append(collectionPicker(look.inspirationId));
     detail.append(bottom);
     target.append(detail);
@@ -768,9 +794,9 @@
     box.append(btn(buttonLabel,()=>startFreshStudio(),"library-primary"));
     parent.append(box);
   }
-  function makeCard(inspirationId,title,meta,description) {
+  function makeCard(inspirationId,title,meta,description,productImage="") {
     const card=node("article","library-card");
-    card.append(imageFrame(inspirationId));
+    card.append(imageFrame(inspirationId,"library-card-photo",productImage));
     const body=node("div","library-card-body");
     body.append(node("div","library-meta",meta),node("h3","library-card-title",title));
     if(description)body.append(node("p",null,description));
@@ -815,14 +841,16 @@
     }
     const grid=node("div","library-grid");
     for(const look of looks) {
+      const lookImage=(look.pieces||[]).map(p=>safeCatalogImageUrl(p?.productImage)).find(Boolean)||"";
       const {card,body}=makeCard(look.inspirationId,look.label,
         (look.mode==="ai"?"AI curated":"Guided styling")+" · "+dateLabel(look.createdAt),
         [...(look.shopSelections?Object.values(look.shopSelections).map(x=>x.title):[]),
-          ...look.pieces.slice(0,3).map(x=>x.description)].join(" · "));
+          ...look.pieces.slice(0,3).map(x=>x.description)].join(" · "),
+        lookImage);
       const actions=node("div","library-actions");
       actions.append(btn("Open outfit ↗",()=>openLookDetails(look.id)));
       actions.append(btn("Private Shop ↗",()=>void reopenTree(look.id)));
-      actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
+      if(look.inspirationId)actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
       actions.append(btn("Remove saved outfit",()=>toggleSaveLook(look.id),"quiet-button"));
       actions.append(collectionPicker(look.inspirationId));
       body.append(actions);
@@ -868,7 +896,8 @@
     for(const fav of favorites){
       const {card,body}=makeCard(fav.inspirationId,fav.description,
         fav.type+" · "+(fav.shopRef?"Price when selected ":"Suggested target ")+money(fav.target),
-        "Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"));
+        fav.inspirationId?"Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"):"Saved from Studio catalog",
+        fav.productImage||"");
       const actions=node("div","library-actions");
       void appendLiveShopLink(actions,fav);
       actions.append(btn("Add to cart",()=>addToCart(fav.lookId,fav.pieceIndex)));

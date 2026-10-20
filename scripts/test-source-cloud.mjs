@@ -39,3 +39,98 @@ test('actual cached deletion keeps its tombstone but never caches or uploads mer
  assert.equal(writes[0].is_deleted,true);assert.deepEqual(writes[0].payload,{id:'deleted'});assert.ok(!cache.get('matchlatch-cloud-cache-v1-a').includes('LICENSED_DELETED_TEXT'));assert.ok(!cache.get('matchlatch-cloud-cache-v1-a').includes('deleted.jpg'));
  }finally{if(sync)await sync.setUser(null);for(const [k,v] of Object.entries(prior)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}}
 });
+
+test('approved internal Shopify store saved looks retain product title, image and URL across cloud pull',async()=>{
+ const prior={window:globalThis.window,document:globalThis.document,localStorage:globalThis.localStorage};
+ const lookPayload={
+  id:'look-1',label:'shirt',saved:true,mode:'guided',budget:100,
+  styleNotes:'1 approved Shopify listings in this page.',
+  pieces:[{
+   type:'shirt',slot:'shirt',description:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
+   searchQuery:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',target:40,priceAtSelection:40,
+   shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15499321999554',variantId:'gid://shopify/ProductVariant/67768739332290',slot:'shirt'},
+   sourceState:{status:'available',rights:'retained',redacted:false},
+   merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+   productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+   productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816',
+   retailer:'MATCHLATCH',currency:'USD',size:'S'
+  }]
+ };
+ const cache=new Map(),writes=[];let shown,sync;
+ try{
+  globalThis.window={MatchlatchCheckoutModel:model,addEventListener(){}};globalThis.document={addEventListener(){},visibilityState:'hidden'};
+  globalThis.localStorage={getItem:k=>cache.get(k),setItem:(k,v)=>cache.set(k,v),removeItem:k=>cache.delete(k)};
+  const query={select(){return this;},eq(){return this;},order(){return this;},async range(){return {data:[{kind:'looks',record_id:'look-1',payload:lookPayload,is_deleted:false}]};},async upsert(rows){writes.push(...rows);return {};}};
+  const code=await readFile(new URL('../cloud-sync.js',import.meta.url),'utf8');
+  const {createCloudSync}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+  sync=createCloudSync({from:()=>query},{setState:s=>{shown=s;},setGuest(){},applyProfile(){}});
+  await sync.setUser({id:'owner-1'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(shown.looks[0].pieces[0].description,'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee');
+  assert.equal(shown.looks[0].pieces[0].productImage,'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816');
+  assert.equal(shown.looks[0].pieces[0].sourceState.redacted,false);
+  assert.equal(writes.length,0);
+ }finally{if(sync)await sync.setUser(null);for(const [k,v] of Object.entries(prior)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}}
+});
+
+test('scoped authorized restoration heals default-denied local cache while preserving revocations, duplicates and unknown/expired variants',async()=>{
+ const prior={window:globalThis.window,document:globalThis.document,localStorage:globalThis.localStorage};
+ const shopRef={provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15499321999554',variantId:'gid://shopify/ProductVariant/67768739332290',slot:'shirt'};
+ const restoration={decisionRef:'WO-ML-018A-SAVED-LOOK-RESTORE-20261020',evidenceRef:'WO-ML-018A-SAMPLE1-APPROVAL-20261018',materialHash:'5b8a5cbe074e7e55d3ca5b83015fa7e18f88cb6159b9755f6eeaa912654a3454',restoredAt:'2026-10-20T23:11:13Z',expiresAt:'2026-10-21T20:00:00Z'};
+ const makeLook=(id,overrides={},pieceOverrides={})=>({
+  id,label:'shirt',saved:true,mode:'guided',budget:100,styleNotes:'1 approved Shopify listings in this page.',
+  pieces:[{
+   type:'shirt',slot:'shirt',description:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
+   searchQuery:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',target:40,priceAtSelection:40,
+   shopRef,sourceState:{status:'available',rights:'retained',redacted:false},
+   merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+   productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+   productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816',
+   retailer:'MATCHLATCH',currency:'USD',size:'S',...pieceOverrides
+  }],...overrides
+ });
+ const defaultDeniedLocal=makeLook('look-restore',{styleNotes:undefined},{description:'Unavailable merchant reference',productImage:undefined,merchantProductUrl:undefined,productUrl:undefined,sourceState:{status:'unavailable',rights:'unresolved',redacted:true}});
+ const restoredRemote=makeLook('look-restore',{},{sourceState:{status:'available',rights:'retained',redacted:false,restoration}});
+ const staleRemote=makeLook('look-restore');
+ // 1. Ordinary stale remote copy without restoration stamp does NOT override redacted local state.
+ const staleMerged=model.sanitizeState({looks:[staleRemote]},{looks:[defaultDeniedLocal]});
+ assert.equal(staleMerged.looks[0].pieces[0].sourceState.redacted,true);
+ assert.equal(staleMerged.looks[0].pieces[0].productImage,undefined);
+ // 2. Explicit permission_revoked and delisted transitions are NEVER overridden even by a record with restoration stamp.
+ for(const reason of ['permission_revoked','delisted']){
+  const revokedState=model.sourceTransition({looks:[restoredRemote]},shopRef,{reason});
+  const reloadedRevoked=model.sanitizeState(JSON.parse(JSON.stringify(revokedState)));
+  assert.equal(reloadedRevoked.looks[0].pieces[0].sourceState.reason,reason);
+  const afterStale=model.sanitizeState({looks:[restoredRemote]},reloadedRevoked);
+  assert.equal(afterStale.looks[0].pieces[0].sourceState.redacted,true);
+  assert.equal(afterStale.looks[0].pieces[0].sourceState.reason,reason);
+  assert.equal(afterStale.looks[0].pieces[0].productImage,undefined);
+ }
+ // 3. Duplicate copy where another record is redacted preserves sticky redaction across copies even if one copy carries restoration.
+ const dupOtherRedacted=makeLook('look-dup-2',{styleNotes:undefined},{description:'Unavailable merchant reference',productImage:undefined,sourceState:{status:'unavailable',rights:'unresolved',redacted:true}});
+ const dupMerged=model.sanitizeState({looks:[restoredRemote,dupOtherRedacted]});
+ assert.equal(dupMerged.looks[0].pieces[0].sourceState.redacted,true);
+ assert.equal(dupMerged.looks[1].pieces[0].sourceState.redacted,true);
+ // 4. Unknown variant in pfcdgt-is.myshopify.com (e.g. private size M 67768739365058) and expired approval fail closed.
+ const unknownVariantLook=makeLook('look-m',{},{shopRef:{...shopRef,variantId:'gid://shopify/ProductVariant/67768739365058'}});
+ assert.equal(model.sanitizeState({looks:[unknownVariantLook]}).looks[0].pieces[0].sourceState.redacted,true);
+ assert.equal(model.sanitizeState({looks:[restoredRemote]},undefined,{now:Date.parse('2026-10-21T20:00:01Z')}).looks[0].pieces[0].sourceState.redacted,true);
+ // 5. Deliberate authorized restoration heals default-denied local cache across cloud pull with zero redaction writebacks.
+ const cache=new Map([['matchlatch-cloud-cache-v1-owner-1',JSON.stringify({state:{looks:[defaultDeniedLocal]},pending:[]})]]),writes=[];
+ let shown,sync;
+ try{
+  globalThis.window={MatchlatchCheckoutModel:model,addEventListener(){}};globalThis.document={addEventListener(){},visibilityState:'hidden'};
+  globalThis.localStorage={getItem:k=>cache.get(k),setItem:(k,v)=>cache.set(k,v),removeItem:k=>cache.delete(k)};
+  const query={select(){return this;},eq(){return this;},order(){return this;},async range(){return {data:[{kind:'looks',record_id:'look-restore',payload:restoredRemote,is_deleted:false}]};},async upsert(rows){writes.push(...rows);return {};}};
+  const code=await readFile(new URL('../cloud-sync.js',import.meta.url),'utf8');
+  const {createCloudSync}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
+  sync=createCloudSync({from:()=>query},{setState:s=>{shown=s;},setGuest(){},applyProfile(){}});
+  await sync.setUser({id:'owner-1'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(shown.looks[0].pieces[0].description,'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee');
+  assert.equal(shown.looks[0].pieces[0].productImage,'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816');
+  assert.equal(shown.looks[0].pieces[0].sourceState.redacted,false);
+  assert.deepEqual(shown.looks[0].pieces[0].sourceState.restoration,restoration);
+  assert.equal(writes.length,0);
+ }finally{if(sync)await sync.setUser(null);for(const [k,v] of Object.entries(prior)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}}
+});

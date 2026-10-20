@@ -29,21 +29,78 @@
  // Conservative local retention policy until exact licensed retention rights are supplied.
  // User-authored fields and associations survive; merchant snapshots are an allowlist.
 
- function sanitizeState(input,previous,{allowRetained=false}={}){
-  const state=JSON.parse(JSON.stringify(input||{})),blocked=new Set();
-  const walk=(v,fn)=>{if(!v||typeof v!=='object')return;if(Array.isArray(v)){v.forEach(x=>walk(x,fn));return;}fn(v);for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k))walk(x,fn);};
-  for(const root of [previous,state])walk(root,v=>{if(v.sourceState?.redacted===true&&sourceKey(v))blocked.add(sourceKey(v));});
+ const APPROVED_OWNED_SAMPLE=Object.freeze({
+  provider:'shopify_storefront',
+  merchantId:'pfcdgt-is.myshopify.com',
+  productId:'gid://shopify/Product/15499321999554',
+  evidenceRef:'WO-ML-018A-SAMPLE1-APPROVAL-20261018',
+  restorationRef:'WO-ML-018A-SAVED-LOOK-RESTORE-20261020',
+  expiresAt:Date.parse('2026-10-21T20:00:00Z'),
+  variants:Object.freeze({
+   'gid://shopify/ProductVariant/67768739332290':'5b8a5cbe074e7e55d3ca5b83015fa7e18f88cb6159b9755f6eeaa912654a3454',
+   'gid://shopify/ProductVariant/67768739397826':'c984433ec31d3fe2e810e553b75b99bc1a51b84215b2fb5a632d955c81872f81'
+  })
+ });
+ const REVOCATION_REASONS=new Set(['delisted','permission_revoked','unresolved']);
+ function isApprovedSample(v,now=Date.now()){
+  const r=reference(v),hash=r&&APPROVED_OWNED_SAMPLE.variants[r.variantId];
+  return Boolean(r&&hash&&r.provider===APPROVED_OWNED_SAMPLE.provider&&r.merchantId===APPROVED_OWNED_SAMPLE.merchantId&&r.productId===APPROVED_OWNED_SAMPLE.productId&&Number.isFinite(now)&&now<=APPROVED_OWNED_SAMPLE.expiresAt&&v?.sourceState?.rights==='retained'&&v?.sourceState?.redacted===false&&!REVOCATION_REASONS.has(v?.sourceState?.reason));
+ }
+ function isAuthorizedRestore(v,now=Date.now()){
+  if(!isApprovedSample(v,now))return false;
+  const rest=v?.sourceState?.restoration,hash=APPROVED_OWNED_SAMPLE.variants[reference(v).variantId];
+  return Boolean(rest&&rest.decisionRef===APPROVED_OWNED_SAMPLE.restorationRef&&rest.evidenceRef===APPROVED_OWNED_SAMPLE.evidenceRef&&rest.materialHash===hash&&Date.parse(rest.expiresAt)===APPROVED_OWNED_SAMPLE.expiresAt&&typeof v?.description==='string'&&v.description&&v.description!=='Unavailable merchant reference');
+ }
+
+ function sanitizeState(input,previous,{allowRetained=false,now=Date.now()}={}){
+  const state=JSON.parse(JSON.stringify(input||{})),blocked=new Set(),revoked=new Map(),redactedRefs=new Map(),restoredRefs=new Map(),nonRestoredInState=new Set();
+  const walk=(v,fn,recId='')=>{
+   if(!v||typeof v!=='object')return;
+   if(Array.isArray(v)){v.forEach((x,i)=>walk(x,fn,typeof x?.id==='string'&&x.id?recId:recId+'#'+i));return;}
+   const ownId=typeof v.id==='string'&&v.id?v.id:'';
+   const nextRec=ownId?(recId?recId+':'+ownId:ownId):recId;
+   fn(v,nextRec);
+   for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k))walk(x,fn,nextRec?nextRec+'.'+k:k);
+  };
+  for(const root of [previous,state])walk(root,(v,recId)=>{
+   const key=sourceKey(v);if(!key)return;
+   if(REVOCATION_REASONS.has(v.sourceState?.reason))revoked.set(key,v.sourceState.reason);
+   if(v.sourceState?.redacted===true){
+    blocked.add(key);
+    if(!redactedRefs.has(key))redactedRefs.set(key,new Set());
+    redactedRefs.get(key).add(recId||'__anon__');
+   }
+  });
+  walk(state,(v,recId)=>{
+   const key=sourceKey(v);if(!key)return;
+   if(isAuthorizedRestore(v,now)&&recId){
+    if(!restoredRefs.has(key))restoredRefs.set(key,new Set());
+    restoredRefs.get(key).add(recId);
+   }else if(v.sourceState?.redacted!==true){
+    nonRestoredInState.add(key);
+   }
+  });
+  for(const key of [...blocked]){
+   const redSet=redactedRefs.get(key),resSet=restoredRefs.get(key);
+   if(!revoked.has(key)&&!nonRestoredInState.has(key)&&redSet?.size&&resSet?.size&&[...redSet].every(id=>id!=='__anon__'&&resSet.has(id))){
+    blocked.delete(key);
+   }
+  }
   walk(state,v=>{
    if(!v.shopRef&&!(v.productId&&v.variantId))return; // User-original records, notes and photos are outside merchant retention.
-   const key=sourceKey(v),redact=!key||blocked.has(key)||!allowRetained||v.sourceState?.rights!=='retained';
+   const approvedOwned=isApprovedSample(v,now),restoredOwned=isAuthorizedRestore(v,now);
+   const key=sourceKey(v),wasRedacted=redactedRefs.has(key);
+   const redact=!key||revoked.has(key)||blocked.has(key)||(wasRedacted&&!restoredOwned)||(!allowRetained&&!approvedOwned)||v.sourceState?.rights!=='retained';
    const unavailable=redact||v.sourceState?.status==='unavailable';
+   const prevReason=REVOCATION_REASONS.has(v.sourceState?.reason)?v.sourceState.reason:revoked.get(key);
+   const keepRestore=!redact&&restoredOwned?JSON.parse(JSON.stringify(v.sourceState.restoration)):null;
    if(redact){
     const keep=new Set(['id','lookId','inspirationId','pieceIndex','type','slot','quantity','owned','userNotes','notes','userPhoto','userPhotos','createdAt','provider','merchantId','productId','variantId','shopRef','sourceState','source','wanted','userIntent','userPurchase']);
     for(const field of Object.keys(v))if(!keep.has(field))delete v[field];
     if(v.shopRef){const ref=v.shopRef;v.shopRef=Object.fromEntries(['provider','merchantId','productId','variantId','slot'].filter(k=>typeof ref[k]==='string').map(k=>[k,ref[k]]));}
     v.description='Unavailable merchant reference';
    }
-   v.sourceState={status:unavailable?'unavailable':'available',rights:redact?'unresolved':'retained',redacted:redact};
+   v.sourceState={status:unavailable?'unavailable':'available',rights:redact?'unresolved':'retained',redacted:redact,...(redact&&prevReason?{reason:prevReason}:{}),...(keepRestore?{restoration:keepRestore}:{})};
   });
   // Composite merchant-derived imagery can contain a withdrawn source. Preserve only
   // explicitly user-original photos (inspirationId/userPhoto), never generated previews.
@@ -56,7 +113,7 @@
   if(!sourceKey(ref))throw Error('Unresolved source identity');
   if(!['stockout','delisted','permission_revoked','unresolved'].includes(reason))throw Error('Invalid source transition');
   const next=JSON.parse(JSON.stringify(state));
-  const visit=v=>{if(!v||typeof v!=='object')return;if((v.shopRef||v.productId&&v.variantId)&&sameSource(v,ref))v.sourceState={status:'unavailable',rights:reason==='stockout'&&rightsRetained?'retained':'unresolved',redacted:reason!=='stockout'||!rightsRetained};for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k)){if(Array.isArray(x))x.forEach(visit);else visit(x);}};
+  const visit=v=>{if(!v||typeof v!=='object')return;if((v.shopRef||v.productId&&v.variantId)&&sameSource(v,ref)){const redact=reason!=='stockout'||!rightsRetained;v.sourceState={status:'unavailable',rights:reason==='stockout'&&rightsRetained?'retained':'unresolved',redacted:redact,...(redact&&REVOCATION_REASONS.has(reason)?{reason}:{})};}for(const [k,x] of Object.entries(v))if(!['shopRef','sourceState'].includes(k)){if(Array.isArray(x))x.forEach(visit);else visit(x);}};
   visit(next);return sanitizeState(next,state,{allowRetained:true});
  }
 
