@@ -73,6 +73,11 @@ test('incomplete, duplicate and unknown inventory variants fail safely',()=>{
  p.variants.pageInfo.hasNextPage=false;p.variants.nodes.push(p.variants.nodes[0]);assert.throws(()=>normalized(p),/duplicate_variant/);
  const unknown=product();unknown.variants.nodes[0].inventoryItem.tracked=false;assert.equal(normalized(unknown)[0].available,false);
  unknown.variants.nodes[0].inventoryItem.tracked=true;unknown.variants.nodes[0].inventoryPolicy='CONTINUE';assert.equal(normalized(unknown)[0].available,false);
+ const headless={...product(),onlineStoreUrl:null,handle:'basalt-s-n-jersey-3-4-sleeve-crop-top-tee'};
+ assert.equal(normalized(headless)[0].data.merchantProductUrl,'https://'+STORE_DOMAIN+'/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee');
+ assert.ok(!normalized(headless)[0].warnings.includes('merchant_destination_missing'));
+ const noDest={...product(),onlineStoreUrl:null,handle:''};
+ assert.ok(normalized(noDest)[0].warnings.includes('merchant_destination_missing'));
 });
 test('DST-aware midnight and next run match spring and fall transitions',()=>{
  assert.equal(isMidnightWindow(new Date('2026-07-01T04:00:00Z')),true);assert.equal(isMidnightWindow(new Date('2026-12-01T05:00:00Z')),true);

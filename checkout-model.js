@@ -32,17 +32,84 @@
  const APPROVED_OWNED_SAMPLE=Object.freeze({
   provider:'shopify_storefront',
   merchantId:'pfcdgt-is.myshopify.com',
-  productId:'gid://shopify/Product/15499321999554',
-  title:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
-  productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
-  productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816',
-  evidenceRefs:Object.freeze(['WO-ML-018A-SAMPLE1-APPROVAL-20261018','FOUNDER-CTO-PREVIEW-ACCEPTANCE-2026-10-20']),
+  evidenceRefs:Object.freeze(['WO-ML-018A-SAMPLE1-APPROVAL-20261018','FOUNDER-CTO-PREVIEW-ACCEPTANCE-2026-10-20','FOUNDER-CTO-PHASE5A-MULTISLOT-2026-10-20']),
   restorationRef:'WO-ML-018A-SAVED-LOOK-RESTORE-20261020',
   allowedExpiresAt:Object.freeze(['2026-10-21T20:00:00Z','2026-11-20T20:00:00Z']),
   expiresAt:Date.parse('2026-11-20T20:00:00Z'),
-  variants:Object.freeze({
-   'gid://shopify/ProductVariant/67768739332290':'5b8a5cbe074e7e55d3ca5b83015fa7e18f88cb6159b9755f6eeaa912654a3454',
-   'gid://shopify/ProductVariant/67768739397826':'c984433ec31d3fe2e810e553b75b99bc1a51b84215b2fb5a632d955c81872f81'
+  products:Object.freeze({
+   'gid://shopify/Product/15499321999554':Object.freeze({
+    title:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+    images:Object.freeze(['https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816']),
+    variants:Object.freeze({
+     'gid://shopify/ProductVariant/67768739332290':'5b8a5cbe074e7e55d3ca5b83015fa7e18f88cb6159b9755f6eeaa912654a3454',
+     'gid://shopify/ProductVariant/67768739397826':'c984433ec31d3fe2e810e553b75b99bc1a51b84215b2fb5a632d955c81872f81'
+    })
+   }),
+   'gid://shopify/Product/15499322130626':Object.freeze({
+    title:'DRAKON Faux Leather Crop Top Jacket',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/drakon-faux-leather-crop-top-jacket',
+    images:Object.freeze(['https://cdn.shopify.com/s/files/1/0791/5749/3954/files/GeneratedImageDecember07_2025-6_05PM_2d86b0a6-49fb-48bc-ad62-f53cf5b80d76.png?v=1791808815']),
+    variants:Object.freeze({
+     'gid://shopify/ProductVariant/67768739528898':'13c28f71fcb66242d449f21a1adb60e7b6800ebf49f36c42cb9f4c0a8be6de70',
+     'gid://shopify/ProductVariant/67768739659970':'3794f135f286fd36cf2a331be0c6957b725b5dd6278efb6a68910220ea813949',
+     'gid://shopify/ProductVariant/67768739692738':'6185553cfa3d54c802e45dec82bb728487bec668e931454e3ad77a3d8e8bce30'
+    })
+   }),
+   'gid://shopify/Product/15499322785986':Object.freeze({
+    title:'PANTHEON Washed French Terry Stacked Jogger Pants',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/pantheon-washed-french-terry-stacked-jogger-pants',
+    images:Object.freeze(['https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_ymj2hjymj2hjymj2.png?v=1791808821']),
+    variants:Object.freeze({
+     'gid://shopify/ProductVariant/67768743559362':'7a8f90b8419e54862474b8830c27bfd2de418ea0e97aba463c653a04d4c4e404',
+     'gid://shopify/ProductVariant/67768743592130':'afee4fa721adb6067d49a095705187d2b9abc172d650ac922a671ed4dc94c8c1',
+     'gid://shopify/ProductVariant/67768743624898':'a655253f97a777f4d0eb1f9c5c3e410bef2f58b4fad606c9606a235689810575',
+     'gid://shopify/ProductVariant/67768743657666':'6c4859b4834c9e0c0b0268bb3160fb64cfe47092f38bac7384006db3827bd3e2',
+     'gid://shopify/ProductVariant/67768743690434':'451dbc5136fe6644f155471c5cba2386de13c99997d5638b48665213cdf0f5c3',
+     'gid://shopify/ProductVariant/67768743723202':'e5c1488ee80bd06efaa16e7119380ea2c503f1b17c2d1808a0352f136da03d6b'
+    })
+   }),
+   'gid://shopify/Product/15507099615426':Object.freeze({
+    title:'Premium Black Flats',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/premium-black-flats',
+    images:Object.freeze(['https://cdn.shopify.com/s/files/1/0791/5749/3954/files/shoes-premium-black-flats-1.jpg?v=1791899127']),
+    variants:Object.freeze({
+     'gid://shopify/ProductVariant/67782441763010':'b56a924db86b71c6d0ca410ad553c9997e8ac28c34562d189ba071c224432f92',
+     'gid://shopify/ProductVariant/67782441795778':'790aedb95ad9dbb8a7654feb4302e7e49682f4eb88343c5f446d008e90597ac7',
+     'gid://shopify/ProductVariant/67782441828546':'ee5354cb2e582f67bcf4f43cdfee8a97158ead8f0022be6b55183fef4c4fff5a',
+     'gid://shopify/ProductVariant/67782441861314':'1a0d23083afdb758857448344130c16aeabc38d098c1e24e0687266a7a9d5dec',
+     'gid://shopify/ProductVariant/67782441894082':'7a8907fc69968cc4b65012030d5ebce3f68eb68e2fc6504ea91f510d2bc64609',
+     'gid://shopify/ProductVariant/67782441926850':'3efa0a91dd94c3e2a95b95e254e75e0e81665bb1515165b81bb5f18e1e12ca37',
+     'gid://shopify/ProductVariant/67782441959618':'8c7363462fac9330615e033026bfece0a8b87162e6519429c676e9ea6f0c57fc'
+    })
+   }),
+   'gid://shopify/Product/15507092111554':Object.freeze({
+    title:'G5 Flat Billed Snap Back Hat',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/g5-flat-billed-snap-back-hat',
+    images:Object.freeze(['https://cdn.shopify.com/s/files/1/0791/5749/3954/files/G5-Snap-Back-Hat01.jpg?v=1791898958']),
+    variants:Object.freeze({
+     'gid://shopify/ProductVariant/67782309019842':'4b185170bdb29a0182a28b113e28966df50c72c4ef53f9f8b1561981b8e63d58'
+    })
+   }),
+   'gid://shopify/Product/15507093749954':Object.freeze({
+    title:'Bamboo Rayon Ski & Snowboard Socks - Single Pair Pack',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/bamboo-rayon-ski-snowboard-socks-single-pair-pack',
+    images:Object.freeze([
+     'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-black-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-011-01-01-13653944598583.jpg?v=1791898990',
+     'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-blue-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-012-01-01-13653967405111.jpg?v=1791898990',
+     'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-pink-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-014-01-01-13654046834743.jpg?v=1791898992',
+     'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-purple-black-bamboo-sports-bamboo-ski-snowboard-socks-4-03-013-01-01-13654058074167.jpg?v=1791898989'
+    ]),
+    variants:Object.freeze({
+     'gid://shopify/ProductVariant/67782331760834':'1e9cf3723b316388d81b46e12d9a68e73c1d8328da420c22c59e3b99ee0e7bc5',
+     'gid://shopify/ProductVariant/67782331793602':'539e5929e8fb53c842ace9be4471f2abbe352b7d0fb6d30c1db07e01dd8d514a',
+     'gid://shopify/ProductVariant/67782331826370':'a7c7970468ef73f2f68d9e5b1e211acc0e72aaff326178724b4fb08dc4d4ede7',
+     'gid://shopify/ProductVariant/67782331859138':'34d5d98d82231a6381a8560c754564b0036022b21341d0a066c9d71995f388c0',
+     'gid://shopify/ProductVariant/67782331891906':'5bb39ea953616e1d8f150291f695d096f10fd49e3268865c21bf746d90b20d2c',
+     'gid://shopify/ProductVariant/67782331957442':'6f0b3f3745bd6afc5fdf7dbaaa61b57e4cc349b4316507dee47204b8eb7cd8b0',
+     'gid://shopify/ProductVariant/67782331990210':'1fa9f6073d5ad5a53b4eb0e138d978f4e32ac7620e0302be3db50b1920d416c8'
+    })
+   })
   })
  });
  const REVOCATION_REASONS=new Set(['delisted','permission_revoked','unresolved']);
@@ -55,24 +122,25 @@
   return null;
  }
  function hasCanonicalApprovedContent(v,{requireAll=false}={}){
-  const descOk=v?.description===APPROVED_OWNED_SAMPLE.title;
-  const imgOk=requireAll?v?.productImage===APPROVED_OWNED_SAMPLE.productImage:(v?.productImage===undefined||v?.productImage===APPROVED_OWNED_SAMPLE.productImage);
+  const r=reference(v),p=r&&APPROVED_OWNED_SAMPLE.products[r.productId];if(!p)return false;
+  const descOk=v?.description===p.title;
+  const imgOk=requireAll?p.images.includes(v?.productImage):(v?.productImage===undefined||p.images.includes(v?.productImage));
   const hasM=v?.merchantProductUrl!==undefined&&v?.merchantProductUrl!=='';
   const hasP=v?.productUrl!==undefined&&v?.productUrl!=='';
-  const mOk=!hasM||safeUrl(v.merchantProductUrl)===APPROVED_OWNED_SAMPLE.productUrl;
-  const pOk=!hasP||safeUrl(v.productUrl)===APPROVED_OWNED_SAMPLE.productUrl;
+  const mOk=!hasM||safeUrl(v.merchantProductUrl)===p.productUrl;
+  const pOk=!hasP||safeUrl(v.productUrl)===p.productUrl;
   const urlOk=mOk&&pOk&&(!requireAll||(hasM||hasP));
   return Boolean(descOk&&imgOk&&urlOk);
  }
  function isApprovedSample(v,now=Date.now()){
-  const r=reference(v),hash=r&&APPROVED_OWNED_SAMPLE.variants[r.variantId];
+  const r=reference(v),p=r&&APPROVED_OWNED_SAMPLE.products[r.productId],hash=p&&p.variants[r.variantId];
   const restExp=v?.sourceState?.restoration?.expiresAt;
   const cap=restExp&&APPROVED_OWNED_SAMPLE.allowedExpiresAt.includes(restExp)?Date.parse(restExp):APPROVED_OWNED_SAMPLE.expiresAt;
-  return Boolean(r&&hash&&r.provider===APPROVED_OWNED_SAMPLE.provider&&r.merchantId===APPROVED_OWNED_SAMPLE.merchantId&&r.productId===APPROVED_OWNED_SAMPLE.productId&&Number.isFinite(now)&&now<=cap&&v?.sourceState?.rights==='retained'&&v?.sourceState?.redacted===false&&!revocationReason(v)&&hasCanonicalApprovedContent(v));
+  return Boolean(r&&p&&hash&&r.provider===APPROVED_OWNED_SAMPLE.provider&&r.merchantId===APPROVED_OWNED_SAMPLE.merchantId&&Number.isFinite(now)&&now<=cap&&v?.sourceState?.rights==='retained'&&v?.sourceState?.redacted===false&&!revocationReason(v)&&hasCanonicalApprovedContent(v));
  }
  function isAuthorizedRestore(v,now=Date.now()){
   if(!isApprovedSample(v,now)||!hasCanonicalApprovedContent(v,{requireAll:true}))return false;
-  const rest=v?.sourceState?.restoration,hash=APPROVED_OWNED_SAMPLE.variants[reference(v).variantId];
+  const r=reference(v),rest=v?.sourceState?.restoration,hash=APPROVED_OWNED_SAMPLE.products[r.productId]?.variants[r.variantId];
   return Boolean(rest&&rest.decisionRef===APPROVED_OWNED_SAMPLE.restorationRef&&APPROVED_OWNED_SAMPLE.evidenceRefs.includes(rest.evidenceRef)&&rest.materialHash===hash&&APPROVED_OWNED_SAMPLE.allowedExpiresAt.includes(rest.expiresAt)&&now<=Date.parse(rest.expiresAt));
  }
 

@@ -43,18 +43,70 @@ test('actual cached deletion keeps its tombstone but never caches or uploads mer
 test('approved internal Shopify store saved looks retain product title, image and URL across cloud pull',async()=>{
  const prior={window:globalThis.window,document:globalThis.document,localStorage:globalThis.localStorage};
  const lookPayload={
-  id:'look-1',label:'shirt',saved:true,mode:'guided',budget:100,
-  styleNotes:'1 approved Shopify listings in this page.',
-  pieces:[{
-   type:'shirt',slot:'shirt',description:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
-   searchQuery:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',target:40,priceAtSelection:40,
-   shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15499321999554',variantId:'gid://shopify/ProductVariant/67768739332290',slot:'shirt'},
-   sourceState:{status:'available',rights:'retained',redacted:false},
-   merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
-   productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
-   productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816',
-   retailer:'MATCHLATCH',currency:'USD',size:'S'
-  }]
+  id:'look-1',label:'full-outfit',saved:true,mode:'guided',budget:400,
+  styleNotes:'6 approved Shopify listings in this page.',
+  pieces:[
+   {
+    type:'shirt',slot:'shirt',description:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',
+    searchQuery:'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee',target:40,priceAtSelection:40,
+    shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15499321999554',variantId:'gid://shopify/ProductVariant/67768739332290',slot:'shirt'},
+    sourceState:{status:'available',rights:'retained',redacted:false},
+    merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/basalt-s-n-jersey-3-4-sleeve-crop-top-tee',
+    productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816',
+    retailer:'MATCHLATCH',currency:'USD',size:'S'
+   },
+   {
+    type:'jacket',slot:'jacket',description:'DRAKON Faux Leather Crop Top Jacket',
+    searchQuery:'DRAKON Faux Leather Crop Top Jacket',target:100,priceAtSelection:100,
+    shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15499322130626',variantId:'gid://shopify/ProductVariant/67768739528898',slot:'jacket'},
+    sourceState:{status:'available',rights:'retained',redacted:false},
+    merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/drakon-faux-leather-crop-top-jacket',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/drakon-faux-leather-crop-top-jacket',
+    productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/GeneratedImageDecember07_2025-6_05PM_2d86b0a6-49fb-48bc-ad62-f53cf5b80d76.png?v=1791808815',
+    retailer:'MATCHLATCH',currency:'USD',size:'S'
+   },
+   {
+    type:'pants',slot:'pants',description:'PANTHEON Washed French Terry Stacked Jogger Pants',
+    searchQuery:'PANTHEON Washed French Terry Stacked Jogger Pants',target:50,priceAtSelection:50,
+    shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15499322785986',variantId:'gid://shopify/ProductVariant/67768743559362',slot:'pants'},
+    sourceState:{status:'available',rights:'retained',redacted:false},
+    merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/pantheon-washed-french-terry-stacked-jogger-pants',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/pantheon-washed-french-terry-stacked-jogger-pants',
+    productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_ymj2hjymj2hjymj2.png?v=1791808821',
+    retailer:'MATCHLATCH',currency:'USD',size:'S'
+   },
+   {
+    type:'shoes',slot:'shoes',description:'Premium Black Flats',
+    searchQuery:'Premium Black Flats',target:48,priceAtSelection:48,
+    shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15507099615426',variantId:'gid://shopify/ProductVariant/67782441763010',slot:'shoes'},
+    sourceState:{status:'available',rights:'retained',redacted:false},
+    merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/premium-black-flats',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/premium-black-flats',
+    productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/shoes-premium-black-flats-1.jpg?v=1791899127',
+    retailer:'MATCHLATCH',currency:'USD',size:'6'
+   },
+   {
+    type:'hat',slot:'hat',description:'G5 Flat Billed Snap Back Hat',
+    searchQuery:'G5 Flat Billed Snap Back Hat',target:24,priceAtSelection:24,
+    shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15507092111554',variantId:'gid://shopify/ProductVariant/67782309019842',slot:'hat'},
+    sourceState:{status:'available',rights:'retained',redacted:false},
+    merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/g5-flat-billed-snap-back-hat',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/g5-flat-billed-snap-back-hat',
+    productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/G5-Snap-Back-Hat01.jpg?v=1791898958',
+    retailer:'MATCHLATCH',currency:'USD',color:'Black'
+   },
+   {
+    type:'socks',slot:'socks',description:'Bamboo Rayon Ski & Snowboard Socks - Single Pair Pack',
+    searchQuery:'Bamboo Rayon Ski & Snowboard Socks - Single Pair Pack',target:14.95,priceAtSelection:14.95,
+    shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15507093749954',variantId:'gid://shopify/ProductVariant/67782331760834',slot:'socks'},
+    sourceState:{status:'available',rights:'retained',redacted:false},
+    merchantId:'pfcdgt-is.myshopify.com',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/bamboo-rayon-ski-snowboard-socks-single-pair-pack',
+    productUrl:'https://pfcdgt-is.myshopify.com/products/bamboo-rayon-ski-snowboard-socks-single-pair-pack',
+    productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-black-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-011-01-01-13653944598583.jpg?v=1791898990',
+    retailer:'MATCHLATCH',currency:'USD',size:'Medium'
+   }
+  ]
  };
  const cache=new Map([['matchlatch-cloud-cache-v1-owner-1',JSON.stringify({state:{looks:[lookPayload]},pending:[]})]]),writes=[];let shown,sync;
  try{
@@ -66,9 +118,12 @@ test('approved internal Shopify store saved looks retain product title, image an
   sync=createCloudSync({from:()=>query},{setState:s=>{shown=s;},setGuest(){},applyProfile(){}});
   await sync.setUser({id:'owner-1'});
   await new Promise(resolve=>setImmediate(resolve));
-  assert.equal(shown.looks[0].pieces[0].description,'BASALT S/N Jersey 3/4 Sleeve Crop Top Tee');
-  assert.equal(shown.looks[0].pieces[0].productImage,'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/Gemini_Generated_Image_gxqvlagxqvlagxqv.png?v=1791808816');
-  assert.equal(shown.looks[0].pieces[0].sourceState.redacted,false);
+  assert.equal(shown.looks[0].pieces.length,6);
+  for(const p of shown.looks[0].pieces){
+   assert.equal(p.sourceState.redacted,false);
+   assert.ok(p.productImage?.startsWith('https://cdn.shopify.com/'));
+   assert.ok(p.productUrl?.startsWith('https://pfcdgt-is.myshopify.com/products/'));
+  }
   assert.equal(writes.length,0);
  }finally{if(sync)await sync.setUser(null);for(const [k,v] of Object.entries(prior)){if(v===undefined)delete globalThis[k];else globalThis[k]=v;}}
 });
