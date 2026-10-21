@@ -100,6 +100,15 @@
      'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-pink-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-014-01-01-13654046834743.jpg?v=1791898992',
      'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-purple-black-bamboo-sports-bamboo-ski-snowboard-socks-4-03-013-01-01-13654058074167.jpg?v=1791898989'
     ]),
+    variantImages:Object.freeze({
+     'gid://shopify/ProductVariant/67782331760834':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-black-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-011-01-01-13653944598583.jpg?v=1791898990',
+     'gid://shopify/ProductVariant/67782331793602':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-blue-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-012-01-01-13653967405111.jpg?v=1791898990',
+     'gid://shopify/ProductVariant/67782331826370':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-pink-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-014-01-01-13654046834743.jpg?v=1791898992',
+     'gid://shopify/ProductVariant/67782331859138':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-purple-black-bamboo-sports-bamboo-ski-snowboard-socks-4-03-013-01-01-13654058074167.jpg?v=1791898989',
+     'gid://shopify/ProductVariant/67782331891906':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-black-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-011-01-01-13653944598583.jpg?v=1791898990',
+     'gid://shopify/ProductVariant/67782331957442':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-pink-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-014-01-01-13654046834743.jpg?v=1791898992',
+     'gid://shopify/ProductVariant/67782331990210':'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-purple-black-bamboo-sports-bamboo-ski-snowboard-socks-4-03-013-01-01-13654058074167.jpg?v=1791898989'
+    }),
     variants:Object.freeze({
      'gid://shopify/ProductVariant/67782331760834':'1e9cf3723b316388d81b46e12d9a68e73c1d8328da420c22c59e3b99ee0e7bc5',
      'gid://shopify/ProductVariant/67782331793602':'539e5929e8fb53c842ace9be4471f2abbe352b7d0fb6d30c1db07e01dd8d514a',
@@ -124,7 +133,8 @@
  function hasCanonicalApprovedContent(v,{requireAll=false}={}){
   const r=reference(v),p=r&&APPROVED_OWNED_SAMPLE.products[r.productId];if(!p)return false;
   const descOk=v?.description===p.title;
-  const imgOk=requireAll?p.images.includes(v?.productImage):(v?.productImage===undefined||p.images.includes(v?.productImage));
+  const expectedImg=p.variantImages?.[r.variantId]||p.images[0];
+  const imgOk=requireAll?v?.productImage===expectedImg:(v?.productImage===undefined||v?.productImage===expectedImg);
   const hasM=v?.merchantProductUrl!==undefined&&v?.merchantProductUrl!=='';
   const hasP=v?.productUrl!==undefined&&v?.productUrl!=='';
   const mOk=!hasM||safeUrl(v.merchantProductUrl)===p.productUrl;

@@ -203,6 +203,8 @@ test('scoped authorized restoration heals default-denied local cache while prese
   assert.equal(s.looks[0].pieces[0].sourceState.redacted,true);
   assert.equal(s.looks[0].pieces[0].productImage,undefined);
  }
+ const swappedSockLook=makeLook('look-sock-swap',{},{slot:'socks',description:'Bamboo Rayon Ski & Snowboard Socks - Single Pair Pack',productImage:'https://cdn.shopify.com/s/files/1/0791/5749/3954/files/bamboo-sports-socks-medium-blue-grey-bamboo-sports-bamboo-ski-snowboard-socks-4-03-012-01-01-13653967405111.jpg?v=1791898990',merchantProductUrl:'https://pfcdgt-is.myshopify.com/products/bamboo-rayon-ski-snowboard-socks-single-pair-pack',productUrl:'https://pfcdgt-is.myshopify.com/products/bamboo-rayon-ski-snowboard-socks-single-pair-pack',shopRef:{provider:'shopify_storefront',merchantId:'pfcdgt-is.myshopify.com',productId:'gid://shopify/Product/15507093749954',variantId:'gid://shopify/ProductVariant/67782331760834'},sourceState:{status:'available',rights:'retained',redacted:false}});
+ assert.equal(model.sanitizeState({looks:[swappedSockLook]}).looks[0].pieces[0].sourceState.redacted,true);
  // 4d. SAVE-COVERAGE-04: Duplicate same-product pieces within a look or colliding look IDs fail closed.
  const sameProdLook={...restoredRemote,id:'look-same-prod',pieces:[restoredRemote.pieces[0],{...restoredRemote.pieces[0],shopRef:{...shopRef,variantId:'gid://shopify/ProductVariant/67768739397826'}}]};
  const sameProdSanitized=model.sanitizeState({looks:[sameProdLook]});
