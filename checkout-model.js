@@ -50,14 +50,18 @@
  function revocationReason(v){
   const s=v?.sourceState;
   if(REVOCATION_REASONS.has(s?.reason))return s.reason;
-  if(s?.revoked===true||v?.revoked===true||s?.rightsState==='withdrawn'||v?.rightsState==='withdrawn'||s?.rights==='withdrawn'||s?.reason==='withdrawn')return 'permission_revoked';
+  if(REVOCATION_REASONS.has(v?.reason))return v.reason;
+  if(s?.revoked===true||v?.revoked===true||s?.rightsState==='withdrawn'||v?.rightsState==='withdrawn'||s?.rights==='withdrawn'||v?.rights==='withdrawn'||s?.reason==='withdrawn'||v?.reason==='withdrawn')return 'permission_revoked';
   return null;
  }
  function hasCanonicalApprovedContent(v,{requireAll=false}={}){
   const descOk=v?.description===APPROVED_OWNED_SAMPLE.title;
   const imgOk=requireAll?v?.productImage===APPROVED_OWNED_SAMPLE.productImage:(v?.productImage===undefined||v?.productImage===APPROVED_OWNED_SAMPLE.productImage);
-  const url=destination(v);
-  const urlOk=requireAll?url===APPROVED_OWNED_SAMPLE.productUrl:((!v?.productUrl&&!v?.merchantProductUrl)||url===APPROVED_OWNED_SAMPLE.productUrl);
+  const hasM=v?.merchantProductUrl!==undefined&&v?.merchantProductUrl!=='';
+  const hasP=v?.productUrl!==undefined&&v?.productUrl!=='';
+  const mOk=!hasM||safeUrl(v.merchantProductUrl)===APPROVED_OWNED_SAMPLE.productUrl;
+  const pOk=!hasP||safeUrl(v.productUrl)===APPROVED_OWNED_SAMPLE.productUrl;
+  const urlOk=mOk&&pOk&&(!requireAll||(hasM||hasP));
   return Boolean(descOk&&imgOk&&urlOk);
  }
  function isApprovedSample(v,now=Date.now()){

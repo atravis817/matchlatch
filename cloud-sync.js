@@ -65,7 +65,7 @@ export function createCloudSync(supabase, hooks) {
     }
     for(const change of pending.values())merged.set(key(change.kind,change.record_id),change);
     const remote=toState(merged);
-    const before=lifecycle.sanitizeState({...state,looks:[...(state.looks||[]),...(remote.looks||[])],cart:[...(state.cart||[]),...(remote.cart||[])],favorites:[...(state.favorites||[]),...(remote.favorites||[])]});
+    const before=lifecycle.sanitizeState(state,lifecycle.sanitizeState(remote));
     state=lifecycle.sanitizeState(remote,before);
     for(const [entry,record] of mapState(state)){
       if(JSON.stringify(record.payload)!==JSON.stringify(merged.get(entry)?.payload))pending.set(entry,record);
