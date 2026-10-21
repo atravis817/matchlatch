@@ -1,3 +1,4 @@
+import {merchantDestination,boundTrackingLink} from '../lib/awin-tracking.mjs';
 /* MATCHLATCH Awin importer: trusted Node.js 20+, dry-run by default.
  * Explicit --write only. New records stay private; updates preserve existing eligibility.
  */
@@ -17,14 +18,8 @@ function slot(category){
  return Object.entries(rules).find(([,rule])=>rule.test(s))?.[0]||null;
 }
 
-export function affiliateAllowed(url,advertiserId) {
- try {
-  const u=new URL(url);
-  if(!https(url,['www.awin1.com','awin1.com'])||!['/cread.php','/pclick.php','/awclick.php'].includes(u.pathname))return false;
-  const publisher=u.searchParams.get('awinaffid')||u.searchParams.get('a')||u.searchParams.get('id');
-  const merchant=u.searchParams.get('awinmid')||u.searchParams.get('m')||u.searchParams.get('mid');
-  return publisher===PUBLISHER_ID&&merchant===String(advertiserId);
- }catch{return false;}
+export function affiliateAllowed(url,advertiserId,destination) {
+ return Boolean(boundTrackingLink(url,{publisher:PUBLISHER_ID,advertiserId,destination,context:'feed'}));
 }
 export function validateProduct(p,id,retailer,testSource=null) {
  const productId=field(p,'merchant_product_id','aw_product_id','product_id');
@@ -34,8 +29,8 @@ export function validateProduct(p,id,retailer,testSource=null) {
  const category=field(p,'merchant_category','category_name','merchant_product_category_path','product_type');
  const s=slot(category+' '+title);
  const image=https(field(p,'aw_image_url','merchant_image_url','large_image'));
- const url=https(field(p,'merchant_deep_link','product_url'));
- const affiliate=https(field(p,'aw_deep_link'));
+ const url=merchantDestination(field(p,'merchant_deep_link','product_url'))?.href;
+ const affiliate=field(p,'aw_deep_link');
  const currency=field(p,'currency').toUpperCase();
  const stock=field(p,'in_stock','stock_status').toLowerCase();
  const available=['1','yes','true','in stock','in_stock','instock','available'].includes(stock);
@@ -51,7 +46,7 @@ export function validateProduct(p,id,retailer,testSource=null) {
  if(!s)errors.push('unsupported_category');
  if(!image)errors.push('invalid_image_url');
  if(!url||!merchantLinkAllowed(candidate,url))errors.push('invalid_merchant_url');
- if(!affiliate||!affiliateAllowed(affiliate,id))errors.push('invalid_affiliate_attribution');
+ if(!affiliate||!affiliateAllowed(affiliate,id,url))errors.push('invalid_affiliate_attribution');
  if(currency!=='USD')errors.push('non_USD_currency');
  if(errors.length)return {product:null,errors};
  return {errors:[],product:{
@@ -67,6 +62,7 @@ export function validateProduct(p,id,retailer,testSource=null) {
 }
 export const mapProduct=(p,id,retailer)=>validateProduct(p,id,retailer).product;
 export async function run({write=process.argv.includes('--write'),accessibleTestFeeds=process.argv.includes('--accessible-test-feeds'),full=process.argv.includes('--full'),resumeId=process.argv.find(a=>a.startsWith('--resume='))?.slice(9)||null}={}) {
+ if(process.env.MATCHLATCH_SHOPIFY_FIRST_PHASE==='true')throw Error('Awin feed import and reconciliation are frozen during Shopify validation');
  if(write)writeApproval();
  const signal=AbortSignal.timeout(240000);
  if(accessibleTestFeeds&&process.env.VERCEL_ENV!=='preview')throw Error('Accessible test feeds require the Preview environment');
@@ -106,7 +102,7 @@ export async function run({write=process.argv.includes('--write'),accessibleTest
    report.push({...metadata,source_checked_at:checkedAt,freshness,http_status:products.http_status,headers:products.headers,compression:products.compression,download_bytes:products.download_bytes,decoded_bytes:products.decoded_bytes,rows:products.rows.length,eligible:accepted,selected,duplicates,rejected});
   }catch(error){report.push({...metadata,error:safeError(error)});}
  }
- const summary={mode:write?'private-import':'dry-run',feeds:report,eligible_products:all.length,limit:maxItems,public_products_created:0,sample_products:all.slice(0,5).map(p=>({advertiser_id:p.advertiser_id,title:p.title,price_usd:p.price_usd,size:p.size,stock_status:p.stock_status,available:p.available,image_host:new URL(p.image_url).hostname,affiliate_verified:affiliateAllowed(p.affiliate_url,p.advertiser_id)}))};
+ const summary={mode:write?'private-import':'dry-run',feeds:report,eligible_products:all.length,limit:maxItems,public_products_created:0,sample_products:all.slice(0,5).map(p=>({advertiser_id:p.advertiser_id,title:p.title,price_usd:p.price_usd,size:p.size,stock_status:p.stock_status,available:p.available,image_host:new URL(p.image_url).hostname,affiliate_verified:affiliateAllowed(p.affiliate_url,p.advertiser_id,p.product_url)}))};
  for(const feed of report)console.log(JSON.stringify({stage:'feed-validation',...feed}));
  console.log(JSON.stringify({...summary,feeds:undefined}));
  if(report.some(feed=>feed.error))throw Error('One or more eligible feed downloads failed; no database writes performed');

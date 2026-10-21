@@ -2,6 +2,8 @@
 // Every write uses the logged-in user's own Supabase session and table/storage RLS.
 // Saved state is per-record; a deletion is a tombstone so other devices don't resurrect it.
 export function createCloudSync(supabase, hooks) {
+  const lifecycle=window.MatchlatchCheckoutModel;
+  if(!lifecycle?.sanitizeState)throw Error("Source lifecycle unavailable");
   const BUCKET="matchlatch-inspirations";
   const KINDS=["inspirations","looks","favorites","cart","purchases","collections"];
   const blank=()=>Object.fromEntries(KINDS.map(k=>[k,[]]));
@@ -62,7 +64,12 @@ export function createCloudSync(supabase, hooks) {
       });
     }
     for(const change of pending.values())merged.set(key(change.kind,change.record_id),change);
-    state=toState(merged);
+    const remote=toState(merged);
+    const before=lifecycle.sanitizeState(state,lifecycle.sanitizeState(remote));
+    state=lifecycle.sanitizeState(remote,before);
+    for(const [entry,record] of mapState(state)){
+      if(JSON.stringify(record.payload)!==JSON.stringify(merged.get(entry)?.payload))pending.set(entry,record);
+    }
     const p=merged.get("profile:preferences");
     profile=p&&!p.is_deleted?p.payload:null;
     lastSnapshot=copy(state);
@@ -101,6 +108,7 @@ export function createCloudSync(supabase, hooks) {
   };
   function queueState(newState){
     if(!account)return;
+    newState=lifecycle.sanitizeState(newState,state,{allowRetained:true});
     const previous=mapState(lastSnapshot),next=mapState(newState);
     const allKeys=new Set([...previous.keys(),...next.keys()]);
     for(const entry of allKeys){
@@ -108,7 +116,7 @@ export function createCloudSync(supabase, hooks) {
       if(now&&JSON.stringify(now.payload)!==JSON.stringify(prev?.payload)){
         pending.set(entry,now);
       }else if(prev&&!now){
-        pending.set(entry,{...prev,is_deleted:true});
+        pending.set(entry,{...prev,payload:{id:prev.record_id},is_deleted:true});
       }
     }
     state=copy(newState);lastSnapshot=copy(newState);
@@ -150,7 +158,7 @@ export function createCloudSync(supabase, hooks) {
         const {error}=await supabase.from("matchlatch_records").upsert(
           batch.map(x=>({
             user_id:uid,kind:x.kind,record_id:x.record_id,
-            payload:x.payload,is_deleted:x.is_deleted
+            payload:x.is_deleted?{id:x.record_id}:x.payload,is_deleted:x.is_deleted
           })),
           {onConflict:"user_id,kind,record_id"}
         );
@@ -194,12 +202,15 @@ export function createCloudSync(supabase, hooks) {
     const cache=loadCache(uid);
     if(cache){
       for(const k of KINDS)state[k]=Array.isArray(cache.state?.[k])?cache.state[k]:[];
+      state=lifecycle.sanitizeState(state);
       lastSnapshot=copy(state);
       pending=new Map((cache.pending||[]).filter(x=>x?.kind&&x.record_id).map(x=>[key(x.kind,x.record_id),x]));
+      for(const change of pending.values())if(change.is_deleted){change.payload={id:change.record_id};}else if(change.kind!=="profile"){const wrapped={[change.kind]:[change.payload]};change.payload=lifecycle.sanitizeState(wrapped,state)[change.kind][0];}
       photos=new Set(cache.photos||[]);
       profile=cache.profile&&typeof cache.profile==="object"?cache.profile:null;
       lastProfile=copy(profile);
     }
+    saveCache();
     notify("Connecting to your private library…");
     refreshDisplay();
     await pull();
@@ -243,7 +254,7 @@ export function createCloudSync(supabase, hooks) {
     }
     if(added){
       queueState(next);
-      hooks.setState(copy(next));
+      hooks.setState(copy(state));
       for(const inspiration of guest.inspirations||[]){
         const photo=await hooks.loadGuestPhoto(inspiration.id);
         if(!photo)continue;

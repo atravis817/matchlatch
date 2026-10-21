@@ -1,14 +1,8 @@
 # MATCHLATCH Preview owner recognition
 
-## Verified identity and configuration
+## Authorization contract
 
-On 2026-10-11, read-only Supabase Auth inspection found exactly one account for `admin@matchlatch.company`:
-
-- User ID: `dacbe970-070d-4eb3-ad48-31c424bc6bc0`.
-- Email confirmed: `2026-10-11 15:39:52.496851+00`.
-- Anonymous: false.
-
-Vercel's existing encrypted `MATCHLATCH_ADMIN_USER_ID` matches that UUID, scoped exclusively to Preview and `design/v1.2-studio-first-100926`. No environment values were changed. Identity recognition uses a fresh server-side Supabase `/auth/v1/user` lookup, email confirmation and UUID equality. Email strings, display names and user-editable metadata do not authorize access.
+Account-specific verification metadata has been removed. Owner authorization requires a fresh server-side identity lookup, confirmation checks and equality with the configured owner identifier. Email strings, display names and user-editable metadata do not authorize access. This document does not attest current account or environment configuration.
 
 ## Implementation
 
@@ -34,7 +28,7 @@ All JavaScript syntax checks and the existing static audit, public catalog, deli
 
 ## Live versus manual verification
 
-Authoritative identity and Preview configuration were verified live. The same analytics collector was already verified against all five real Supabase sources in Preview, and the owner had previously confirmed dashboard access. This change adds navigation without granting a new identity or privilege.
+Historical live-verification claims are not current acceptance evidence. Owner and non-owner journeys require independent verification on the exact authorized Preview. This change adds navigation without granting a new identity or privilege.
 
 The revised owner link and owner-authenticated `/api/admin-summary` response require a manual signed-in check on the updated Preview using the owner's normal account. A live separate non-owner account test also remains; automated tests cover its authorization and link invisibility. No passwords, OTPs or tokens need to be supplied in chat.
 

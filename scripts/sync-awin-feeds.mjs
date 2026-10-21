@@ -1,8 +1,9 @@
+import {merchantDestination,boundTrackingLink} from '../lib/awin-tracking.mjs';
 // MATCHLATCH private Awin Enhanced feed importer. Never invoked by shoppers.
 // Requires AWIN_API_TOKEN, AWIN_PUBLISHER_ID, MATCHLATCH_SUPABASE_URL,
 // MATCHLATCH_SUPABASE_SERVICE_ROLE_KEY. Default: private staging only.
 import {CANDIDATES,merchantLinkAllowed,joinedCandidate} from "../lib/awin-retailers.mjs";
-import {normalizeAwinProduct} from "../lib/awin-feed-normalize.mjs";
+import {normalizeAwinProduct,awinProductEnvelopes,awinProductFields} from "../lib/awin-feed-normalize.mjs";
 const now=()=>new Date().toISOString();
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function slotFor(item){
@@ -22,24 +23,37 @@ function mapFeedRow(row,candidate,at){
  const p=normalizeAwinProduct(enriched,{joinedAdvertiserIds:[candidate.id],importedAt:at});
  if(!p?.available||!merchantLinkAllowed(candidate,p.url)
     ||p.shippingEligibility!=="US listed")return null;
+ const raw=awinProductFields(row);
+ // Validate every original alias in every supported envelope, before merging can
+ // hide conflicting or malformed evidence. Bind again to the actual output URL.
+ const destinations=[],tracking=[];
+ for(const envelope of awinProductEnvelopes(row)){
+  for(const key of ['link','merchant_deep_link']){
+   if(envelope[key]==null||envelope[key]==='')continue;
+   const d=merchantDestination(envelope[key]);
+   if(!d)return null;
+   destinations.push(d.href);
+  }
+  for(const key of ['aw_deep_link','urlTracking']){
+   if(envelope[key]==null||envelope[key]==='')continue;
+   tracking.push(envelope[key]);
+  }
+ }
+ const destination=merchantDestination(p.url);
+ if(!destination||!destinations.length||destinations.some(d=>d!==destination.href))return null;
+ const bound=tracking.map(value=>boundTrackingLink(value,{publisher:'3118944',advertiserId:candidate.id,destination:p.url,context:'feed'}));
+ if(bound.some(value=>!value)||new Set(bound).size>1)return null;
+ const affiliate=bound[0]||'';
  const slot=slotFor(p),prefix="awin:"+candidate.id+":";
  if(!candidate.slots.includes(slot))return null;
  const pid=p.productId.slice(prefix.length),vid=p.variantId.slice(prefix.length);
  if(!pid||!vid||vid.length>200)return null;
- const raw={...(row.product_basic||{}),...row};
  return {
   advertiser_id:candidate.id,source_product_id:pid,source_variant_id:vid,
   slot,title:p.title,description:p.description,brand:p.brand,material:p.material,
   fit:String(raw.fit||"").slice(0,70),size:p.size,color:p.color,
   image_url:p.image,product_url:p.url,
-  affiliate_url:(()=>{
-    try{
-      const host=new URL(p.affiliateUrl).hostname.toLowerCase();
-      return host==="awin1.com"||host.endsWith(".awin1.com")||
-        host==="awin2.com"||host.endsWith(".awin2.com")
-        ?p.affiliateUrl:"";
-    }catch{return "";}
-  })(),
+  affiliate_url:affiliate,
   merchant_name:candidate.name,merchant_host:new URL(p.url).hostname.toLowerCase().replace(/^www\./,""),
   price_usd:p.price,original_price_usd:p.originalPrice||null,currency:"USD",
   available:true,stock_status:p.stockStatus,shipping_us_eligible:true,

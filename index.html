@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <meta name="robots" content="noindex, nofollow">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f8f6">
@@ -10,11 +11,15 @@
       "use strict";
       const key="matchlatch-appearance-v1";
       const allowed=["system","light","dark"];
+      // Same-tab navigation carries appearance only, never account identity or data.
+      const sessionKey="matchlatch-appearance-session-v1";
       let preference="system";
+      try{const saved=sessionStorage.getItem(sessionKey);if(allowed.includes(saved))preference=saved;}catch{}
       let accountId=null;
       // Appearance changes by signed-out visitors are session-only; signed-in choices are account-scoped on this device.
       const device=()=>window.matchMedia?.("(prefers-color-scheme: dark)")?.matches?"dark":"light";
       const update=()=>{
+        try{sessionStorage.setItem(sessionKey,preference);}catch{}
         const theme=preference==="system"?device():preference;
         document.documentElement.setAttribute("data-theme",theme);
         document.documentElement.style.colorScheme=theme;
@@ -33,6 +38,10 @@
         }
       };
       update();
+      window.addEventListener("pageshow",()=>{
+        try{const saved=sessionStorage.getItem(sessionKey);if(allowed.includes(saved))preference=saved;}catch{}
+        update();
+      });
       window.addEventListener("matchlatch:auth-user",event=>{
         accountId=event.detail?.user?.id||null;
         preference="system";
@@ -227,6 +236,15 @@
   <link rel="stylesheet" href="/typography.css">
   <link rel="stylesheet" href="/commerce.css">
   <link rel="stylesheet" href="/camera.css">
+
+  <link rel="canonical" href="https://matchlatch.company/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="MATCHLATCH — Your style, unlocked.">
+  <meta property="og:description" content="Explore personal style, saved looks and fashion discovery in the MATCHLATCH private beta.">
+  <meta property="og:url" content="https://matchlatch.company/">
+  <meta property="og:image" content="https://matchlatch.company/matchlatch-email-logo.png">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://matchlatch.company/#organization", "name": "MATCHLATCH", "url": "https://matchlatch.company/"}, {"@type": "WebSite", "@id": "https://matchlatch.company/#website", "name": "MATCHLATCH", "url": "https://matchlatch.company/", "publisher": {"@id": "https://matchlatch.company/#organization"}}, {"@type": "WebPage", "@id": "https://matchlatch.company/#page", "url": "https://matchlatch.company/", "name": "MATCHLATCH \u2014 Your style, unlocked.", "description": "Explore personal style, saved looks and fashion discovery in the MATCHLATCH private beta.", "isPartOf": {"@id": "https://matchlatch.company/#website"}}]}</script>
 </head>
 <body>
   <div id="matchlatch-splash" class="ml-splash is-playing" aria-hidden="true">
@@ -638,7 +656,7 @@
         <section id="me-preferences" class="me-preferences" aria-label="Your style preferences"></section>
         <div class="account-panel" id="me-account-panel">
           <h2>Your account</h2>
-          <p>Your personal style lives in your account, securely synced across devices.</p>
+          <p>Sign in to save your personal style. Sync requires a connection; check account status before relying on another device.</p>
           <form id="login-form" hidden>
             <label for="login-email">Email address</label>
             <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
@@ -660,7 +678,7 @@
         </div>
         <div class="account-panel" id="me-privacy-panel">
           <h2>Privacy &amp; device data</h2>
-          <p>Older device-only data, if present, can be deleted here. Your signed-in wardrobe stays in your private account.</p>
+          <p>This deletes previous device-only items, if present. It does not delete synced account records or your signed-in wardrobe.</p>
           <button id="clear-library" class="library-subtle" type="button">Delete previous device-only library</button>
         </div>
       </div>
@@ -1092,6 +1110,9 @@
   <script src="/studio-discovery-handoff.js" defer></script>
   <link rel="stylesheet" href="/catalog-experience.css">
   <script defer src="/catalog-experience.js"></script>
+  <script defer src="/studio-request.js"></script>
+  <script defer src="/studio-input.js"></script>
+  <script defer src="/studio-flow.js"></script>
   <script defer src="/splash.js"></script>
   <script defer src="/camera.js"></script>
 </body>

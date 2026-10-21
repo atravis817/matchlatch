@@ -250,6 +250,7 @@ function storeSizeFor(slot,p){
 }
 const USD=value=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(Number(value)||0);
 let searchId=0,controller=null;
+let releaseStoreResearch=()=>{};
 function storeCard(item){
  const card=el("article","store-card v12-product-card");
  const cover=el("div","store-card-cover");
@@ -376,6 +377,7 @@ function openProduct(item){
  showStoreView("product");
 }
 function renderStore(){
+ releaseStoreResearch();
  const target=$("store-body");if(!target)return;
  target.replaceChildren();
  target.dataset.view="search";
@@ -483,6 +485,8 @@ function renderStore(){
  retailerSummary.append(summary,shops);
  results.append(retailerSummary);
  const list=el("div","store-grid");results.append(list);
+ let nextOffset=null,appendRequested=false;
+ const loadMore=button("Load more products",()=>{if(nextOffset!==null){appendRequested=true;form.requestSubmit();}},"commerce-secondary");loadMore.hidden=true;results.append(loadMore);
  // Web references are opt-in styling research; never cart-ready products.
  const webPanel=el("section","store-web-discovery");webPanel.hidden=true;
  const webSummary=el("p","store-web-summary"),webSources=el("div","store-web-sources");
@@ -491,9 +495,14 @@ function renderStore(){
  const webCode=el("input");webCode.type="password";webCode.maxLength=256;
  webCode.placeholder="Private beta code";webCode.autocomplete="off";
  webCode.hidden=true;webCode.setAttribute("aria-label","Web research beta code");
- const webButton=button("Explore wider web ↗",async()=>{
+ const researchConsent=el("input");researchConsent.type="checkbox";
+ const consentLabel=el("label","store-web-note");
+ consentLabel.append(researchConsent,document.createTextNode(" I agree to send the Store query shown below, selected category, exact size and budget to OpenAI for cached-index research at Gap and Nordstrom. No profile, photos or ZIP are sent. Research limits apply; references cannot be saved as stock or purchased."));
+ const researchQuery=el("p","store-web-note");
+ const webButton=button("Research Gap & Nordstrom ↗",async()=>{
   const c=storeState.criteria;
   if(!c||webButton.disabled)return;
+  if(!researchConsent.checked){webMessage.textContent="Select the research consent checkbox first.";researchConsent.focus();return;}
   const code=($("beta-code")?.value||webCode.value||"").trim();
   if(!code){webCode.hidden=false;webCode.focus();webMessage.textContent=
    "Your private beta code is required for web research.";return;}
@@ -501,22 +510,19 @@ function renderStore(){
   webButton.disabled=true;webSources.replaceChildren();retailReferences.replaceChildren();retailReferences.hidden=true;webSummary.textContent="";
   webMessage.textContent="Finding source-backed style references…";
   try{
-   const res=await fetch("/api/discover",{
-    method:"POST",cache:"no-store",headers:{"content-type":"application/json"},
-    body:JSON.stringify({betaCode:code,slot:c.slot,q:c.q,max:c.max,
-     size:c.size,color:c.color,profile:profile()})
-   });
-   const found=await res.json();
+   const {requestResearch}=await import("./research-client.mjs");
+   const found=await requestResearch({query:storeState.query||storeState.slot,max:c.max,
+    size:c.size,slot:storeState.slot==="all"?"":storeState.slot,consent:researchConsent.checked,betaCode:code},
+    {current:()=>run===searchId&&webButton.isConnected});
    if(run!==searchId)return;
-   if(!res.ok)throw Error(found?.error==="BETA_ACCESS_DENIED"?
-    "That private beta code wasn't accepted.":"Web research is unavailable.");
+   if(!found){webMessage.textContent="Research cancelled because the account or search changed. Sign in and try again.";return;}
    webSummary.textContent=found.summary||"";
    const references=Array.isArray(found.sources)?found.sources:[];
    for(const source of references){
     if(!/^https:\/\//i.test(source?.url||""))continue;
     const card=el("div","store-web-source");
     const link=el("a",null,source.title||source.domain||"Open source");
-    link.href=source.url;link.target="_blank";link.rel=item.source==="awin"?"sponsored nofollow noopener noreferrer":"noopener noreferrer";
+    link.href=source.url;link.target="_blank";link.rel=source.source==="awin"?"sponsored nofollow noopener noreferrer":"noopener noreferrer";
     card.append(link,el("small",null,(source.domain||"Source")+
       (source.kind==="product_page_reference"?" · Product-page reference":" · Style research")));
     webSources.append(card);
@@ -538,10 +544,11 @@ function renderStore(){
    webMessage.textContent=references.length
     ?"Web research only · check current size, stock, price and delivery at the retailer."
     :"No suitable source found. Refine your request without relaxing personal preferences.";
-  }catch(error){if(run===searchId)webMessage.textContent=error?.message||"Web search unavailable.";}
+  }catch(error){if(run===searchId)webMessage.textContent=error?.name==="AbortError"?"Research timed out. Use catalog search.":error?.message||"Web research unavailable.";}
   finally{webButton.disabled=false;}
  },"store-web-launch");
- webPanel.append(webButton,webCode,webSummary,retailReferences,webSources,webMessage);
+ releaseStoreResearch=()=>{researchConsent.checked=false;webCode.value="";webCode.hidden=true;webSummary.textContent="";webSources.replaceChildren();retailReferences.replaceChildren();retailReferences.hidden=true;researchQuery.textContent="";webMessage.textContent="";};
+ webPanel.append(researchQuery,consentLabel,webButton,webCode,webSummary,retailReferences,webSources,webMessage);
  results.append(webPanel);
  target.append(results);
  const product=el("section","store-product-shell");product.id="store-product";target.append(product);
@@ -615,6 +622,8 @@ function renderStore(){
  }
  form.addEventListener("submit",async event=>{
   event.preventDefault();
+  const append=appendRequested;appendRequested=false;const pageOffset=append?nextOffset:0;
+  if(append&&pageOffset===null)return;
   const allCategories=select.value==="all",q=query.value.trim()||(allCategories?"":select.value),max=Number(budget.value),selectedDeadline=browseWithoutDate.checked?"":deadline.value;
   formStatus.textContent="";
   const explainSearch=message=>{formStatus.textContent=message;status.textContent=message;};
@@ -638,10 +647,13 @@ function renderStore(){
   storeState.criteria=criteria;
   storeState.query=q;storeState.slot=select.value;storeState.max=max;storeState.useSavedSize=useSavedSize.checked;
   storeState.needBy=selectedDeadline;storeState.deliveryDateDraft=deadline.value;
-  storeState.searched=true;storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
+  storeState.searched=true;if(!append)storeState.items=[];storeState.provider=provider.value;storeState.exactSize=exactSize.value.trim();storeState.brand=brand.value.trim();storeState.sort=sort.value;
   showStoreView("results");
-  list.replaceChildren();retailerSummary.hidden=true;shops.replaceChildren();
+  if(!append)list.replaceChildren();loadMore.disabled=true;retailerSummary.hidden=true;shops.replaceChildren();
   webPanel.hidden=true;webCode.hidden=true;webSummary.textContent="";
+  researchConsent.checked=false;
+  researchQuery.textContent="Research query: "+(q||select.value)+" · Category: "+select.value+" · Size: "+(criteria.size||"unspecified")+" · Budget: $"+criteria.max;
+  retailReferences.replaceChildren();retailReferences.hidden=true;
   webSources.replaceChildren();
   status.textContent="Finding pieces that match your style…";
   submit.disabled=true;
@@ -649,7 +661,7 @@ function renderStore(){
   controller=new AbortController();
   const run=++searchId;
   try{
-   const params=new URLSearchParams({mode:"search",slot:allCategories?"all":criteria.slot,q:allCategories?q:criteria.q,max:String(criteria.max)});
+   const params=new URLSearchParams({mode:"search",slot:allCategories?"all":criteria.slot,q:allCategories?q:criteria.q,max:String(criteria.max),offset:String(pageOffset)});
    if(criteria.size)params.set("size",criteria.size);
    if(criteria.color)params.set("color",criteria.color);
    if(shippingZip())params.set("postal",shippingZip());
@@ -669,7 +681,7 @@ function renderStore(){
    const ranked=allCategories?candidates.flatMap(item=>{const c=matcher.criteria({slot:item.slot,profile:p,size:exactSize.value.trim()||(useSavedSize.checked?storeSizeFor(item.slot,p):""),max,manualQuery:q||item.slot});return matcher.rank([item],c);}):matcher.rank(candidates,criteria);
    const items=catalogSource&&storeState.needBy?[]:ranked;
    if(sort.value==="price-asc")items.sort((a,b)=>a.price-b.price);else if(sort.value==="price-desc")items.sort((a,b)=>b.price-a.price); // Server already enforces deadline eligibility against trusted provider data.
-   storeState.items=items;storeState.checkedAt=Date.now();
+   storeState.items=append?[...storeState.items,...items.filter(item=>!storeState.items.some(old=>old.id===item.id))]:items;storeState.checkedAt=Date.now();nextOffset=data.nextOffset??null;loadMore.hidden=nextOffset===null;
    const matches=window.MatchlatchRetailerMatch;
    const merchants=matches?.merchants?.(items)||[];
    storeState.retailers=merchants;
@@ -681,22 +693,28 @@ function renderStore(){
     " · "+merchants.length+" retailer"+(merchants.length===1?"":"s")+
     " in this search. US shipping eligibility filtered; prices and stock may change.":
     catalogSource?(data.message||"No eligible public catalog products. Private development inventory is excluded."):"No suitable products confirmed for your style, size and budget. Refine your search or update preferences.";
-   if(unifiedSource)status.textContent=(storeState.needBy?"These sources cannot verify arrival by "+storeState.needBy+". Products are withheld; return to Search filters and check Browse without delivery date to see listings with unknown arrival dates.":items.length?items.length+" products match your size, style and merchandise budget.":data.sources?.shopify?.status==="owner_required"?"Shopify was not searched: verified owner sign-in is required in this Preview.":data.sources?.shopify?.status==="disabled"?"Shopify search is disabled in this Preview.":data.sources?.shopify?.status==="unavailable"?"Shopify search could not be reached.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" · Participating catalog: "+data.sources?.shopify?.status+" · Reviewed feeds: "+data.sources?.awin?.status;
+   if(unifiedSource)status.textContent=(storeState.needBy?"These sources cannot verify arrival by "+storeState.needBy+". Products are withheld; return to Search filters and check Browse without delivery date to see listings with unknown arrival dates.":items.length?items.length+" products match your size, style and merchandise budget.":data.sources?.shopify?.status==="owner_required"?"Shopify was not searched: verified owner sign-in is required in this Preview.":data.sources?.shopify?.status==="disabled"?"Shopify search is disabled in this Preview.":data.sources?.shopify?.status==="unavailable"?"Shopify search could not be reached.":"No products meet all your selected size and style constraints.")+" "+(data.limitations||[]).join(" ")+" "+sourceAvailability(data.sources);
    if(data.browse)status.textContent+=" · Live browse page across "+data.browse.categories+" supported categories; not the full retailer inventory.";
    retailerSummary.hidden=merchants.length===0;
    retailerSummary.open=false;
    summary.textContent="View "+merchants.length+" retailer"+(merchants.length===1?"":"s")+" in this search";
    shops.replaceChildren(...merchants.map(merchant=>el("span","store-retailer-name",merchant.name)));
-   list.replaceChildren(...items.map(storeCard));
+   list.replaceChildren(...storeState.items.map(storeCard));
+   if(data.sources?.shopifyInternal)status.textContent=storeState.items.length+" approved Shopify products shown. Prices and inventory are snapshots; confirm at checkout.";
    webPanel.hidden=false;
   }catch(error){
    if(run!==searchId)return;
    if(error?.name!=="AbortError"){
-    status.textContent=/^Store (account tools did not initialize|could not read your account session)/.test(error?.message||"")?error.message:"We couldn't check the live catalog. Use Check Store access to verify your session and both owner routes.";
+    status.textContent=/^Store (account tools did not initialize|could not read your account session)/.test(error?.message||"")?error.message:"We couldn't check the live catalog. Your search choices are kept. Try again, or use Check Store access to check your sign-in.";
     webPanel.hidden=false;
    }
-  }finally{if(run===searchId)submit.disabled=false;}
+  }finally{if(run===searchId){submit.disabled=false;loadMore.disabled=false;}}
  });
+}
+function sourceAvailability(sources){
+ const names={shopify:'Shopify catalog',awin:'Reviewed product feeds'};
+ const states={results:'returned eligible product listings',not_configured:'is not configured',owner_required:'requires verified owner sign-in',disabled:'is turned off',unavailable:'could not be reached',available:'was checked',ok:'was checked',empty:'has no eligible products'};
+ return Object.entries(names).map(([key,name])=>name+' '+(states[sources?.[key]?.status]||'availability is unknown')+'.').join(' ');
 }
 function renderProfileLinks(){
  const root=$("profile-shortcuts");if(!root)return;
@@ -863,17 +881,29 @@ void import("./owner-navigation.mjs").then(({createOwnerNavigation})=>{
  window.MatchlatchOwnerNavigation=createOwnerNavigation({
   getUserId:()=>lib()?.getUserId?.()||null,
   getSession:()=>window.MatchlatchAuth?.client?.auth.getSession()||Promise.resolve({data:{session:null}}),
-  onAuthChange:callback=>window.addEventListener("matchlatch:auth-user",callback)
+  // Recognition must not wait for private cloud hydration. Clear old-owner
+  // navigation synchronously at the account boundary, then verify the new one.
+  onAuthChange:callback=>{
+   for(const event of ["matchlatch:auth-transition","matchlatch:auth-ready","matchlatch:auth-user"])
+    window.addEventListener(event,callback);
+  }
  });
  renderProfileLinks();
 }).catch(()=>{});
 let storeAccountId=lib()?.getUserId?.()||null;
+function resetStoreAccount(nextAccountId){
+ if(nextAccountId===storeAccountId)return;
+ storeAccountId=nextAccountId;searchId++;controller?.abort();releaseStoreResearch();
+ Object.assign(storeState,{query:"",slot:"all",max:0,items:[],searched:false,source:"",checkedAt:0,selected:null,retailers:[],criteria:null,needBy:"",deliveryDateDraft:"",provider:"unified",exactSize:"",brand:"",sort:"relevance",styleContext:"",sizeSystem:"",useSavedSize:true});
+ initialStoreQuery="";initialStoreSlot="";$("store-body")?.replaceChildren();
+}
+// Clear old-account DOM immediately, before the new cloud pull can await I/O.
+window.addEventListener("matchlatch:auth-transition",event=>resetStoreAccount(event.detail?.user?.id||null));
 window.addEventListener("matchlatch:auth-user",()=>{
- const nextAccountId=lib()?.getUserId?.()||null;if(nextAccountId===storeAccountId)return;storeAccountId=nextAccountId;
- searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.retailers=[];storeState.searched=false;storeState.criteria=null;storeState.styleContext="";storeState.sizeSystem="";
+ resetStoreAccount(lib()?.getUserId?.()||null);
  if(location.hash.startsWith("#store"))renderStore();
 });
-window.addEventListener("matchlatch:page",event=>{if(event.detail?.page!=="store"&&storeState.items.some(i=>i.evaluationOnly)){storeState.items=storeState.items.filter(i=>!i.evaluationOnly);if(storeState.selected?.evaluationOnly)storeState.selected=null;storeState.searched=false;}renderDestination(event.detail?.page);});
+window.addEventListener("matchlatch:page",event=>{if(event.detail?.page!=="store"){searchId++;releaseStoreResearch();if(storeState.items.some(i=>i.evaluationOnly)){storeState.items=storeState.items.filter(i=>!i.evaluationOnly);if(storeState.selected?.evaluationOnly)storeState.selected=null;storeState.searched=false;}}renderDestination(event.detail?.page);});
 window.addEventListener("matchlatch:retailer-search",event=>{
  const d=event.detail||{};const q=String(d.query||"").slice(0,170),max=Number(d.max);
  searchId++;controller?.abort();storeState.items=[];storeState.selected=null;storeState.criteria=null;storeState.searched=false;

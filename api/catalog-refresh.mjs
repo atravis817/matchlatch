@@ -5,6 +5,7 @@ export const maxDuration=300;
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
 let running=false;
 export async function POST(request){
+ if(process.env.MATCHLATCH_SHOPIFY_FIRST_PHASE==='true')return json({error:'Awin imports are frozen during Shopify validation.'},503);
  const expected=process.env.MATCHLATCH_REFRESH_SECRET,received=request.headers.get('authorization')||'';
  if(process.env.VERCEL_ENV!=='preview'||!expected)return json({error:'Worker unavailable'},503);
  const a=Buffer.from(received),b=Buffer.from('Bearer '+expected);

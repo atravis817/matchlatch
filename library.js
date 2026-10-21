@@ -49,7 +49,7 @@
   };
   const setState=state=>{
     const previousLook=currentLookId,previousCart=JSON.stringify(dbState.cart);
-    dbState=clone(state||empty());
+    dbState=window.MatchlatchCheckoutModel.sanitizeState(state||empty(),dbState,{allowRetained:true});
     currentLookId=dbState.looks.some(x=>x.id===previousLook)?previousLook:null;
     if(selectedLookDetail&&!dbState.looks.some(x=>x.id===selectedLookDetail))selectedLookDetail=null;
     if(selectedCollectionId&&selectedCollectionId!=="__unfiled__"&&!dbState.collections.some(x=>x.id===selectedCollectionId))selectedCollectionId=null;
@@ -85,7 +85,7 @@
   }
   function persist() {
     try {
-      if(activeUser&&cloudAdapter)cloudAdapter.queueState(dbState);
+      if(activeUser&&cloudAdapter){dbState=window.MatchlatchCheckoutModel.sanitizeState(dbState,undefined,{allowRetained:true});cloudAdapter.queueState(dbState);}
       else {requireAccount();return false;}
       refreshCounts();
       window.dispatchEvent(new Event("matchlatch:library"));
@@ -205,19 +205,37 @@
     element.src=data;
     element.alt="Original inspiration photo";
   }
-  function imageFrame(id,cls="library-card-photo") {
+  function safeCatalogImageUrl(value){
+    return window.MatchlatchCheckoutModel?.safeUrl?.(value,{checkout:false})||"";
+  }
+  function imageFrame(id,cls="library-card-photo",productImage="") {
     const wrap=document.createElement("div");
     wrap.className=cls;
     const img=document.createElement("img");
     img.alt="Original inspiration photo";
     img.loading="lazy";
     wrap.append(img);
+    const safeProductImage=!id&&productImage?safeCatalogImageUrl(productImage):"";
+    if(safeProductImage){
+      img.src=safeProductImage;
+      img.alt="Saved catalog product";
+      img.referrerPolicy="no-referrer";
+      img.addEventListener("error",()=>{
+        if(!img.isConnected)return;
+        img.remove();
+        const fallback=document.createElement("span");
+        fallback.className="placeholder";
+        fallback.textContent="Catalog product image unavailable";
+        wrap.append(fallback);
+      },{once:true});
+      return wrap;
+    }
     attachPhoto(img,id).then(()=>{
       if(!img.getAttribute("src")&&img.isConnected) {
         img.remove();
         const fallback=document.createElement("span");
         fallback.className="placeholder";
-        fallback.textContent=activeUser?"Photo unavailable — reconnect to sync":"Photo unavailable on this device";
+        fallback.textContent=!id?"Catalog outfit — no inspiration photo":activeUser?"Photo unavailable — reconnect to sync":"Photo unavailable on this device";
         wrap.append(fallback);
       }
     });
@@ -439,7 +457,7 @@
     if(existing)dbState.favorites=dbState.favorites.filter(x=>x.id!==existing.id);
     else {
       const look=lookFor(lookId),piece=look?.pieces[index];
-      if(!piece)return;
+      if(!piece||piece.shopRef&&piece.sourceState?.status==="unavailable")return;
       dbState.favorites.unshift({id:uid(),inspirationId:look.inspirationId,lookId,pieceIndex:index,...piece,createdAt:new Date().toISOString()});
     }
     persist();
@@ -454,7 +472,7 @@
   function addToCart(lookId,index) {
     if(!requireAccount(()=>addToCart(lookId,index)))return;
     const look=lookFor(lookId),piece=look?.pieces[index];
-    if(!piece)return;
+    if(!piece||piece.shopRef&&piece.sourceState?.status==="unavailable")return;
     const key=window.MatchlatchCheckoutModel?.identity(piece);
     const existing=cartExists(lookId,index)||Boolean(key&&dbState.cart.some(x=>window.MatchlatchCheckoutModel.identity(x)===key));
     if(!existing) {
@@ -611,7 +629,7 @@
   }
   function renderClosetOverview(target){
     const wants=new Set([...dbState.favorites,...dbState.cart].map(x=>x.source==="retailer"
-      ? "retailer:"+(x.shopRef?.variantId||x.id)
+      ? "retailer:"+(window.MatchlatchCheckoutModel.sourceKey(x)||x.id)
       : x.lookId+":"+x.pieceIndex)).size;
     const sections=[
       ["Collections",dbState.collections.length,"collections","Your folders and saved ideas","folder","folders"],
@@ -660,7 +678,7 @@
     content.replaceChildren();
     const sections={
       overview:"My Closet",collections:"Collections",wants:"Wants",favorites:"Favorites",
-      shortlist:"Your cart",checkout:"Checkout",outfits:"Saved looks",purchases:"Owned",inspirations:"Inspiration photos"
+      shortlist:"Shopping shortlist",checkout:"Checkout",outfits:"Saved looks",purchases:"Owned",inspirations:"Inspiration photos"
     };
     nav.removeAttribute("role");nav.removeAttribute("aria-label");
     content.removeAttribute("aria-labelledby");
@@ -680,7 +698,7 @@
             ? "Review your pieces before continuing to the retailer."
           : selectedTab==="wants"
             ? "Wants combines your favorite pieces and shopping shortlist."
-            : activeUser?"Private closet · Synced when connected.":"Guest closet · Saved on this device.";
+            : activeUser?"Private closet · Account sync requires a connection; check sync status before relying on another device.":"Sign in to save items. Previous device-only items stay on this device until you choose to move them.";
     if(selectedTab!=="overview")content.append(node("p","library-caption",caption));
     if(selectedLookDetail){renderLookDetails(content,selectedLookDetail);return;}
     if(selectedTab==="overview")renderClosetOverview(content);
@@ -738,7 +756,8 @@
     headings.append(node("h2",null,look.label));
     top.append(headings,btn("Close details ×",()=>{selectedLookDetail=null;renderStyles();},"library-subtle"));
     detail.append(top);
-    detail.append(imageFrame(look.inspirationId,"look-detail-photo"));
+    const detailPhoto=(look.pieces||[]).map(p=>safeCatalogImageUrl(p?.productImage)).find(Boolean)||"";
+    detail.append(imageFrame(look.inspirationId,"look-detail-photo",detailPhoto));
     if(look.styleNotes)detail.append(node("p","library-meta",look.styleNotes));
     const list=node("div","look-detail-items");
     look.pieces.forEach((piece,index)=>{
@@ -747,7 +766,14 @@
       text.append(node("div","library-meta",piece.type+" · Target "+money(piece.target)));
       text.append(node("strong",null,piece.description));
       const actions=node("div","library-actions");
-      actions.append(link(piece.searchQuery));
+      const directUrl=window.MatchlatchCheckoutModel?.destination?.(piece)||"";
+      if(directUrl){
+        const a=node("a",null,"Open retailer ↗");
+        a.href=directUrl;a.target="_blank";a.rel="noopener noreferrer";
+        actions.append(a);
+      }else{
+        actions.append(link(piece.searchQuery));
+      }
       actions.append(btn(favoriteExists(look.id,index)?"Remove favorite":"Favorite",()=>{toggleFavorite(look.id,index);renderStyles();}));
       actions.append(btn(cartExists(look.id,index)?"In cart ✓":"Add to cart",()=>{addToCart(look.id,index);renderStyles();}));
       item.append(text,actions);list.append(item);
@@ -756,7 +782,7 @@
     const bottom=node("div","library-actions");
     bottom.append(btn("Shop this outfit ↗",()=>void reopenTree(look.id),"library-primary"));
     bottom.append(btn(look.saved?"Remove saved outfit":"Save outfit",()=>toggleSaveLook(look.id)));
-    bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
+    if(look.inspirationId)bottom.append(btn("View original photo ↗",()=>{selectedLookDetail=null;focusInspiration(look.inspirationId);}));
     bottom.append(collectionPicker(look.inspirationId));
     detail.append(bottom);
     target.append(detail);
@@ -768,9 +794,9 @@
     box.append(btn(buttonLabel,()=>startFreshStudio(),"library-primary"));
     parent.append(box);
   }
-  function makeCard(inspirationId,title,meta,description) {
+  function makeCard(inspirationId,title,meta,description,productImage="") {
     const card=node("article","library-card");
-    card.append(imageFrame(inspirationId));
+    card.append(imageFrame(inspirationId,"library-card-photo",productImage));
     const body=node("div","library-card-body");
     body.append(node("div","library-meta",meta),node("h3","library-card-title",title));
     if(description)body.append(node("p",null,description));
@@ -815,14 +841,16 @@
     }
     const grid=node("div","library-grid");
     for(const look of looks) {
+      const lookImage=(look.pieces||[]).map(p=>safeCatalogImageUrl(p?.productImage)).find(Boolean)||"";
       const {card,body}=makeCard(look.inspirationId,look.label,
         (look.mode==="ai"?"AI curated":"Guided styling")+" · "+dateLabel(look.createdAt),
         [...(look.shopSelections?Object.values(look.shopSelections).map(x=>x.title):[]),
-          ...look.pieces.slice(0,3).map(x=>x.description)].join(" · "));
+          ...look.pieces.slice(0,3).map(x=>x.description)].join(" · "),
+        lookImage);
       const actions=node("div","library-actions");
       actions.append(btn("Open outfit ↗",()=>openLookDetails(look.id)));
       actions.append(btn("Private Shop ↗",()=>void reopenTree(look.id)));
-      actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
+      if(look.inspirationId)actions.append(btn("View inspiration ↗",()=>focusInspiration(look.inspirationId)));
       actions.append(btn("Remove saved outfit",()=>toggleSaveLook(look.id),"quiet-button"));
       actions.append(collectionPicker(look.inspirationId));
       body.append(actions);
@@ -832,6 +860,7 @@
   }
   async function appendLiveShopLink(actions,item) {
     if(!item?.shopRef){actions.append(link(item.searchQuery));return;}
+    if(!window.MatchlatchCheckoutModel.sourceKey(item)||item.sourceState?.status==="unavailable"){actions.append(node("span","library-meta","Unavailable merchant reference"));return;}
     const status=node("span","library-meta","Checking retailer price…");
     actions.append(status);
     try {
@@ -841,19 +870,19 @@
       const payload=await response.json();
       if(!actions.isConnected)return;
       status.remove();
-      if(response.ok && payload.item?.available && payload.item?.url){
+      if(response.ok && window.MatchlatchCheckoutModel.sameSource(item,payload.item) && payload.item?.available && payload.item?.url){
         const a=node("a",null,money(payload.item.price)+" · Open retailer ↗");
         a.href=payload.item.merchantProductUrl||payload.item.url;a.target="_blank";a.rel="noopener noreferrer";
         actions.append(a);
         window.MatchlatchSavings?.attach?.(actions,payload.item);
       } else {
-        actions.append(link(item.searchQuery,"Find similar pieces ↗"));
+
         actions.append(node("span","library-meta","Saved product is no longer available"));
       }
     }catch {
       if(!actions.isConnected)return;
       status.remove();
-      actions.append(link(item.searchQuery,"Find similar pieces ↗"));
+
       actions.append(node("span","library-meta","Live price unavailable"));
     }
   }
@@ -867,7 +896,8 @@
     for(const fav of favorites){
       const {card,body}=makeCard(fav.inspirationId,fav.description,
         fav.type+" · "+(fav.shopRef?"Price when selected ":"Suggested target ")+money(fav.target),
-        "Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"));
+        fav.inspirationId?"Inspired by "+(inspirationFor(fav.inspirationId)?.label||"your original photo"):"Saved from Studio catalog",
+        fav.productImage||"");
       const actions=node("div","library-actions");
       void appendLiveShopLink(actions,fav);
       actions.append(btn("Add to cart",()=>addToCart(fav.lookId,fav.pieceIndex)));
@@ -889,9 +919,9 @@
       const entry=node("article","purchase-summary");
       entry.append(imageFrame(purchase.inspirationId,"purchase-photo"));
       const content=node("div");
-      content.append(node("div","library-meta","Self-reported purchase · "+dateLabel(purchase.date)));
+      content.append(node("div","library-meta","Self-reported purchase · "+dateLabel(purchase.userPurchase?.date||purchase.date)));
       content.append(node("h3",null,purchase.description));
-      content.append(node("p",null,(purchase.retailer?"Retailer: "+purchase.retailer+" · ":"")+"Amount recorded: "+money(purchase.paid)));
+      content.append(node("p",null,((purchase.userPurchase?.retailer||purchase.retailer)?"Retailer: "+(purchase.userPurchase?.retailer||purchase.retailer)+" · ":"")+"Amount recorded: "+money(purchase.userPurchase?.paid??purchase.paid)));
       content.append(node("p",null,"Original inspiration: "+(inspirationFor(purchase.inspirationId)?.label||"Unavailable")));
       if(purchase.notes)content.append(node("p",null,"Notes: "+purchase.notes));
       const actions=node("div","library-actions");
@@ -910,7 +940,7 @@
   };
   const moneyAmount=x=>Number.isFinite(Number(x))&&Number(x)>=0?Number(x):null;
   function addRetailProduct(item){
-    if(item?.evaluationOnly||item?.saveAllowed===false){feedback("This catalog is for owner Preview evaluation. Product data and imagery are not saved.");return false;}
+    if(!window.MatchlatchCheckoutModel.canSave(item)){feedback("This catalog is for owner Preview evaluation. Product data and imagery are not saved.");return false;}
     if(!requireAccount(()=>addRetailProduct(item)))return;
     const price=moneyAmount(item?.price),url=window.MatchlatchCheckoutModel?.safeUrl(item?.merchantProductUrl||item?.url);
     const productId=String(item?.productId||""),variantId=String(item?.variantId||"");
@@ -924,7 +954,7 @@
       feedback("This item is not available to add right now.");
       return false;
     }
-    const selectionKey=window.MatchlatchCheckoutModel.identity({shopRef:{productId,variantId},merchantId:String(item.merchantId||""),merchantProductUrl:url});
+    const selectionKey=window.MatchlatchCheckoutModel.identity({shopRef:{productId,variantId,provider:String(item.source||""),merchantId:String(item.merchantId||"")},merchantId:String(item.merchantId||""),merchantProductUrl:url});
     if(dbState.cart.some(x=>window.MatchlatchCheckoutModel.identity(x)===selectionKey)){
       feedback("Already in your cart.","View cart",()=>openClosetTab("shortlist"));
       return true;
@@ -932,14 +962,14 @@
     const title=String(item.title||"Retailer item").trim().slice(0,155);
     const retailer=String(item.merchant||new URL(url).hostname).trim().slice(0,90);
     dbState.cart.unshift({
-      id:uid(),source:"retailer",lookId:null,inspirationId:null,
+      id:uid(),source:"retailer",lookId:null,inspirationId:null,sourceState:{status:"available",rights:"retained",redacted:false},
       type:String(item.slot||"Clothing").slice(0,36),description:title,target:price,
       currency:"USD",retailer,productUrl:url,merchantProductUrl:url,quantity:1,
-      merchantId:String(item.merchantId||""),color:String(item.color||""),options:Array.isArray(item.options)?clone(item.options):[],
+      merchantId:String(item.merchantId||""),color:String(item.color||""),options:Array.isArray(item.options)?clone(item.options):[],userIntent:{options:Array.isArray(item.options)?clone(item.options):[],size:String(item.size||""),color:String(item.color||"")},
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||title).slice(0,150),
       size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
       checkedAt:String(item.checkedAt||""),
-      shopRef:{productId,variantId,merchantId:String(item.merchantId||""),slot:String(item.slot||"shirt"),provider:awin?"awin":"shopify"},
+      shopRef:{productId,variantId,merchantId:String(item.merchantId||""),slot:String(item.slot||"shirt"),provider:String(item.source||"")},
       createdAt:new Date().toISOString()
     });
     persist();
@@ -970,11 +1000,13 @@
   }
   async function verifyCheckoutItem(cartItem){
     const qs=new URLSearchParams({mode:"verify",id:cartItem.shopRef.productId,variant:cartItem.shopRef.variantId,max:"10000"});
+    qs.set("provider",cartItem.shopRef.provider||"");qs.set("merchantId",cartItem.shopRef.merchantId||"");
     if(cartItem.size)qs.set("size",cartItem.size);
     if(cartItem.color)qs.set("color",cartItem.color);
     const response=await fetch("/api/shop?"+qs,{cache:"no-store",headers:await checkoutHeaders(),signal:AbortSignal.timeout(20000)});
     const body=await response.json();
     if(!response.ok||!body?.item)throw Error(body.error||"This retailer listing could not be verified.");
+    window.MatchlatchCheckoutModel.matchVerified(cartItem,body.item);
     return body.item;
   }
   async function checkoutHeaders(){
@@ -1034,12 +1066,9 @@
     form.addEventListener("submit",event=>{
       event.preventDefault();
       if(!retailer.value.trim()||!purchased.value||!Number.isFinite(Number(paid.value))||Number(paid.value)<0)return;
-      dbState.purchases.unshift({
-        id:uid(),inspirationId:cart.inspirationId,lookId:cart.lookId,
-        description:cart.description,retailer:retailer.value.trim().slice(0,100),
-        paid:Number(paid.value),date:purchased.value,notes:notes.value.trim().slice(0,240),
-        createdAt:new Date().toISOString(),source:"user-entered"
-      });
+      dbState.purchases.unshift(window.MatchlatchCheckoutModel.recordOwnedItem(cart,{
+        retailer:retailer.value,paid:Number(paid.value),date:purchased.value,notes:notes.value
+      },{id:uid()}));
       dbState.cart=dbState.cart.filter(x=>x.id!==cart.id);
       persist();panel.remove();
       selectedTab="purchases";
@@ -1130,12 +1159,14 @@
       selectedLookDetail=null;
     }
     activeUser=nextId?user:null;
+    window.dispatchEvent(new CustomEvent("matchlatch:auth-transition",{detail:{user:activeUser}}));
     if(!activeUser) {
       if(cloudAdapter)await cloudAdapter.setUser(null);
       else setGuest();
     } else if(cloudAdapter) {
       await cloudAdapter.setUser(activeUser);
     }
+    if(run!==authSwitch)return;
     window.dispatchEvent(new CustomEvent("matchlatch:auth-user",{detail:{user:activeUser}}));
     if(activeUser)resumeProtectedAction();
     else {
@@ -1145,6 +1176,7 @@
     if(run===authSwitch && activePage==="account")renderAccount();
   }
   async function initAuth() {
+    let sessionRevision=0;
     try{
       const response=await fetch("/api/auth-config",{cache:"no-store"});
       if(!response.ok)return;
@@ -1172,37 +1204,58 @@
         updateProfile:value=>cloudAdapter?.queueProfile(value),
         retry:()=>cloudAdapter?.retry()
       };
-      const {data,error}=await supabase.auth.getUser();
-      if(error)console.warn("Account session check:",error.message);
-      await applyAuth(data?.user||null);
+      // Subscribe before either initial lookup or hydration can wait. SDK callbacks
+      // stay synchronous; cloud work runs outside the SDK's auth lock.
+      const initialRevision=sessionRevision;
       supabase.auth.onAuthStateChange((_event,session)=>{
-        setTimeout(()=>void applyAuth(session?.user||null),0);
+        const revision=++sessionRevision;
+        // Fence old completion on receipt, before its hydration can settle.
+        // Keep cloud work deferred and same-account refresh hydration intact.
+        if((session?.user?.id||null)!==lastAppliedAuthId)++authSwitch;
+        setTimeout(()=>{
+          if(revision!==sessionRevision)return;
+          void applyAuth(session?.user||null).catch(error=>{
+            if(revision===sessionRevision)console.warn("Account sync:",error?.message||error);
+          });
+        },0);
       });
+      const {data,error}=await supabase.auth.getUser();
+      if(initialRevision!==sessionRevision)return;
+      if(error)console.warn("Account session check:",error.message);
+      await applyAuth(error?null:data?.user||null);
+      if(initialRevision!==sessionRevision)return;
       if(activePage==="account")renderAccount();
     }catch(error){
       console.warn("MATCHLATCH secure login not initialized:",error?.message||error);
-      setGuest();
+      if(sessionRevision===0)setGuest();
     }
   }
 
   function shopPiece(slot,item){
-    if(item?.evaluationOnly||item?.saveAllowed===false)return -1;
+    if(!window.MatchlatchCheckoutModel.canSave(item))return -1;
     const look=currentLook();
     if(!look||!item?.productId||!item?.variantId)return -1;
-    let index=look.pieces.findIndex(p=>p.shopRef?.variantId===item.variantId);
+    // Keep source-qualified identities distinct; an ambiguous legacy reference
+    // must not silently absorb a newly selected merchant variant.
+    const provider=String(item.source||"");
+    const merchantId=String(item.merchantId||"");
+    let index=look.pieces.findIndex(p=>p.shopRef?.provider===provider&&
+      p.shopRef?.merchantId===merchantId&&p.shopRef?.productId===String(item.productId)&&
+      p.shopRef?.variantId===String(item.variantId));
     if(index>=0)return index;
     index=look.pieces.length;
     look.pieces.push({
+      sourceState:{status:"available",rights:"retained",redacted:false},
       type:slot.charAt(0).toUpperCase()+slot.slice(1),
       description:String(item.title||slot).slice(0,155)+" · "+String(item.merchant||"Retailer").slice(0,65),
       searchQuery:String(item.title||slot).slice(0,165),
       target:Number(item.price)||0,
       priceAtSelection:Number(item.price)||0,
-      shopRef:{productId:String(item.productId),variantId:String(item.variantId),slot,provider:item.source==="awin"?"awin":"shopify"},
+      shopRef:{productId:String(item.productId),variantId:String(item.variantId),merchantId,slot,provider},
       retailer:String(item.merchant||"Retailer").slice(0,90),
       productUrl:window.MatchlatchCheckoutModel.safeUrl(item.merchantProductUrl||item.url),
       merchantProductUrl:window.MatchlatchCheckoutModel.safeUrl(item.merchantProductUrl||item.url),
-      merchantId:String(item.merchantId||""),color:String(item.color||""),options:Array.isArray(item.options)?clone(item.options):[],quantity:1,
+      merchantId:String(item.merchantId||""),color:String(item.color||""),options:Array.isArray(item.options)?clone(item.options):[],userIntent:{options:Array.isArray(item.options)?clone(item.options):[],size:String(item.size||""),color:String(item.color||"")},quantity:1,
       productImage:secureProductUrl(item.image),imageAlt:String(item.imageAlt||item.title||slot).slice(0,150),
       size:String(item.size||"").slice(0,36),variant:String(item.variant||"").slice(0,100),
       currency:"USD",checkedAt:String(item.checkedAt||"")
@@ -1211,13 +1264,15 @@
     return index;
   }
   function chooseShopItem(slot,item){
-    if(item?.evaluationOnly||item?.saveAllowed===false)return;
+    if(!window.MatchlatchCheckoutModel.canSave(item))return;
     if(!requireAccount(()=>chooseShopItem(slot,item)))return;
     const look=currentLook();
     if(!look||!item?.variantId||!item?.productId)return;
     if(!look.shopSelections)look.shopSelections={};
     look.shopSelections[slot]={
       productId:String(item.productId),variantId:String(item.variantId),
+      merchantId:String(item.merchantId||""),provider:String(item.source||""),
+      options:Array.isArray(item.options)?clone(item.options):[],userIntent:{options:Array.isArray(item.options)?clone(item.options):[],size:String(item.size||""),color:String(item.color||"")},sourceState:{status:"available",rights:"retained",redacted:false},
       title:String(item.title||slot).slice(0,155),slot
     };
     persist();
@@ -1260,7 +1315,12 @@
     window.MatchlatchStudioFlow?.open("piece");
     $("drop")?.focus();
   }
-  window.MatchlatchLibrary={captureLook,showPage,renderStyles,renderCart,renderCheckout,addRetailProduct,
+  function applySourceTransition(ref,decision){
+    if(!loggedIn())return false;
+    dbState=window.MatchlatchCheckoutModel.sourceTransition(dbState,ref,decision);
+    persist();setState(dbState);return true;
+  }
+  window.MatchlatchLibrary={applySourceTransition,captureLook,showPage,renderStyles,renderCart,renderCheckout,addRetailProduct,
     chooseShopItem,favoriteShopItem,cartShopItem,
     discoverySnapshot,attachInspirationPhoto:attachPhoto,
     openLook:lookId=>void reopenTree(lookId),

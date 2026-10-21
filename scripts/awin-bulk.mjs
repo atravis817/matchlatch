@@ -13,6 +13,7 @@ export function contentOutcome(prior,incoming){
  return prior.content_hash===contentHash(incoming)?'unchanged':'updated';
 }
 export function writeApproval(){
+ if(process.env.MATCHLATCH_SHOPIFY_FIRST_PHASE==='true')throw Error('Awin writes are frozen during Shopify validation');
  if(process.env.VERCEL_ENV!=='preview'||process.env.MATCHLATCH_CATALOG_WRITES_APPROVED!=='true'||process.env.MATCHLATCH_FEED_FRESHNESS_V2!=='true')throw Error('Catalog writes paused: Preview approval and installed v2 protocol required');
 }
 export function importBound(value,fallback,ceiling=899){

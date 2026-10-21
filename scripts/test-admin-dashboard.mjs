@@ -5,7 +5,7 @@ import {collectMetrics} from '../lib/admin-data.mjs';
 import {exportCSV,exportJSON} from '../admin-export.mjs';
 import {GET} from '../api/admin-summary.mjs';
 const now=new Date('2026-10-11T16:00:00Z'),w=periodWindow(7,now);
-const current='2026-10-10T12:00:00Z',previous='2026-10-01T12:00:00Z',owner='dacbe970-070d-4eb3-ad48-31c424bc6bc0';
+const current='2026-10-10T12:00:00Z',previous='2026-10-01T12:00:00Z',owner='00000000-0000-4000-8000-000000000001';
 const reply=data=>new Response(JSON.stringify(data));
 test('period boundaries, baseline-zero comparisons and undefined rates are honest',()=>{assert.throws(()=>periodWindow(3));assert.equal(w.end-w.start,7*86400000);assert.equal(rate(0,0),null);assert.equal(metric('x','x',5,{previous:0}).changePercent,null);assert.equal(metric('x','x',null,{previous:4}).change,null);assert.equal(metric('x','x',3,{previous:2}).changePercent,50);});
 test('account growth uses registration history, latest sign-in is distinct from active users',()=>{const s=summarizeAccounts([{created_at:current,email_confirmed_at:current,last_sign_in_at:current,email:'private@example.com',id:owner},{created_at:previous}],w);assert.equal(s.metrics.find(m=>m.id==='signups').current,1);assert.equal(s.metrics.find(m=>m.id==='signups').previous,1);assert.equal(s.metrics.find(m=>m.id==='verificationRate').current,50);assert.equal(s.series[0].points.reduce((n,p)=>n+p.value,0),1);assert.ok(!JSON.stringify(s).includes('private@example'));assert.ok(!JSON.stringify(s).includes(owner));});
